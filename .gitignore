@@ -1,0 +1,10 @@
+*.pyc
+__pycache__/
+config.py
+*.db
+*.pem
+*.key
+*.crt
+venv/
+.DS_Store
+*.log

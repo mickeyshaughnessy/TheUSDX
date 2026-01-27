@@ -1,0 +1,26 @@
+# US Federal Data Exchange Configuration
+# Copy this file to config.py and fill in your actual credentials
+# config.py is gitignored - never commit credentials!
+
+# OpenRouter API Configuration
+OPENROUTER_API_KEY = 'your_openrouter_api_key_here'
+OPENROUTER_MODEL = 'google/gemini-2.0-flash-001:free'
+
+# Digital Ocean Spaces Configuration
+DO_SPACES_KEY = 'your_digital_ocean_spaces_key'
+DO_SPACES_SECRET = 'your_digital_ocean_spaces_secret'
+DO_SPACES_REGION = 'nyc3'
+DO_SPACES_BUCKET = 'usdx-data'
+DO_SPACES_ENDPOINT = f'https://{DO_SPACES_REGION}.digitaloceanspaces.com'
+
+# Security
+SECRET_KEY = 'generate-with-python-secrets-module'  # python -c "import secrets; print(secrets.token_hex(32))"
+
+# SSL Configuration (optional - for HTTPS)
+SSL_CERT_PATH = None  # '/etc/letsencrypt/live/yourdomain.com/fullchain.pem'
+SSL_KEY_PATH = None   # '/etc/letsencrypt/live/yourdomain.com/privkey.pem'
+
+# Server Configuration
+PORT = 6732
+HOST = '0.0.0.0'
+DEBUG = False

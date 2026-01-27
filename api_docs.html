@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDX API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0000AA;
+            color: #00FFFF;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #0000AA;
+            border: 3px double #00FFFF;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #00FFFF;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #FFFF00;
+            font-size: 2.5em;
+            text-shadow: 2px 2px #00FFFF;
+        }
+        
+        .header p {
+            color: #FFFFFF;
+            margin-top: 10px;
+        }
+        
+        h2 {
+            color: #FFFF00;
+            background: #0000FF;
+            padding: 10px;
+            margin: 30px 0 15px 0;
+            border: 1px solid #00FFFF;
+        }
+        
+        h3 {
+            color: #00FF00;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .endpoint {
+            background: #000080;
+            border: 1px solid #00FFFF;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 5px 15px;
+            border: 1px solid #00FFFF;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .method.get { color: #00FF00; }
+        .method.post { color: #FFFF00; }
+        
+        .path {
+            color: #FFFFFF;
+            font-size: 1.2em;
+        }
+        
+        pre {
+            background: #000000;
+            border: 1px solid #00FFFF;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 10px 0;
+            color: #00FF00;
+        }
+        
+        .button {
+            background: #00FFFF;
+            color: #0000AA;
+            border: 2px solid #FFFFFF;
+            padding: 12px 30px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            background: #FFFF00;
+            color: #0000AA;
+        }
+        
+        .button:active {
+            background: #FFFFFF;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #000080;
+            border: 2px solid #00FFFF;
+        }
+        
+        #ping-result, #test-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #000000;
+            border: 1px solid #00FF00;
+            min-height: 50px;
+        }
+        
+        .success { color: #00FF00; }
+        .error { color: #FF0000; }
+        .info { color: #00FFFF; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            border: 1px solid #00FFFF;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        th {
+            background: #000080;
+            color: #FFFF00;
+        }
+        
+        td {
+            color: #FFFFFF;
+        }
+        
+        a {
+            color: #00FFFF;
+            text-decoration: underline;
+        }
+        
+        a:hover {
+            color: #FFFF00;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>╔══════════════════════════════════════╗</h1>
+            <h1>║  USDX API DOCUMENTATION v1.0  ║</h1>
+            <h1>╚══════════════════════════════════════╝</h1>
+            <p>US Federal Data Exchange - Privacy-First Federal Data API</p>
+            <p><a href="/">← Back to Home</a></p>
+        </div>
+        
+        <div class="controls">
+            <h2>SYSTEM DIAGNOSTICS</h2>
+            <button class="button" onclick="pingServer()">▶ PING SERVER</button>
+            <button class="button" onclick="runTests()">▶ RUN INTEGRATION TESTS</button>
+            <div id="ping-result"></div>
+            <div id="test-result"></div>
+        </div>
+        
+        <h2>AUTHENTICATION</h2>
+        <p>All endpoints except /ping require JWT authentication. Include token in Authorization header:</p>
+        <pre>Authorization: Bearer YOUR_JWT_TOKEN</pre>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span><span class="path">/signup</span></h3>
+            <p>Create a new user account and receive JWT token.</p>
+            <p><strong>Request Body:</strong></p>
+            <pre>{
+  "email": "user@example.com",
+  "password": "secure_password"
+}</pre>
+            <p><strong>Response (201):</strong></p>
+            <pre>{
+  "message": "User created successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</pre>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span><span class="path">/login</span></h3>
+            <p>Authenticate existing user and receive JWT token.</p>
+            <p><strong>Request Body:</strong></p>
+            <pre>{
+  "email": "user@example.com",
+  "password": "secure_password"
+}</pre>
+            <p><strong>Response (200):</strong></p>
+            <pre>{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</pre>
+        </div>
+        
+        <h2>CORE ENDPOINTS</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span><span class="path">/ping</span></h3>
+            <p>Health check endpoint. No authentication required.</p>
+            <p><strong>Response (200):</strong></p>
+            <pre>{
+  "status": "ok",
+  "timestamp": "2026-01-27T12:00:00.000000",
+  "service": "US Federal Data Exchange"
+}</pre>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span><span class="path">/get_data</span></h3>
+            <p>Request federal data with AI-powered collection and privacy protection.</p>
+            <p><strong>Authentication:</strong> Required (JWT)</p>
+            <p><strong>Request Body:</strong></p>
+            <pre>{
+  "description": "Population data for Colorado from 2020-2023"
+}</pre>
+            <p><strong>Response (200):</strong></p>
+            <pre>{
+  "status": "success",
+  "data": {
+    "query": "Population data for Colorado from 2020-2023",
+    "source": "US Federal Data Exchange",
+    "records": [
+      {
+        "id": "FED-001",
+        "category": "census",
+        "data": {
+          "location": "Colorado",
+          "population": 5773714,
+          "year": 2023
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "processing_time_seconds": 1.23,
+    "records_returned": 1,
+    "privacy_applied": true
+  }
+}</pre>
+        </div>
+        
+        <h2>PRIVACY & REDACTION</h2>
+        <p>All data returned through /get_data is automatically processed for privacy:</p>
+        <table>
+            <tr>
+                <th>PII Type</th>
+                <th>Treatment</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td>Proper Names</td>
+                <td>Replacement</td>
+                <td>"Mickey" → "Jamison"</td>
+            </tr>
+            <tr>
+                <td>Specific Locations</td>
+                <td>Generalization</td>
+                <td>"123 Main St, Denver" → "Colorado"</td>
+            </tr>
+            <tr>
+                <td>SSN, Phone, Email</td>
+                <td>Removal</td>
+                <td>"555-1234" → "***"</td>
+            </tr>
+            <tr>
+                <td>Faces (in metadata)</td>
+                <td>Marker</td>
+                <td>"face_id_123" → "[FACE_REDACTED]"</td>
+            </tr>
+        </table>
+        
+        <h2>ERROR CODES</h2>
+        <table>
+            <tr>
+                <th>Code</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td>200</td>
+                <td>Success</td>
+            </tr>
+            <tr>
+                <td>201</td>
+                <td>Created (signup)</td>
+            </tr>
+            <tr>
+                <td>400</td>
+                <td>Bad Request - Missing or invalid parameters</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>Unauthorized - Invalid or missing token</td>
+            </tr>
+            <tr>
+                <td>409</td>
+                <td>Conflict - Email already exists</td>
+            </tr>
+            <tr>
+                <td>500</td>
+                <td>Internal Server Error</td>
+            </tr>
+        </table>
+        
+        <h2>TECHNICAL DETAILS</h2>
+        <p><strong>Protocol:</strong> HTTP/HTTPS</p>
+        <p><strong>Port:</strong> 6732</p>
+        <p><strong>Infrastructure:</strong> Digital Ocean VM + Spaces (S3-compatible storage)</p>
+        <p><strong>AI Model:</strong> OpenRouter (Google Gemini 2.0 Flash - Free tier)</p>
+        <p><strong>Authentication:</strong> JWT (30-day expiration)</p>
+        
+        <div class="header" style="margin-top: 50px;">
+            <p>Contact: Mickey Shaughnessy | mickeyshaughnessy@gmail.com</p>
+            <p>The Mithril Company - Colorado LLC</p>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = window.location.origin;
+        
+        async function pingServer() {
+            const resultDiv = document.getElementById('ping-result');
+            resultDiv.innerHTML = '<p class="info">► Pinging server...</p>';
+            
+            const startTime = performance.now();
+            
+            try {
+                const response = await fetch(`${API_URL}/ping`);
+                const endTime = performance.now();
+                const latency = (endTime - startTime).toFixed(2);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ SERVER ONLINE</p>
+                        <p class="info">Latency: ${latency}ms</p>
+                        <p class="info">Timestamp: ${data.timestamp}</p>
+                        <p class="info">Service: ${data.service}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">✗ ERROR: ${response.status} ${response.statusText}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">✗ CONNECTION FAILED: ${error.message}</p>`;
+            }
+        }
+        
+        async function runTests() {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.innerHTML = '<p class="info">► Running integration tests...</p>';
+            
+            let output = '';
+            let passCount = 0;
+            let failCount = 0;
+            
+            async function test(name, fn) {
+                output += `<p class="info">Testing: ${name}</p>`;
+                try {
+                    await fn();
+                    output += `<p class="success">  ✓ PASS</p>`;
+                    passCount++;
+                } catch (error) {
+                    output += `<p class="error">  ✗ FAIL: ${error.message}</p>`;
+                    failCount++;
+                }
+                resultDiv.innerHTML = output;
+            }
+            
+            let testToken = null;
+            const testEmail = `test_${Date.now()}@example.com`;
+            const testPassword = 'TestPass123!';
+            
+            await test('Ping endpoint', async () => {
+                const res = await fetch(`${API_URL}/ping`);
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+            });
+            
+            await test('Signup new user', async () => {
+                const res = await fetch(`${API_URL}/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: testEmail, password: testPassword })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                if (!data.token) throw new Error('No token received');
+                testToken = data.token;
+            });
+            
+            await test('Login existing user', async () => {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: testEmail, password: testPassword })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                if (!data.token) throw new Error('No token received');
+            });
+            
+            await test('Get data with authentication', async () => {
+                const res = await fetch(`${API_URL}/get_data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${testToken}`
+                    },
+                    body: JSON.stringify({ description: 'Test census data' })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                if (data.status !== 'success') throw new Error('Invalid response');
+            });
+            
+            await test('Reject unauthenticated data request', async () => {
+                const res = await fetch(`${API_URL}/get_data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: 'Test data' })
+                });
+                if (res.status !== 401) throw new Error(`Expected 401, got ${res.status}`);
+            });
+            
+            output += `<p class="info">─────────────────────────</p>`;
+            output += `<p class="success">PASSED: ${passCount}</p>`;
+            output += `<p class="error">FAILED: ${failCount}</p>`;
+            output += `<p class="${failCount === 0 ? 'success' : 'error'}">TOTAL: ${passCount + failCount}</p>`;
+            
+            resultDiv.innerHTML = output;
+        }
+    </script>
+</body>
+</html>
