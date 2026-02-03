@@ -139,6 +139,138 @@ def test_invalid_login():
         print_error(f'Failed: {e}')
         return False
 
+def test_redaction_privacy_flag(token):
+    print_test('Redaction: verify privacy_applied flag')
+    try:
+        response = requests.post(f'{BASE_URL}/get_data',
+            headers={'Authorization': f'Bearer {token}'},
+            json={'description': 'Personal records with names and SSN'}
+        )
+        
+        assert response.status_code == 200, f'Expected 200, got {response.status_code}'
+        data = response.json()
+        assert data['metadata']['privacy_applied'] == True, 'Privacy not applied'
+        
+        print_success('Privacy flag is set to true')
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+def test_redaction_no_ssn_patterns(token):
+    print_test('Redaction: check response excludes raw SSN patterns')
+    try:
+        response = requests.post(f'{BASE_URL}/get_data',
+            headers={'Authorization': f'Bearer {token}'},
+            json={'description': 'Test data with potential PII'}
+        )
+        
+        assert response.status_code == 200, f'Expected 200, got {response.status_code}'
+        data = response.json()
+        
+        import re
+        data_str = str(data.get('data', {}))
+        ssn_pattern = re.compile(r'\d{3}-\d{2}-\d{4}')
+        
+        assert not ssn_pattern.search(data_str), 'SSN pattern found in redacted data'
+        
+        print_success('No SSN patterns found in response')
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+def test_redaction_module_import():
+    print_test('Redaction module: import and configuration')
+    try:
+        from redactor import (
+            Redactor, RedactorConfig, RedactionTechnique, 
+            SophisticationLevel, create_redactor
+        )
+        
+        # Test creating redactor with different configurations
+        r1 = create_redactor(technique='mask', sophistication='minimal')
+        assert r1.config.technique == RedactionTechnique.MASK
+        assert r1.config.sophistication == SophisticationLevel.MINIMAL
+        
+        r2 = create_redactor(technique='both', sophistication='paranoid')
+        assert r2.config.technique == RedactionTechnique.BOTH
+        assert r2.config.sophistication == SophisticationLevel.PARANOID
+        
+        # Test data type configuration for different levels
+        from redactor import DataTypeConfig
+        minimal_cfg = DataTypeConfig.for_level(SophisticationLevel.MINIMAL)
+        paranoid_cfg = DataTypeConfig.for_level(SophisticationLevel.PARANOID)
+        
+        assert minimal_cfg.nicknames == False, 'Minimal should not include nicknames'
+        assert paranoid_cfg.nicknames == True, 'Paranoid should include nicknames'
+        assert paranoid_cfg.travel_history == True, 'Paranoid should include travel history'
+        
+        print_success('Redactor module imports and configures correctly')
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+def test_redaction_prompt_generation():
+    print_test('Redaction module: prompt template generation')
+    try:
+        from redactor import create_redactor
+        
+        # Test mask prompt generation
+        r = create_redactor(technique='mask', target_individuals=['John Doe', 'Jane Smith'])
+        prompt = r._build_mask_prompt('Test document with John Doe', '***', False)
+        
+        assert 'Test document with John Doe' in prompt, 'Document not in prompt'
+        assert '***' in prompt, 'Mask character not in prompt'
+        assert 'John Doe' in prompt, 'Target individual not in prompt'
+        assert 'Jane Smith' in prompt, 'Target individual not in prompt'
+        
+        # Test substitution prompt generation
+        r2 = create_redactor(technique='substitute', sophistication='comprehensive')
+        prompt2 = r2._build_substitution_prompt('Document with sensitive data')
+        
+        assert 'Document with sensitive data' in prompt2, 'Document not in substitution prompt'
+        assert 'Nicknames' in prompt2, 'Comprehensive level should mention nicknames'
+        
+        print_success('Prompt templates generated correctly')
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+def test_redaction_two_phase_order():
+    print_test('Redaction module: two-phase processing (mask before substitute)')
+    try:
+        from redactor import create_redactor, RedactionTechnique
+        from unittest.mock import patch, MagicMock
+        
+        r = create_redactor(technique='both')
+        assert r.config.technique == RedactionTechnique.BOTH
+        
+        # Track the order of calls
+        call_order = []
+        
+        def mock_call_llm(prompt, system_msg):
+            if 'MASK' in prompt or 'mask' in system_msg.lower():
+                call_order.append('mask')
+                return 'SSN: ***, Name: John'
+            else:
+                call_order.append('substitute')
+                return 'SSN: ***, Name: Robert'
+        
+        with patch.object(r, '_call_llm', side_effect=mock_call_llm):
+            result = r.redact('SSN: 123-45-6789, Name: John')
+        
+        assert call_order == ['mask', 'substitute'], f'Expected mask then substitute, got {call_order}'
+        assert '***' in result, 'Masked content not preserved'
+        
+        print_success('Two-phase processing executes in correct order (mask → substitute)')
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
 def main():
     print('=' * 60)
     print('US Federal Data Exchange - Integration Tests')
@@ -162,6 +294,19 @@ def main():
     
     results.append(test_get_data_unauthenticated())
     results.append(test_invalid_login())
+    
+    # Redaction tests
+    print('\n' + '-' * 60)
+    print('REDACTION SYSTEM TESTS')
+    print('-' * 60)
+    
+    if token:
+        results.append(test_redaction_privacy_flag(token))
+        results.append(test_redaction_no_ssn_patterns(token))
+    
+    results.append(test_redaction_module_import())
+    results.append(test_redaction_prompt_generation())
+    results.append(test_redaction_two_phase_order())
     
     print('\n' + '=' * 60)
     passed = sum(results)

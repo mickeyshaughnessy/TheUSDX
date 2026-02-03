@@ -278,7 +278,57 @@
         </div>
         
         <h2>PRIVACY & REDACTION</h2>
-        <p>All data returned through /get_data is automatically processed for privacy:</p>
+        <p>All data returned through /get_data is automatically processed for privacy using the AI Redactor system.</p>
+        
+        <h3>Redaction Techniques</h3>
+        <table>
+            <tr>
+                <th>Technique</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+            <tr>
+                <td>MASK</td>
+                <td>Replace with ***</td>
+                <td>"123-45-6789" → "***"</td>
+            </tr>
+            <tr>
+                <td>SUBSTITUTE</td>
+                <td>Replace with equivalent values</td>
+                <td>"Mickey" → "Jamison"</td>
+            </tr>
+            <tr>
+                <td>BOTH (default)</td>
+                <td>Mask critical data first, then substitute remaining PII</td>
+                <td>SSN masked, names substituted</td>
+            </tr>
+        </table>
+        
+        <h3>Sophistication Levels</h3>
+        <table>
+            <tr>
+                <th>Level</th>
+                <th>Scope</th>
+            </tr>
+            <tr>
+                <td>MINIMAL</td>
+                <td>Explicit PII only (SSN, phone, email, full names)</td>
+            </tr>
+            <tr>
+                <td>STANDARD (default)</td>
+                <td>+ Addresses, dates of birth, account numbers</td>
+            </tr>
+            <tr>
+                <td>COMPREHENSIVE</td>
+                <td>+ Nicknames, locations, employers, relationships</td>
+            </tr>
+            <tr>
+                <td>PARANOID</td>
+                <td>+ Any info that could lead to re-identification</td>
+            </tr>
+        </table>
+        
+        <h3>Data Types Redacted</h3>
         <table>
             <tr>
                 <th>PII Type</th>
@@ -287,18 +337,48 @@
             </tr>
             <tr>
                 <td>Proper Names</td>
-                <td>Replacement</td>
+                <td>Substitution</td>
                 <td>"Mickey" → "Jamison"</td>
             </tr>
             <tr>
                 <td>Specific Locations</td>
-                <td>Generalization</td>
-                <td>"123 Main St, Denver" → "Colorado"</td>
+                <td>Substitution</td>
+                <td>"123 Main St, Denver" → "456 Oak Ave, Phoenix"</td>
             </tr>
             <tr>
-                <td>SSN, Phone, Email</td>
-                <td>Removal</td>
-                <td>"555-1234" → "***"</td>
+                <td>SSN</td>
+                <td>Mask</td>
+                <td>"123-45-6789" → "***"</td>
+            </tr>
+            <tr>
+                <td>Phone Numbers</td>
+                <td>Substitution</td>
+                <td>"555-1234" → "555-9876"</td>
+            </tr>
+            <tr>
+                <td>Email Addresses</td>
+                <td>Substitution</td>
+                <td>"john@email.com" → "robert@email.com"</td>
+            </tr>
+            <tr>
+                <td>Financial Accounts</td>
+                <td>Mask</td>
+                <td>"****-****-****-1234" → "***"</td>
+            </tr>
+            <tr>
+                <td>Medical Info</td>
+                <td>Mask</td>
+                <td>Diagnosis codes → "***"</td>
+            </tr>
+            <tr>
+                <td>Nicknames (COMPREHENSIVE+)</td>
+                <td>Substitution</td>
+                <td>"Big Mike" → "Tall Tom"</td>
+            </tr>
+            <tr>
+                <td>Employers (COMPREHENSIVE+)</td>
+                <td>Substitution</td>
+                <td>"Acme Corp" → "Widget Inc"</td>
             </tr>
             <tr>
                 <td>Faces (in metadata)</td>
@@ -306,6 +386,14 @@
                 <td>"face_id_123" → "[FACE_REDACTED]"</td>
             </tr>
         </table>
+        
+        <h3>Two-Phase Processing</h3>
+        <p>When using BOTH technique (default), redaction occurs in two phases:</p>
+        <ol style="margin-left: 20px; color: #FFFFFF;">
+            <li><strong style="color: #FFFF00;">Phase 1 - Masking:</strong> Critical data (SSN, passwords, financial accounts, medical records) replaced with ***</li>
+            <li><strong style="color: #FFFF00;">Phase 2 - Substitution:</strong> Remaining PII (names, locations, phone numbers) replaced with realistic equivalents</li>
+        </ol>
+        <p style="margin-top: 10px;">This ensures sensitive data is completely hidden while maintaining document readability.</p>
         
         <h2>ERROR CODES</h2>
         <table>
@@ -456,6 +544,37 @@
                     body: JSON.stringify({ description: 'Test data' })
                 });
                 if (res.status !== 401) throw new Error(`Expected 401, got ${res.status}`);
+            });
+            
+            await test('Redaction: verify privacy_applied flag', async () => {
+                const res = await fetch(`${API_URL}/get_data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${testToken}`
+                    },
+                    body: JSON.stringify({ description: 'Personal records with names and SSN' })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                if (!data.metadata.privacy_applied) throw new Error('Privacy not applied');
+            });
+            
+            await test('Redaction: check response excludes raw PII patterns', async () => {
+                const res = await fetch(`${API_URL}/get_data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${testToken}`
+                    },
+                    body: JSON.stringify({ description: 'Test data with potential PII' })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                const dataStr = JSON.stringify(data.data);
+                // Check that no SSN patterns appear in response
+                const ssnPattern = /\d{3}-\d{2}-\d{4}/;
+                if (ssnPattern.test(dataStr)) throw new Error('SSN pattern found in redacted data');
             });
             
             output += `<p class="info">─────────────────────────</p>`;

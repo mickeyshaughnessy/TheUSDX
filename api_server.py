@@ -30,7 +30,8 @@ def get_user(email):
     """Retrieve user from DO Spaces"""
     try:
         s3 = get_s3_client()
-        key = f'users/{email}.json'
+        prefix = getattr(config, 'DO_SPACES_PREFIX', '')
+        key = f'{prefix}users/{email}.json'
         response = s3.get_object(Bucket=config.DO_SPACES_BUCKET, Key=key)
         user_data = json.loads(response['Body'].read().decode('utf-8'))
         return user_data
@@ -44,7 +45,8 @@ def save_user(email, password_hash):
     """Save user to DO Spaces"""
     try:
         s3 = get_s3_client()
-        key = f'users/{email}.json'
+        prefix = getattr(config, 'DO_SPACES_PREFIX', '')
+        key = f'{prefix}users/{email}.json'
         user_data = {
             'email': email,
             'password_hash': password_hash.decode('utf-8') if isinstance(password_hash, bytes) else password_hash,
