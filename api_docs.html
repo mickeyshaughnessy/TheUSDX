@@ -560,21 +560,77 @@
                 if (!data.metadata.privacy_applied) throw new Error('Privacy not applied');
             });
             
-            await test('Redaction: check response excludes raw PII patterns', async () => {
+            await test('Redaction Test #1: Names and Email', async () => {
+                const inputQuery = 'Get records for John Smith, email: john.smith@example.com';
+                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">INPUT:</strong> ${inputQuery}</pre>`;
+                
                 const res = await fetch(`${API_URL}/get_data`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${testToken}`
                     },
-                    body: JSON.stringify({ description: 'Test data with potential PII' })
+                    body: JSON.stringify({ description: inputQuery })
                 });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
                 const data = await res.json();
-                const dataStr = JSON.stringify(data.data);
-                // Check that no SSN patterns appear in response
+                
+                const responseStr = JSON.stringify(data.data, null, 2);
+                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">OUTPUT:</strong>\n${responseStr}</pre>`;
+                
+                // Verify no original PII appears
+                if (responseStr.toLowerCase().includes('john.smith@example.com')) {
+                    throw new Error('Original email found in redacted response');
+                }
+            });
+            
+            await test('Redaction Test #2: SSN and Phone', async () => {
+                const inputQuery = 'Records for SSN 123-45-6789, phone: 555-123-4567';
+                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">INPUT:</strong> ${inputQuery}</pre>`;
+                
+                const res = await fetch(`${API_URL}/get_data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${testToken}`
+                    },
+                    body: JSON.stringify({ description: inputQuery })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                
+                const responseStr = JSON.stringify(data.data, null, 2);
+                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">OUTPUT:</strong>\n${responseStr}</pre>`;
+                
+                // Verify SSN pattern is removed
                 const ssnPattern = /\d{3}-\d{2}-\d{4}/;
-                if (ssnPattern.test(dataStr)) throw new Error('SSN pattern found in redacted data');
+                if (ssnPattern.test(responseStr)) {
+                    throw new Error('SSN pattern found in redacted response');
+                }
+            });
+            
+            await test('Redaction Test #3: Address and DOB', async () => {
+                const inputQuery = 'Person at 123 Main Street, Denver CO 80202, born 01/15/1985';
+                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">INPUT:</strong> ${inputQuery}</pre>`;
+                
+                const res = await fetch(`${API_URL}/get_data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${testToken}`
+                    },
+                    body: JSON.stringify({ description: inputQuery })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                
+                const responseStr = JSON.stringify(data.data, null, 2);
+                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">OUTPUT:</strong>\n${responseStr}</pre>`;
+                
+                // Verify address components are redacted/substituted
+                if (responseStr.includes('123 Main Street')) {
+                    throw new Error('Original address found in redacted response');
+                }
             });
             
             output += `<p class="info">─────────────────────────</p>`;
