@@ -17,29 +17,43 @@ def get_s3_client():
         aws_secret_access_key=config.DO_SPACES_SECRET
     )
 
-def call_openrouter(prompt, system_message="You are a helpful assistant."):
-    """Make a completion call to OpenRouter API"""
+def call_openrouter(prompt, system_message="You are a helpful assistant.", use_fallback=False):
+    """Make a completion call to OpenRouter API with free-model primary and paid fallback."""
     if not config.OPENROUTER_API_KEY:
         raise ValueError("OPENROUTER_API_KEY not configured")
-    
+
+    model = config.OPENROUTER_FALLBACK_MODEL if use_fallback else config.OPENROUTER_MODEL
+
     response = requests.post(
-        url="https://openrouter.ai/api/v1/chat/completions",
+        url=config.OPENROUTER_API_URL,
         headers={
             "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://143.110.131.237:6732",
+            "X-Title": "Acme Redactors"
         },
         json={
-            "model": config.OPENROUTER_MODEL,
+            "model": model,
             "messages": [
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": prompt}
-            ]
-        }
+            ],
+            "temperature": config.LLM_TEMPERATURE,
+            "max_tokens": config.LLM_MAX_TOKENS
+        },
+        timeout=30
     )
-    
+
+    if response.status_code == 429 and not use_fallback:
+        print(f"[LLM] Rate limited on {model}, falling back to {config.OPENROUTER_FALLBACK_MODEL}")
+        return call_openrouter(prompt, system_message, use_fallback=True)
+
     if response.status_code != 200:
+        if not use_fallback:
+            print(f"[LLM] Error {response.status_code} on {model}, retrying with fallback")
+            return call_openrouter(prompt, system_message, use_fallback=True)
         raise Exception(f"OpenRouter API error: {response.status_code} - {response.text}")
-    
+
     result = response.json()
     return result['choices'][0]['message']['content']
 

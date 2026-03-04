@@ -1,5 +1,6 @@
 import json
 import time
+import hashlib
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -11,6 +12,24 @@ from flask_cors import CORS
 
 import config
 from handlers import collect_data, redact_data
+
+# In-memory TTL cache
+_cache: dict = {}
+_cache_ts: dict = {}
+_TTL_USER = 120       # seconds
+_TTL_RESULT = 3600    # cache redacted results for 1 hour
+
+
+def _cache_get(key: str):
+    if key in _cache and time.time() - _cache_ts.get(key, 0) < (
+            _TTL_USER if key.startswith('user:') else _TTL_RESULT):
+        return _cache[key]
+    return None
+
+
+def _cache_set(key: str, value) -> None:
+    _cache[key] = value
+    _cache_ts[key] = time.time()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -27,22 +46,26 @@ def get_s3_client():
     )
 
 def get_user(email):
-    """Retrieve user from DO Spaces"""
+    """Retrieve user from DO Spaces, with in-memory cache."""
+    cache_key = f'user:{email}'
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         s3 = get_s3_client()
         prefix = getattr(config, 'DO_SPACES_PREFIX', '')
         key = f'{prefix}users/{email}.json'
         response = s3.get_object(Bucket=config.DO_SPACES_BUCKET, Key=key)
         user_data = json.loads(response['Body'].read().decode('utf-8'))
+        _cache_set(cache_key, user_data)
         return user_data
-    except s3.exceptions.NoSuchKey:
-        return None
     except Exception as e:
-        print(f"Error retrieving user: {e}")
+        if 'NoSuchKey' not in str(e) and '404' not in str(e):
+            print(f"Error retrieving user: {e}")
         return None
 
 def save_user(email, password_hash):
-    """Save user to DO Spaces"""
+    """Save user to DO Spaces and update cache."""
     try:
         s3 = get_s3_client()
         prefix = getattr(config, 'DO_SPACES_PREFIX', '')
@@ -58,6 +81,7 @@ def save_user(email, password_hash):
             Body=json.dumps(user_data),
             ContentType='application/json'
         )
+        _cache_set(f'user:{email}', user_data)
         return True
     except Exception as e:
         print(f"Error saving user: {e}")
@@ -157,22 +181,33 @@ def get_data():
     
     if not description:
         return jsonify({'error': 'Description required'}), 400
-    
+
+    # Cache expensive LLM redaction by query hash (1 hour TTL)
+    query_hash = hashlib.sha256(description.encode()).hexdigest()
+    cache_key = f'result:{query_hash}'
+    cached_result = _cache_get(cache_key)
+    if cached_result is not None:
+        cached_result['metadata']['cached'] = True
+        return jsonify(cached_result), 200
+
     try:
         collected_data = collect_data(description)
         redacted_data = redact_data(collected_data)
         
         processing_time = time.time() - start_time
-        
-        return jsonify({
+
+        result = {
             'status': 'success',
             'data': redacted_data,
             'metadata': {
                 'processing_time_seconds': round(processing_time, 2),
                 'records_returned': len(redacted_data) if isinstance(redacted_data, list) else 1,
-                'privacy_applied': True
+                'privacy_applied': True,
+                'cached': False
             }
-        }), 200
+        }
+        _cache_set(cache_key, result)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({
             'error': 'Failed to process data request',
