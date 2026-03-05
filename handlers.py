@@ -155,8 +155,11 @@ def redact_data(data):
             redacted_chunks = []
             for i in range(0, len(data), chunk_size):
                 chunk = data[i:i + chunk_size]
-                redacted_chunks.extend(_redact_chunk(chunk) if isinstance(_redact_chunk(chunk), list)
-                                       else [_redact_chunk(chunk)])
+                result = _redact_chunk(chunk)
+                if isinstance(result, list):
+                    redacted_chunks.extend(result)
+                else:
+                    redacted_chunks.append(result)
             return redacted_chunks
 
         # For dict payloads, check size and chunk nested lists if needed
