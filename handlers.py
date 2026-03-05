@@ -107,19 +107,11 @@ Return a JSON list of dataset IDs that best match the request. Format: {{"datase
         print(f"Data collection error: {e}")
         return _get_sample_data(description)
 
-def redact_data(data):
-    """
-    AI-powered redactor that applies differential privacy and removes sensitive PII.
-    Redacts: names, locations, faces (in image metadata), and other sensitive info.
-    """
-    try:
-        data_str = json.dumps(data, indent=2)
-        
-        prompt = f"""Apply differential privacy and redact sensitive personal information from this data:
-
-{data_str}
-
-Redaction rules:
+_REDACTION_SYSTEM = (
+    "You are a privacy protection system for federal data. "
+    "Redact PII while maintaining data utility. Return only valid JSON."
+)
+_REDACTION_RULES = """Redaction rules:
 - Replace proper names with realistic alternatives (e.g., "Mickey" -> "Jamison")
 - Replace specific locations with generalized regions (e.g., "123 Main St, Denver" -> "Colorado")
 - Replace or remove other PII (SSN, phone numbers, email addresses, etc.)
@@ -128,19 +120,65 @@ Redaction rules:
 
 Return ONLY the redacted JSON data, no explanations."""
 
-        redacted_str = call_openrouter(prompt,
-            "You are a privacy protection system for federal data. Redact PII while maintaining data utility. Return only valid JSON.")
-        
-        try:
-            redacted_json = json.loads(redacted_str)
-            return redacted_json
-        except json.JSONDecodeError:
-            start = redacted_str.find('{')
-            end = redacted_str.rfind('}') + 1
-            if start != -1 and end > start:
-                return json.loads(redacted_str[start:end])
-            raise
-    
+
+def _redact_chunk(chunk):
+    """Redact a single JSON-serializable chunk and return parsed result."""
+    chunk_str = json.dumps(chunk, indent=2)
+    prompt = (
+        f"Apply differential privacy and redact sensitive personal information:\n\n"
+        f"{chunk_str}\n\n{_REDACTION_RULES}"
+    )
+    redacted_str = call_openrouter(prompt, _REDACTION_SYSTEM)
+    try:
+        return json.loads(redacted_str)
+    except json.JSONDecodeError:
+        start = redacted_str.find('{')
+        end = redacted_str.rfind('}') + 1
+        if start != -1 and end > start:
+            return json.loads(redacted_str[start:end])
+        start = redacted_str.find('[')
+        end = redacted_str.rfind(']') + 1
+        if start != -1 and end > start:
+            return json.loads(redacted_str[start:end])
+        raise
+
+
+def redact_data(data):
+    """
+    AI-powered redactor that applies differential privacy and removes sensitive PII.
+    Chunks large inputs to stay within LLM token limits (~2000 tokens per chunk).
+    """
+    try:
+        # For list payloads, chunk by records to stay under token limit
+        if isinstance(data, list) and len(data) > 3:
+            chunk_size = 3
+            redacted_chunks = []
+            for i in range(0, len(data), chunk_size):
+                chunk = data[i:i + chunk_size]
+                redacted_chunks.extend(_redact_chunk(chunk) if isinstance(_redact_chunk(chunk), list)
+                                       else [_redact_chunk(chunk)])
+            return redacted_chunks
+
+        # For dict payloads, check size and chunk nested lists if needed
+        data_str = json.dumps(data)
+        if len(data_str) > 6000:
+            # Chunk top-level list-valued keys
+            result = {}
+            for key, value in (data.items() if isinstance(data, dict) else {}.items()):
+                if isinstance(value, list) and len(value) > 3:
+                    chunk_size = 3
+                    redacted_list = []
+                    for i in range(0, len(value), chunk_size):
+                        chunk_result = _redact_chunk({key: value[i:i + chunk_size]})
+                        if isinstance(chunk_result, dict):
+                            redacted_list.extend(chunk_result.get(key, []))
+                    result[key] = redacted_list
+                else:
+                    result[key] = value
+            return _redact_chunk(result)
+
+        return _redact_chunk(data)
+
     except Exception as e:
         print(f"Redaction error: {e}")
         return {

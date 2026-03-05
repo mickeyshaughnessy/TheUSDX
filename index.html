@@ -165,10 +165,44 @@
             </div>
         </div>
         
-        <h2>Get Started</h2>
-        <p>Access our comprehensive API documentation to start retrieving federal data with built-in privacy protections.</p>
-        
-        <a href="/api_docs.html" class="cta-button">View API Documentation</a>
+        <h2>Try It Now</h2>
+        <p>Enter your email and a description of the federal data you need. We'll fetch and redact it automatically.</p>
+
+        <div id="demo-section" style="margin-top:24px">
+            <div id="auth-form" style="background:#f8f9fa;border-radius:8px;padding:24px;border:1px solid #ddd">
+                <h3 style="color:#667eea;margin-bottom:16px">Sign Up / Log In</h3>
+                <div style="display:grid;gap:12px">
+                    <input id="demo-email" type="email" placeholder="your@email.com"
+                           style="padding:12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;width:100%">
+                    <input id="demo-password" type="password" placeholder="Password"
+                           style="padding:12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;width:100%">
+                    <div style="display:flex;gap:12px">
+                        <button onclick="doSignup()" class="cta-button" style="margin:0;flex:1;text-align:center">Sign Up</button>
+                        <button onclick="doLogin()"  class="cta-button" style="margin:0;flex:1;text-align:center;background:#764ba2">Log In</button>
+                    </div>
+                </div>
+                <p id="auth-msg" style="margin-top:12px;color:#e74c3c;font-size:.9em"></p>
+            </div>
+
+            <div id="query-form" style="display:none;background:#f8f9fa;border-radius:8px;padding:24px;border:1px solid #ddd;margin-top:16px">
+                <h3 style="color:#667eea;margin-bottom:16px">Query Federal Data</h3>
+                <p style="font-size:.9em;color:#666;margin-bottom:12px">Try: "latest US unemployment statistics" or "federal education spending by state"</p>
+                <textarea id="demo-query" rows="3" placeholder="Describe the federal data you're looking for..."
+                          style="width:100%;padding:12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;resize:vertical"></textarea>
+                <button onclick="doQuery()" class="cta-button" style="margin-top:12px">Fetch &amp; Redact Data</button>
+                <p id="query-status" style="margin-top:10px;color:#667eea;font-size:.9em"></p>
+            </div>
+
+            <div id="result-area" style="display:none;margin-top:16px">
+                <h3 style="color:#555;margin-bottom:10px">Redacted Result</h3>
+                <pre id="result-json" style="background:#1e1e2e;color:#cdd6f4;padding:20px;border-radius:8px;overflow-x:auto;font-size:.85em;max-height:400px;overflow-y:auto"></pre>
+                <p style="font-size:.8em;color:#888;margin-top:8px" id="result-meta"></p>
+            </div>
+        </div>
+
+        <div style="margin-top:24px">
+            <a href="/api_docs.html" class="cta-button">View Full API Documentation</a>
+        </div>
         
         <div class="contact-info">
             <h3>Contact Information</h3>
@@ -178,5 +212,88 @@
             <p><strong>Legal Entity:</strong> Colorado LLC</p>
         </div>
     </div>
+
+    <script>
+        const API = window.location.origin;
+        let _token = localStorage.getItem('usdx_token') || null;
+
+        if (_token) {
+            document.getElementById('auth-form').style.display = 'none';
+            document.getElementById('query-form').style.display = 'block';
+        }
+
+        async function doSignup() {
+            const email = document.getElementById('demo-email').value.trim();
+            const password = document.getElementById('demo-password').value;
+            const msg = document.getElementById('auth-msg');
+            if (!email || !password) { msg.textContent = 'Email and password required.'; return; }
+            msg.textContent = 'Signing up...';
+            try {
+                const res = await fetch(`${API}/signup`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+                const d = await res.json();
+                if (!res.ok) { msg.textContent = d.error || 'Signup failed.'; return; }
+                _token = d.token;
+                localStorage.setItem('usdx_token', _token);
+                document.getElementById('auth-form').style.display = 'none';
+                document.getElementById('query-form').style.display = 'block';
+                msg.textContent = '';
+            } catch (e) { msg.textContent = 'Connection error.'; }
+        }
+
+        async function doLogin() {
+            const email = document.getElementById('demo-email').value.trim();
+            const password = document.getElementById('demo-password').value;
+            const msg = document.getElementById('auth-msg');
+            if (!email || !password) { msg.textContent = 'Email and password required.'; return; }
+            msg.textContent = 'Logging in...';
+            try {
+                const res = await fetch(`${API}/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+                const d = await res.json();
+                if (!res.ok) { msg.textContent = d.error || 'Login failed.'; return; }
+                _token = d.token;
+                localStorage.setItem('usdx_token', _token);
+                document.getElementById('auth-form').style.display = 'none';
+                document.getElementById('query-form').style.display = 'block';
+                msg.textContent = '';
+            } catch (e) { msg.textContent = 'Connection error.'; }
+        }
+
+        async function doQuery() {
+            const description = document.getElementById('demo-query').value.trim();
+            const status = document.getElementById('query-status');
+            if (!description) { status.textContent = 'Please enter a description.'; return; }
+            status.textContent = 'Fetching and redacting data... (may take 10-30s)';
+            document.getElementById('result-area').style.display = 'none';
+            try {
+                const res = await fetch(`${API}/get_data`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${_token}`},
+                    body: JSON.stringify({description})
+                });
+                if (res.status === 401) {
+                    _token = null; localStorage.removeItem('usdx_token');
+                    document.getElementById('auth-form').style.display = 'block';
+                    document.getElementById('query-form').style.display = 'none';
+                    status.textContent = 'Session expired. Please log in again.';
+                    return;
+                }
+                const d = await res.json();
+                status.textContent = '';
+                document.getElementById('result-area').style.display = 'block';
+                document.getElementById('result-json').textContent = JSON.stringify(d.data, null, 2);
+                const m = d.metadata || {};
+                document.getElementById('result-meta').textContent =
+                    `Records: ${m.records_returned ?? '?'} | Processing: ${m.processing_time_seconds ?? '?'}s | Privacy: ${m.privacy_applied ? '✓' : '✗'} | Cached: ${m.cached ? 'Yes' : 'No'}`;
+            } catch (e) { status.textContent = 'Error: ' + e.message; }
+        }
+    </script>
 </body>
 </html>
