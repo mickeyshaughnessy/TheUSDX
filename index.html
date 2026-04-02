@@ -132,6 +132,10 @@
             h2 {
                 font-size: 1.5em;
             }
+
+            #result-area > div {
+                grid-template-columns: 1fr !important;
+            }
         }
     </style>
 </head>
@@ -204,8 +208,16 @@
             </div>
 
             <div id="result-area" style="display:none;margin-top:16px">
-                <h3 style="color:#555;margin-bottom:10px">Redacted Result</h3>
-                <pre id="result-json" style="background:#1e1e2e;color:#cdd6f4;padding:20px;border-radius:8px;overflow-x:auto;font-size:.85em;max-height:400px;overflow-y:auto"></pre>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                    <div>
+                        <h3 style="color:#555;margin-bottom:8px">Original Data</h3>
+                        <pre id="result-original" style="background:#1e1e2e;color:#cdd6f4;padding:16px;border-radius:8px;overflow-x:auto;font-size:.8em;max-height:420px;overflow-y:auto;margin:0"></pre>
+                    </div>
+                    <div>
+                        <h3 style="color:#667eea;margin-bottom:8px">Redacted Result</h3>
+                        <pre id="result-json" style="background:#1e1e2e;color:#cdd6f4;padding:16px;border-radius:8px;overflow-x:auto;font-size:.8em;max-height:420px;overflow-y:auto;margin:0"></pre>
+                    </div>
+                </div>
                 <p style="font-size:.8em;color:#888;margin-top:8px" id="result-meta"></p>
             </div>
         </div>
@@ -322,6 +334,7 @@
                 const d = await res.json();
                 status.textContent = '';
                 document.getElementById('result-area').style.display = 'block';
+                document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
                 document.getElementById('result-json').textContent = JSON.stringify(d.data, null, 2);
                 const m = d.metadata || {};
                 document.getElementById('result-meta').textContent =

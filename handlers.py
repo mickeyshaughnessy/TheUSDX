@@ -120,96 +120,22 @@ Return a JSON list of dataset IDs that best match the request. Format: {{"datase
 
 _REDACTION_SYSTEM = (
     "You are a privacy protection system for federal data. "
-    "Redact PII while maintaining data utility. Return only valid JSON. "
-    "Treat pet/animal names as personally identifiable information that must be substituted."
+    "Redact PII while maintaining data utility. Return only valid JSON."
 )
-_REDACTION_RULES = """Redaction rules:
-- Replace proper names with realistic alternatives (e.g., "Mickey" -> "Jamison")
-- IMPORTANT: Replace ALL pet/animal names in fields like "animal_name" with DIFFERENT realistic pet names — every single animal name must be changed to a different name (e.g., "Buddy" -> "Max", "Whiskers" -> "Mittens", "Tinkerbell" -> "Daisy", "Sergeant" -> "Rex", "Blue" -> "Scout"). Pet names are PII that can identify owners.
-- Replace specific locations with generalized regions (e.g., "123 Main St, Denver" -> "Colorado")
-- Replace or remove other PII (SSN, phone numbers, email addresses, etc.)
-- For faces in image metadata, replace with "[FACE_REDACTED]"
-- Maintain data structure and utility while protecting privacy
-
-Return ONLY the redacted JSON data, no explanations."""
+_REDACTION_RULES = (
+    "Replace personally identifiable information (PII) with realistic substitute values. "
+    "Use your judgment to identify what constitutes PII in context. "
+    "Preserve the document's structure, non-PII fields, and readability. "
+    "Return ONLY the redacted JSON data, no explanations."
+)
 
 
-_FALLBACK_PET_NAMES = [
-    "Milo", "Rosie", "Ginger", "Toby", "Sadie", "Harley", "Ruby",
-    "Tucker", "Molly", "Winston", "Penny", "Bruno", "Stella", "Baxter",
-    "Olive", "Duke", "Hazel", "Murphy", "Nala", "Zeus", "Cleo",
-]
-
-
-def _extract_pet_names(data):
-    """Extract all pet/animal names from a dataset for cross-chunk collision avoidance."""
-    names = set()
-    data_str = json.dumps(data)
-    if '"animal_name"' not in data_str:
-        return names
-    
-    def _walk(obj):
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                if k == 'animal_name' and isinstance(v, str):
-                    names.add(v)
-                else:
-                    _walk(v)
-        elif isinstance(obj, list):
-            for item in obj:
-                _walk(item)
-    
-    _walk(data)
-    return names
-
-
-def _fix_pet_name_collisions(redacted, original_names):
-    """Post-process redacted data to replace any pet names that collide with originals."""
-    if not original_names:
-        return redacted
-    
-    # Build pool of safe replacement names
-    safe_pool = [n for n in _FALLBACK_PET_NAMES if n not in original_names]
-    pool_idx = 0
-    
-    def _fix(obj):
-        nonlocal pool_idx
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                if k == 'animal_name' and isinstance(v, str) and v in original_names:
-                    if pool_idx < len(safe_pool):
-                        obj[k] = safe_pool[pool_idx]
-                        pool_idx += 1
-                else:
-                    _fix(v)
-        elif isinstance(obj, list):
-            for item in obj:
-                _fix(item)
-    
-    _fix(redacted)
-    return redacted
-
-
-def _redact_chunk(chunk, forbidden_names=None):
+def _redact_chunk(chunk):
     """Redact a single JSON-serializable chunk and return parsed result."""
     chunk_str = json.dumps(chunk, indent=2)
-    # Detect if chunk contains animal/pet name fields for extra emphasis
-    extra = ""
-    if '"animal_name"' in chunk_str:
-        forbidden_str = ""
-        if forbidden_names:
-            forbidden_str = (
-                f" Do NOT use any of these names as replacements: "
-                f"{', '.join(sorted(forbidden_names))}."
-            )
-        extra = (
-            "\nCRITICAL: Every \"animal_name\" value MUST be replaced with a "
-            "DIFFERENT pet name. Do not keep any original animal_name values."
-            f"{forbidden_str}\n"
-        )
     prompt = (
         f"Apply differential privacy and redact sensitive personal information:\n\n"
-        f"{chunk_str}\n\n{_REDACTION_RULES}{extra}"
+        f"{chunk_str}\n\n{_REDACTION_RULES}"
     )
     redacted_str = call_openrouter(prompt, _REDACTION_SYSTEM)
     try:
@@ -226,7 +152,7 @@ def _redact_chunk(chunk, forbidden_names=None):
         raise
 
 
-def _redact_large_dict(data, forbidden_names=None):
+def _redact_large_dict(data):
     """Chunk a large dict by splitting nested lists, then redact."""
     result = {}
     for key, value in data.items():
@@ -234,7 +160,7 @@ def _redact_large_dict(data, forbidden_names=None):
             chunk_size = 3
             redacted_list = []
             for i in range(0, len(value), chunk_size):
-                chunk_result = _redact_chunk({key: value[i:i + chunk_size]}, forbidden_names)
+                chunk_result = _redact_chunk({key: value[i:i + chunk_size]})
                 if isinstance(chunk_result, dict):
                     redacted_list.extend(chunk_result.get(key, []))
                 elif isinstance(chunk_result, list):
@@ -242,10 +168,9 @@ def _redact_large_dict(data, forbidden_names=None):
             result[key] = redacted_list
         else:
             result[key] = value
-    # If result is still large, just send it as-is (best effort)
     if json.dumps(result).strip() == '{}':
-        return _redact_chunk(data, forbidden_names)
-    return _redact_chunk(result, forbidden_names)
+        return _redact_chunk(data)
+    return _redact_chunk(result)
 
 
 def redact_data(data):
@@ -254,40 +179,27 @@ def redact_data(data):
     Chunks large inputs to stay within LLM token limits (~2000 tokens per chunk).
     """
     try:
-        # Extract pet/animal names from the full dataset to avoid
-        # cross-chunk collisions when the LLM picks replacement names
-        forbidden_names = _extract_pet_names(data)
-
-        # For list payloads, chunk to stay under token limit
         if isinstance(data, list):
             data_str = json.dumps(data)
             if len(data) > 3 or len(data_str) > 6000:
-                # Process each list element individually if large,
-                # or in small chunks
                 redacted_chunks = []
                 for item in data:
                     item_str = json.dumps(item)
                     if isinstance(item, dict) and len(item_str) > 6000:
-                        # Chunk nested lists within this dict
-                        redacted_item = _redact_large_dict(item, forbidden_names)
+                        redacted_item = _redact_large_dict(item)
                     else:
-                        redacted_item = _redact_chunk(item, forbidden_names)
+                        redacted_item = _redact_chunk(item)
                     if isinstance(redacted_item, list):
                         redacted_chunks.extend(redacted_item)
                     else:
                         redacted_chunks.append(redacted_item)
-                return _fix_pet_name_collisions(redacted_chunks, forbidden_names)
-            result = _redact_chunk(data, forbidden_names)
-            return _fix_pet_name_collisions(result, forbidden_names)
+                return redacted_chunks
+            return _redact_chunk(data)
 
-        # For dict payloads, check size and chunk nested lists if needed
         data_str = json.dumps(data)
         if len(data_str) > 6000:
-            result = _redact_large_dict(data, forbidden_names)
-            return _fix_pet_name_collisions(result, forbidden_names)
-
-        result = _redact_chunk(data, forbidden_names)
-        return _fix_pet_name_collisions(result, forbidden_names)
+            return _redact_large_dict(data)
+        return _redact_chunk(data)
 
     except Exception as e:
         print(f"Redaction error: {e}")

@@ -200,6 +200,7 @@ def get_data():
 
         result = {
             'status': 'success',
+            'original_data': collected_data,
             'data': redacted_data,
             'metadata': {
                 'processing_time_seconds': round(processing_time, 2),
