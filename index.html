@@ -169,8 +169,18 @@
         <p>Enter your email and describe the individual records you need. We'll fetch and redact them automatically.</p>
 
         <div id="demo-section" style="margin-top:24px">
+            <div id="demo-buttons" style="background:#f8f9fa;border-radius:8px;padding:24px;border:1px solid #ddd;margin-bottom:16px">
+                <h3 style="color:#667eea;margin-bottom:8px">Try Our Demos</h3>
+                <p style="font-size:.9em;color:#666;margin-bottom:16px">Click a demo to see AI-powered privacy redaction in action:</p>
+                <div style="display:flex;gap:12px">
+                    <button onclick="handleDemoClick('cia')" style="flex:1;padding:12px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:6px;font-size:.95rem;font-weight:600;cursor:pointer;transition:opacity 0.3s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">🕵️ CIA Contractor Records</button>
+                    <button onclick="handleDemoClick('animal')" style="flex:1;padding:12px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:6px;font-size:.95rem;font-weight:600;cursor:pointer;transition:opacity 0.3s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">🐾 Lakewood Animal Control</button>
+                </div>
+            </div>
+
             <div id="auth-form" style="background:#f8f9fa;border-radius:8px;padding:24px;border:1px solid #ddd">
                 <h3 style="color:#667eea;margin-bottom:16px">Sign Up / Log In</h3>
+                <p id="auth-prompt" style="display:none;font-size:.9em;color:#764ba2;margin-bottom:12px;font-weight:600">Sign in to run your selected demo ⬇️</p>
                 <div style="display:grid;gap:12px">
                     <input id="demo-email" type="email" placeholder="your@email.com"
                            style="padding:12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;width:100%">
@@ -186,11 +196,7 @@
 
             <div id="query-form" style="display:none;background:#f8f9fa;border-radius:8px;padding:24px;border:1px solid #ddd;margin-top:16px">
                 <h3 style="color:#667eea;margin-bottom:16px">Query Individual Records</h3>
-                <p style="font-size:.9em;color:#666;margin-bottom:12px">Try one of our demo scenarios or type your own query:</p>
-                <div style="display:flex;gap:12px;margin-bottom:16px">
-                    <button onclick="fillCIADemo()" style="flex:1;padding:12px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:6px;font-size:.95rem;font-weight:600;cursor:pointer;transition:opacity 0.3s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">🕵️ CIA Contractor Records</button>
-                    <button onclick="fillAnimalControlDemo()" style="flex:1;padding:12px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:6px;font-size:.95rem;font-weight:600;cursor:pointer;transition:opacity 0.3s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">🐾 Lakewood Animal Control</button>
-                </div>
+                <p style="font-size:.9em;color:#666;margin-bottom:12px">Try one of our demo scenarios above or type your own query:</p>
                 <textarea id="demo-query" rows="3" placeholder="Describe the individual records you need, e.g. personnel files, service records, contractor histories..."
                           style="width:100%;padding:12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;resize:vertical"></textarea>
                 <button onclick="doQuery()" class="cta-button" style="margin-top:12px">Fetch &amp; Redact Data</button>
@@ -220,10 +226,36 @@
     <script>
         const API = window.location.origin;
         let _token = localStorage.getItem('usdx_token') || null;
+        let _pendingDemo = null;
+
+        const DEMO_QUERIES = {
+            cia: 'Show employment records for CIA human intelligence contractors including clearance levels and assignment locations',
+            animal: 'Lakewood, CO animal control service records and violations including resident names and addresses'
+        };
 
         if (_token) {
             document.getElementById('auth-form').style.display = 'none';
             document.getElementById('query-form').style.display = 'block';
+        }
+
+        function handleDemoClick(demoType) {
+            if (_token) {
+                document.getElementById('demo-query').value = DEMO_QUERIES[demoType];
+                document.getElementById('demo-query').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                _pendingDemo = demoType;
+                document.getElementById('auth-prompt').style.display = 'block';
+                document.getElementById('auth-form').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function onAuthSuccess() {
+            document.getElementById('auth-form').style.display = 'none';
+            document.getElementById('query-form').style.display = 'block';
+            if (_pendingDemo && DEMO_QUERIES[_pendingDemo]) {
+                document.getElementById('demo-query').value = DEMO_QUERIES[_pendingDemo];
+                _pendingDemo = null;
+            }
         }
 
         async function doSignup() {
@@ -242,9 +274,8 @@
                 if (!res.ok) { msg.textContent = d.error || 'Signup failed.'; return; }
                 _token = d.token;
                 localStorage.setItem('usdx_token', _token);
-                document.getElementById('auth-form').style.display = 'none';
-                document.getElementById('query-form').style.display = 'block';
                 msg.textContent = '';
+                onAuthSuccess();
             } catch (e) { msg.textContent = 'Connection error.'; }
         }
 
@@ -264,18 +295,9 @@
                 if (!res.ok) { msg.textContent = d.error || 'Login failed.'; return; }
                 _token = d.token;
                 localStorage.setItem('usdx_token', _token);
-                document.getElementById('auth-form').style.display = 'none';
-                document.getElementById('query-form').style.display = 'block';
                 msg.textContent = '';
+                onAuthSuccess();
             } catch (e) { msg.textContent = 'Connection error.'; }
-        }
-
-        function fillCIADemo() {
-            document.getElementById('demo-query').value = 'Show employment records for CIA human intelligence contractors including clearance levels and assignment locations';
-        }
-
-        function fillAnimalControlDemo() {
-            document.getElementById('demo-query').value = 'Lakewood, CO animal control service records and violations including resident names and addresses';
         }
 
         async function doQuery() {
