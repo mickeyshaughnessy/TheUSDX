@@ -1,0 +1,131 @@
+{
+  "assertionResults": [
+    {
+      "id": "VAL-AC-004",
+      "reason": "status=200, human_name_count=10, pet_name_count=10, masked_name_fields=0, leaked_seed_names=0",
+      "status": "pass"
+    },
+    {
+      "id": "VAL-E2E-006",
+      "reason": "first_status=200, second_status=200, first_cached=False, second_cached=False, first_processing_time_seconds=27.24, second_processing_time_seconds=29.28",
+      "status": "fail"
+    },
+    {
+      "id": "VAL-E2E-007",
+      "reason": "Compared 30 seed names (including 10 pet names); exact matches in redacted output=0",
+      "status": "pass"
+    }
+  ],
+  "blockers": [],
+  "commands": [
+    {
+      "observed": {
+        "http_status": "201"
+      },
+      "snippet": "curl -sS -o signup_body.json -w '%{http_code}' -X POST http://143.110.131.237:6732/signup -H 'Content-Type: application/json' -d '{\"email\":\"validator+curl-rerun-20260402T215004Z@example.com\",\"password\":\"ValidatorPass123!\"}'"
+    },
+    {
+      "observed": {
+        "cached": false,
+        "http_status": "200",
+        "processing_time_seconds": 27.24
+      },
+      "snippet": "curl -sS -o get_data_first_body.json -w '%{http_code}' -X POST http://143.110.131.237:6732/get_data -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' -d '{\"description\":\"Lakewood Colorado animal control records rerun-curl-20260402T215004Z\"}'"
+    },
+    {
+      "observed": {
+        "cached": false,
+        "http_status": "200",
+        "processing_time_seconds": 29.28
+      },
+      "snippet": "curl -sS -o get_data_second_body.json -w '%{http_code}' -X POST http://143.110.131.237:6732/get_data -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' -d '{\"description\":\"Lakewood Colorado animal control records rerun-curl-20260402T215004Z\"}'"
+    }
+  ],
+  "evidence": {
+    "rawFiles": [
+      "evidence/demo-overhaul/curl-rerun-fixes/signup_body.json",
+      "evidence/demo-overhaul/curl-rerun-fixes/get_data_first_body.json",
+      "evidence/demo-overhaul/curl-rerun-fixes/get_data_second_body.json"
+    ]
+  },
+  "frictions": [],
+  "groupId": "curl-rerun-fixes",
+  "isolation": {
+    "baseUrl": "http://143.110.131.237:6732",
+    "cacheQueryToken": "rerun-curl-20260402T215004Z",
+    "missionDir": "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f",
+    "surface": "curl API only",
+    "testAccountEmail": "validator+curl-rerun-20260402T215004Z@example.com"
+  },
+  "observedKeyValues": {
+    "cache": {
+      "firstCached": false,
+      "secondCached": false
+    },
+    "namesCompared": {
+      "exactMatches": [],
+      "redacted_human_sample": [
+        "David Chen",
+        "Elizabeth R. Sullivan",
+        "Jennifer L. Kim",
+        "Kevin J. Anderson",
+        "Michael J. Thompson",
+        "Rachel K. Patel",
+        "Robert M. Garcia",
+        "Sofia Rodriguez",
+        "Thomas R. Wright",
+        "William J. Peterson"
+      ],
+      "redacted_pet_sample": [
+        "Charlie",
+        "Daisy",
+        "Luna",
+        "Max",
+        "Oscar",
+        "Pepper",
+        "Ranger",
+        "Rex",
+        "Scout",
+        "Shadow"
+      ],
+      "seed_human_count": 20,
+      "seed_names_sample": [
+        "Aisha Patel",
+        "Barbara J. Fitzpatrick",
+        "Biscuit",
+        "Blue",
+        "Buddy",
+        "Cinnamon",
+        "Cooper",
+        "DeShawn Williams",
+        "Dmitri Volkov",
+        "Elena Vasquez-Moreno",
+        "Fatima Al-Rashidi",
+        "Frank D. Novak",
+        "Gerald R. Kowalski",
+        "Howard K. Lindgren",
+        "James O. Whitfield",
+        "Kwame Asante-Mensah",
+        "Marcus J. Thompson",
+        "Maria Elena Gutierrez",
+        "Mei-Ling Chen",
+        "Mr. Fluffington"
+      ],
+      "seed_pet_count": 10
+    },
+    "processing_time_seconds": {
+      "first": 27.24,
+      "second": 29.28
+    },
+    "statusCodes": {
+      "getDataFirst": "200",
+      "getDataSecond": "200",
+      "login": null,
+      "signup": "201"
+    }
+  },
+  "testedAt": "2026-04-02T21:51:02.394582+00:00",
+  "toolsUsed": [
+    "curl"
+  ]
+}

@@ -1,68 +1,24 @@
 {
   "milestone": "demo-overhaul",
-  "round": 1,
+  "round": 2,
   "status": "fail",
   "assertionsSummary": {
-    "total": 30,
-    "passed": 27,
-    "failed": 3,
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
     "blocked": 0
   },
   "passedAssertions": [
-    "VAL-AC-001",
-    "VAL-AC-002",
-    "VAL-AC-003",
-    "VAL-AC-005",
-    "VAL-API-001",
-    "VAL-API-002",
-    "VAL-API-003",
-    "VAL-CIA-001",
-    "VAL-CIA-002",
-    "VAL-CIA-003",
-    "VAL-CIA-004",
-    "VAL-CIA-005",
-    "VAL-E2E-001",
-    "VAL-E2E-002",
-    "VAL-E2E-003",
-    "VAL-E2E-004",
-    "VAL-E2E-005",
-    "VAL-FE-001",
-    "VAL-FE-002",
-    "VAL-FE-003",
-    "VAL-FE-004",
-    "VAL-FE-005",
-    "VAL-FE-006",
-    "VAL-PROD-001",
-    "VAL-PROD-002",
-    "VAL-PROD-003",
-    "VAL-PROD-004"
+    "VAL-AC-004",
+    "VAL-E2E-007"
   ],
   "failedAssertions": [
     {
       "id": "VAL-E2E-006",
-      "reason": "Cache behavior did not meet expected uncached/cached timing pattern."
-    },
-    {
-      "id": "VAL-AC-004",
-      "reason": "masked_name_fields=0; unchanged_resident_names=none; unchanged_pet_names=['Biscuit', 'Blue', 'Buddy', 'Cinnamon', 'Cooper', 'Mr. Fluffington', 'Rocco', 'Sergeant', 'Tinkerbell', 'Whiskers']"
-    },
-    {
-      "id": "VAL-E2E-007",
-      "reason": "Compared names from seed_data.py against redacted outputs: leaked_human_names=none; leaked_pet_names=['Biscuit', 'Blue', 'Buddy', 'Cinnamon', 'Cooper', 'Mr. Fluffington', 'Rocco', 'Sergeant', 'Tinkerbell', 'Whiskers']"
+      "reason": "first_status=200, second_status=200, first_cached=False, second_cached=False, first_processing_time_seconds=27.24, second_processing_time_seconds=29.28"
     }
   ],
   "blockedAssertions": [],
-  "appliedUpdates": [
-    {
-      "target": "user-testing.md",
-      "description": "Added Flow Validator Guidance sections for curl and agent-browser with isolation boundaries and cache-test constraints.",
-      "source": "setup"
-    },
-    {
-      "target": "user-testing.md",
-      "description": "Added friction-derived notes for agent-browser install prerequisite and resilient metadata wait strategy.",
-      "source": "flow-report"
-    }
-  ],
-  "previousRound": null
+  "appliedUpdates": [],
+  "previousRound": ".factory/validation/demo-overhaul/user-testing/synthesis.round1.json"
 }
