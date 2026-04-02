@@ -1,0 +1,13 @@
+commands:
+  install: pip3 install -r requirements.txt
+  test: python3 -m unittest test_redactor
+  seed: python3 seed_data.py
+  deploy: bash deploy.sh
+
+services:
+  api:
+    start: "nohup python3 api_server.py > /tmp/usdx-api.log 2>&1 &"
+    stop: "lsof -ti :6732 | xargs kill -9 2>/dev/null || true"
+    healthcheck: "curl -sf http://localhost:6732/ping"
+    port: 6732
+    depends_on: []
