@@ -1,0 +1,137 @@
+{
+  "groupId": "curl-core",
+  "surface": "curl",
+  "toolsUsed": [
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-API-001",
+      "status": "pass",
+      "reason": "LLM-backed /get_data succeeded with HTTP 200 and status=success; no auth-key error text.",
+      "evidence": [
+        "POST /get_data -> HTTP 200, status_field=success",
+        "auth_error_text_present=False",
+        "processing_time_seconds=25.13",
+        "artifact: 09-POST_get_data.txt"
+      ]
+    },
+    {
+      "id": "VAL-API-002",
+      "status": "pass",
+      "reason": "Health check returned HTTP 200 with status=ok.",
+      "evidence": [
+        "GET /ping -> HTTP 200, body.status=ok, service=US Federal Data Exchange",
+        "timing: total_time_seconds=0.067",
+        "artifact: 01-GET_ping.txt"
+      ]
+    },
+    {
+      "id": "VAL-API-003",
+      "status": "pass",
+      "reason": "Signup and login both returned tokens, and token authenticated /get_data.",
+      "evidence": [
+        "signup -> HTTP 201, token_present=True",
+        "login -> HTTP 200, token_present=True",
+        "auth probe /get_data -> HTTP 200, status=success",
+        "artifacts: 02-POST_signup.txt, 03-POST_login.txt, 04-POST_get_data.txt"
+      ]
+    },
+    {
+      "id": "VAL-PROD-001",
+      "status": "pass",
+      "reason": "Production server reachable on port 6732 (via /ping).",
+      "evidence": [
+        "curl /ping HTTP status=200",
+        "timing: total_time_seconds=0.067",
+        "artifact: 01-GET_ping.txt"
+      ]
+    },
+    {
+      "id": "VAL-PROD-002",
+      "status": "pass",
+      "reason": "Homepage reflects updated frontend markers and does not include stale placeholder text.",
+      "evidence": [
+        "GET / -> HTTP 200, marker_hits=['CIA', 'Lakewood', 'demo', 'contractor', 'animal control']",
+        "old_text_present={'latest US unemployment statistics': False, 'federal education spending by state': False}",
+        "timing: total_time_seconds=0.100",
+        "artifact: 07-GET_.txt"
+      ]
+    },
+    {
+      "id": "VAL-PROD-003",
+      "status": "pass",
+      "reason": "Service inferred active because /ping returned 200.",
+      "evidence": [
+        "/ping returned HTTP 200 with status=ok",
+        "systemd direct check not available in curl-only scope",
+        "artifact: 01-GET_ping.txt"
+      ]
+    },
+    {
+      "id": "VAL-PROD-004",
+      "status": "pass",
+      "reason": "Both CIA and Lakewood dataset queries returned success with non-fallback data.",
+      "evidence": [
+        "CIA query -> HTTP 200, status=success, fallback_detected=False",
+        "Lakewood query -> HTTP 200, status=success, fallback_detected=False",
+        "artifacts: 10-POST_get_data.txt, 11-POST_get_data.txt"
+      ]
+    },
+    {
+      "id": "VAL-E2E-003",
+      "status": "pass",
+      "reason": "Empty query rejected with HTTP 400 and expected message.",
+      "evidence": [
+        "POST /get_data {description:''} -> HTTP 400, error=Description required",
+        "timing: total_time_seconds=0.065",
+        "artifact: 08-POST_get_data.txt"
+      ]
+    },
+    {
+      "id": "VAL-E2E-004",
+      "status": "pass",
+      "reason": "Unauthenticated and invalid-token requests were both rejected with 401.",
+      "evidence": [
+        "no Authorization -> HTTP 401, error=Token is missing",
+        "invalid token -> HTTP 401, error=Invalid token",
+        "artifacts: 05-POST_get_data.txt, 06-POST_get_data.txt"
+      ]
+    },
+    {
+      "id": "VAL-E2E-005",
+      "status": "pass",
+      "reason": "End-to-end query completed within 60s by both curl timing and processing_time_seconds.",
+      "evidence": [
+        "HTTP 200, curl_total_time_seconds=24.591",
+        "processing_time_seconds=24.51",
+        "cached=False",
+        "artifact: 12-POST_get_data.txt"
+      ]
+    },
+    {
+      "id": "VAL-E2E-006",
+      "status": "fail",
+      "reason": "Cache behavior did not meet expected uncached/cached timing pattern.",
+      "evidence": [
+        "query='CIA contractor records cache probe curl-core-1775163709-229847'",
+        "first -> HTTP 200, cached=False, processing_time_seconds=23.81, curl_total_time=23.917",
+        "second -> HTTP 200, cached=True, processing_time_seconds=23.81, curl_total_time=0.070",
+        "artifacts: 13-POST_get_data.txt, 14-POST_get_data.txt"
+      ]
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": {
+    "passed": 10,
+    "failed": 1,
+    "blocked": 0
+  },
+  "testedAt": "2026-04-02T21:01:49.618946+00:00",
+  "isolation": {
+    "baseUrl": "http://143.110.131.237:6732",
+    "email": "validator-curl-core-1775163709@example.com",
+    "evidenceDir": "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-core"
+  }
+}

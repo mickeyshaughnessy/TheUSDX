@@ -1,0 +1,111 @@
+{
+  "groupId": "curl-data",
+  "surface": "curl",
+  "toolsUsed": [
+    "curl"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-CIA-001",
+      "status": "pass",
+      "reason": "http=200, dataset_id=cia-contractor-employment, records=10, fallback_FED001_FED002=False",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_base.json"
+      ]
+    },
+    {
+      "id": "VAL-CIA-002",
+      "status": "pass",
+      "reason": "records=10; records_missing_2plus_required_fields=none",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_base.json"
+      ]
+    },
+    {
+      "id": "VAL-CIA-003",
+      "status": "pass",
+      "reason": "distinct_names=10; placeholders=none; unrealistic=none",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_base.json"
+      ]
+    },
+    {
+      "id": "VAL-CIA-004",
+      "status": "pass",
+      "reason": "CIA contractor employment records: http=200, dataset_id=cia-contractor-employment, records=10, fallback=False, ok=True ; classified personnel with security clearances: http=200, dataset_id=cia-contractor-employment, records=10, fallback=False, ok=True ; government intelligence agency employees: http=200, dataset_id=cia-contractor-employment, records=10, fallback=False, ok=True",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_variant_1.json",
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_variant_2.json",
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_variant_3.json"
+      ]
+    },
+    {
+      "id": "VAL-CIA-005",
+      "status": "pass",
+      "reason": "data_json_valid=True; schema_preserved=True; withheld_message_present=False",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_base.json"
+      ]
+    },
+    {
+      "id": "VAL-AC-001",
+      "status": "pass",
+      "reason": "http=200, dataset_id=lakewood-animal-control, records=10, fallback_FED001_FED002=False",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_base.json"
+      ]
+    },
+    {
+      "id": "VAL-AC-002",
+      "status": "pass",
+      "reason": "records=10; records_missing_2plus_required_fields=none",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_base.json"
+      ]
+    },
+    {
+      "id": "VAL-AC-003",
+      "status": "pass",
+      "reason": "seed_lakewood_address_hits=10; redacted_location_refs_colorado_or_lakewood=True",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_base.json",
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/ac-003-address-check.json"
+      ]
+    },
+    {
+      "id": "VAL-AC-004",
+      "status": "fail",
+      "reason": "masked_name_fields=0; unchanged_resident_names=none; unchanged_pet_names=['Biscuit', 'Blue', 'Buddy', 'Cinnamon', 'Cooper', 'Mr. Fluffington', 'Rocco', 'Sergeant', 'Tinkerbell', 'Whiskers']",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_base.json"
+      ]
+    },
+    {
+      "id": "VAL-AC-005",
+      "status": "pass",
+      "reason": "Lakewood animal control: http=200, dataset_id=lakewood-animal-control, records=10, fallback=False, ok=True ; pet violations and complaints Colorado: http=200, dataset_id=lakewood-animal-control, records=10, fallback=False, ok=True ; animal enforcement cases Lakewood CO: http=200, dataset_id=lakewood-animal-control, records=10, fallback=False, ok=True",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_variant_1.json",
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_variant_2.json",
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_variant_3.json"
+      ]
+    },
+    {
+      "id": "VAL-E2E-007",
+      "status": "fail",
+      "reason": "Compared names from seed_data.py against redacted outputs: leaked_human_names=none; leaked_pet_names=['Biscuit', 'Blue', 'Buddy', 'Cinnamon', 'Cooper', 'Mr. Fluffington', 'Rocco', 'Sergeant', 'Tinkerbell', 'Whiskers']",
+      "evidence": [
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/val-e2e-007-name-leakage-check.json",
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-cia_base.json",
+        "/Users/michaelshaughnessy/.factory/missions/f5b018af-a8a1-4d0a-9cd7-70f3b309a51f/evidence/demo-overhaul/curl-data/get-data-ac_base.json"
+      ]
+    }
+  ],
+  "frictions": [],
+  "blockers": [],
+  "summary": {
+    "passed": 9,
+    "failed": 2,
+    "blocked": 0
+  }
+}

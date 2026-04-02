@@ -1,0 +1,125 @@
+{
+  "groupId": "browser-ui",
+  "surface": "agent-browser",
+  "toolsUsed": [
+    "agent-browser"
+  ],
+  "assertions": [
+    {
+      "id": "VAL-FE-001",
+      "status": "pass",
+      "reason": "Root URL loaded successfully with title 'US Federal Data Exchange', page rendered, and initial console/page errors check returned no JS errors.",
+      "evidence": [
+        "Open http://143.110.131.237:6732/ -> title: 'US Federal Data Exchange'.",
+        "Initial error check: {\"errors\": []}.",
+        "Initial console check: {\"messages\": []}."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-FE-001-page-load-annotated.png"
+      ]
+    },
+    {
+      "id": "VAL-FE-002",
+      "status": "pass",
+      "reason": "Two demo buttons are visible pre-auth with explicit CIA and Lakewood Animal Control labels.",
+      "evidence": [
+        "Visible clickable buttons: '🕵️ CIA Contractor Records' and '🐾 Lakewood Animal Control' before authentication."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-FE-001-page-load-annotated.png"
+      ]
+    },
+    {
+      "id": "VAL-FE-003",
+      "status": "pass",
+      "reason": "Both demo buttons populated the query textarea with scenario-specific text.",
+      "evidence": [
+        "CIA button populated textarea with: 'Show employment records for CIA human intelligence contractors including clearance levels and assignment locations'.",
+        "Animal control button populated textarea with: 'Lakewood, CO animal control service records and violations including resident names and addresses'."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-FE-003-cia-prefill.png",
+        "demo-overhaul/browser-ui/VAL-FE-003-animal-prefill.png"
+      ]
+    },
+    {
+      "id": "VAL-FE-004",
+      "status": "pass",
+      "reason": "No banned legacy summary-statistics terms were found in visible text or page HTML.",
+      "evidence": [
+        "DOM term scan returned foundInBody: [] and foundInHtml: [] for: unemployment statistics, federal education spending by state, GDP, census population, federal budget, crime statistics, energy consumption, housing market, drug approvals, traffic fatalities, climate highlights, school enrollment."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-E2E-001-post-signup-query-form.png"
+      ]
+    },
+    {
+      "id": "VAL-FE-005",
+      "status": "pass",
+      "reason": "Textarea placeholder references individual records and is not the old generic/summary placeholder.",
+      "evidence": [
+        "Textarea placeholder: 'Describe the individual records you need, e.g. personnel files, service records, contractor histories...'."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-E2E-001-post-signup-query-form.png"
+      ]
+    },
+    {
+      "id": "VAL-FE-006",
+      "status": "pass",
+      "reason": "Submitting a demo query rendered JSON output with privacy metadata instead of an error.",
+      "evidence": [
+        "Result metadata after submit: 'Records: 1 | Processing: 29.97s | Privacy: ✓ | Cached: Yes'.",
+        "Rendered JSON parsed successfully with 10 individual records (lakewood-animal-control)."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-E2E-002-animal-results-post-login.png"
+      ]
+    },
+    {
+      "id": "VAL-E2E-001",
+      "status": "pass",
+      "reason": "Completed signup -> CIA demo prefill -> submit flow and observed CIA contractor redacted record output with expected fields.",
+      "evidence": [
+        "Signup completed with validator-browser-ui-1775163617@example.com and query form displayed.",
+        "CIA demo prefill succeeded with CIA/contractor/clearance query text.",
+        "CIA result parse succeeded: top-level dataset included id 'cia-contractor-employment' with nested records containing names, clearance_level, contract dates, and role fields; privacy check detected."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-FE-001-page-load-annotated.png",
+        "demo-overhaul/browser-ui/VAL-E2E-001-signup-form-filled.png",
+        "demo-overhaul/browser-ui/VAL-E2E-001-post-signup-query-form.png",
+        "demo-overhaul/browser-ui/VAL-E2E-001-cia-prefill.png",
+        "demo-overhaul/browser-ui/VAL-E2E-001-cia-results.png"
+      ]
+    },
+    {
+      "id": "VAL-E2E-002",
+      "status": "pass",
+      "reason": "Completed login -> animal control demo prefill -> submit flow and observed redacted Lakewood animal-control records with preserved pet/case details and generalized addresses.",
+      "evidence": [
+        "Login path executed with existing test account and query form displayed post-login.",
+        "Animal demo prefill succeeded with Lakewood animal control query text.",
+        "Post-submit parse: datasetId 'lakewood-animal-control', recordCount 10, maskedNameCount 0, coloradoAddressCount 10, petNameCount 10.",
+        "Result metadata: 'Records: 1 | Processing: 29.97s | Privacy: ✓ | Cached: Yes'."
+      ],
+      "screenshots": [
+        "demo-overhaul/browser-ui/VAL-E2E-002-login-page.png",
+        "demo-overhaul/browser-ui/VAL-E2E-002-post-login-query-form.png",
+        "demo-overhaul/browser-ui/VAL-E2E-002-animal-prefill-post-login.png",
+        "demo-overhaul/browser-ui/VAL-E2E-002-animal-results-post-login.png"
+      ]
+    }
+  ],
+  "frictions": [
+    "agent-browser initially failed because Playwright Chromium was missing; resolved by running `agent-browser install` once.",
+    "One wait step using `wait --text \"Privacy:\"` timed out while the result metadata node existed but was temporarily hidden; workaround was fixed-delay wait plus screenshot/eval checks.",
+    "A later console log showed one transient browser message: 'Failed to load resource: net::ERR_EMPTY_RESPONSE' (non-blocking to completing assigned assertions)."
+  ],
+  "blockers": [],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "blocked": 0
+  }
+}
