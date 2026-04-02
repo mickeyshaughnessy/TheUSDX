@@ -73,7 +73,8 @@ def collect_data(description):
     
     try:
         metadata_list = []
-        response = s3_client.list_objects_v2(Bucket=config.DO_SPACES_BUCKET, Prefix='metadata/')
+        prefix = getattr(config, 'DO_SPACES_PREFIX', 'usdx/')
+        response = s3_client.list_objects_v2(Bucket=config.DO_SPACES_BUCKET, Prefix=f'{prefix}metadata/')
         
         if 'Contents' in response:
             for obj in response['Contents'][:10]:
@@ -96,7 +97,7 @@ Return a JSON list of dataset IDs that best match the request. Format: {{"datase
         collected_datasets = []
         for dataset_id in matched_ids:
             try:
-                data_obj = s3_client.get_object(Bucket=config.DO_SPACES_BUCKET, Key=f'data/{dataset_id}.json')
+                data_obj = s3_client.get_object(Bucket=config.DO_SPACES_BUCKET, Key=f'{prefix}data/{dataset_id}.json')
                 dataset = json.loads(data_obj['Body'].read().decode('utf-8'))
                 collected_datasets.append(dataset)
             except:
