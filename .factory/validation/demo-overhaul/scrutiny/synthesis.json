@@ -1,0 +1,72 @@
+{
+  "milestone": "demo-overhaul",
+  "round": 1,
+  "status": "fail",
+  "validatorsRun": {
+    "test": {
+      "passed": true,
+      "command": "python3 -m unittest test_redactor",
+      "exitCode": 0
+    },
+    "typecheck": {
+      "passed": true,
+      "command": "python3 -m py_compile /Users/michaelshaughnessy/Repos/TheUSDX/api_server.py /Users/michaelshaughnessy/Repos/TheUSDX/handlers.py /Users/michaelshaughnessy/Repos/TheUSDX/redactor.py /Users/michaelshaughnessy/Repos/TheUSDX/seed_data.py /Users/michaelshaughnessy/Repos/TheUSDX/test_api.py /Users/michaelshaughnessy/Repos/TheUSDX/test_redactor.py",
+      "exitCode": 0
+    },
+    "lint": {
+      "passed": true,
+      "command": "python3 -m ruff check --select E9,F63,F7,F82 /Users/michaelshaughnessy/Repos/TheUSDX",
+      "exitCode": 0
+    }
+  },
+  "reviewsSummary": {
+    "total": 3,
+    "passed": 1,
+    "failed": 2,
+    "failedFeatures": [
+      "fix-config-and-create-datasets",
+      "update-frontend"
+    ]
+  },
+  "blockingIssues": [
+    {
+      "featureId": "fix-config-and-create-datasets",
+      "severity": "blocking",
+      "description": "seed_data.py contains Lakewood animal-control records with ZIP codes 80214 and 80215, which violate the stated 80226-80232 requirement."
+    },
+    {
+      "featureId": "update-frontend",
+      "severity": "blocking",
+      "description": "Demo buttons were placed inside #query-form, which is hidden until authentication, so they are not visible on initial page load (fails VAL-FE-002)."
+    }
+  ],
+  "appliedUpdates": [
+    {
+      "target": "library",
+      "description": "Added operational notes to .factory/library/environment.md documenting deploy.sh stash/pop conflict risk and intermittent SSH reset behavior on rapid retries.",
+      "sourceFeature": "seed-upload-and-deploy"
+    }
+  ],
+  "suggestedGuidanceUpdates": [
+    {
+      "target": "AGENTS.md",
+      "suggestion": "Add an explicit rule to never print or paste full secrets (API keys, tokens, credentials) in worker outputs, transcripts, or handoffs; require masking except minimal prefix/suffix when verification needs proof.",
+      "evidence": "Review for fix-config-and-create-datasets found a full OPENROUTER key literal present in worker transcript output.",
+      "isSystemic": true
+    },
+    {
+      "target": "skill:fullstack-worker",
+      "suggestion": "For frontend tasks, require verification of initial visibility and state-dependent UI behavior (not only static HTML checks), including at least one interactive assertion when visibility is part of acceptance criteria.",
+      "evidence": "update-frontend passed static checks but failed VAL-FE-002 because demo buttons were hidden inside an auth-gated container.",
+      "isSystemic": true
+    },
+    {
+      "target": "skill:fullstack-worker",
+      "suggestion": "Document that handlers.collect_data() must use config.DO_SPACES_PREFIX consistently for both metadata and data object keys.",
+      "evidence": "seed-upload-and-deploy required a production bugfix commit (19dd10e) to correct DO Spaces prefix behavior.",
+      "isSystemic": true
+    }
+  ],
+  "rejectedObservations": [],
+  "previousRound": null
+}

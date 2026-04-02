@@ -1,0 +1,28 @@
+{
+  "featureId": "update-frontend",
+  "reviewedAt": "2026-04-02T20:45:06Z",
+  "commitId": "01c32c5",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "The commit correctly updates copy and adds CIA/animal-control demo prefill functions, but it places the new demo buttons inside `#query-form`, which remains hidden (`display:none`) until authentication. This violates the feature/validation requirement that demo buttons are visible on the page.",
+    "issues": [
+      {
+        "file": "index.html",
+        "line": 187,
+        "severity": "blocking",
+        "description": "Demo buttons are nested in `<div id=\"query-form\" style=\"display:none...\">`, so they are not visible on initial page load. Validation contract VAL-FE-002 explicitly fails when demo buttons are hidden/invisible, and expected behavior requires visible CIA/animal-control demo buttons."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "The `fullstack-worker` skill's frontend verification guidance emphasizes HTML well-formedness and unit tests but does not require checking initial UI visibility/state-dependent behavior. This likely allowed hidden demo buttons to pass worker self-verification despite VAL-FE-002 requiring visibility.",
+      "evidence": ".factory/skills/fullstack-worker/SKILL.md step 5 says for frontend to verify HTML is well-formed; worker transcript skeleton for session b2cae96a-aabf-4b0c-acf2-9b726e9f5df8 shows grep/static checks only and no interactive visibility check."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Review failed with one blocking issue: the new demo buttons are implemented but not visible before login because they are inside a hidden query form."
+}

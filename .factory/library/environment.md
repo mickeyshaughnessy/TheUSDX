@@ -24,3 +24,8 @@ config.py is gitignored. Contains:
 ## Python Dependencies
 
 Flask, flask-cors, gunicorn, boto3, bcrypt, PyJWT, requests (see requirements.txt)
+
+## Operational Notes
+
+- `deploy.sh` uses a remote `git stash` / `git stash pop` around `git pull`. If the server has local uncommitted edits, deploys can fail with conflicts and require manual cleanup.
+- Production SSH to `143.110.131.237` may intermittently reset during rapid repeated attempts. Add a short delay before retrying deployment verification steps.

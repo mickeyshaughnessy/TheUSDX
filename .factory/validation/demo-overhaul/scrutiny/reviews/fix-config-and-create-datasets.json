@@ -1,0 +1,34 @@
+{
+  "featureId": "fix-config-and-create-datasets",
+  "reviewedAt": "2026-04-02T20:45:54Z",
+  "commitId": "274eb3984b92fda1802a289dfb5636f6098791a6",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "fail",
+  "codeReview": {
+    "summary": "Implementation replaced the datasets and preserved seed upload structure, but it does not fully satisfy the required Lakewood ZIP-code constraint from the feature description.",
+    "issues": [
+      {
+        "file": "seed_data.py",
+        "line": 180,
+        "severity": "blocking",
+        "description": "Animal-control record uses ZIP 80214, but the feature requires Lakewood addresses to use ZIP codes in the 80226-80232 range."
+      },
+      {
+        "file": "seed_data.py",
+        "line": 206,
+        "severity": "blocking",
+        "description": "Animal-control record uses ZIP 80215, but the feature requires Lakewood addresses to use ZIP codes in the 80226-80232 range."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "Secret-handling guidance appears incomplete: the worker transcript includes a full OPENROUTER API key literal, suggesting there is no enforced convention to avoid echoing secrets in transcript/handoff text.",
+      "evidence": "worker-transcripts.jsonl:1 contains an assistant message with the full `sk-or-v1-...` key string; AGENTS.md documents key locations but does not explicitly prohibit printing secrets in outputs."
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "Reviewed handoff, transcript skeleton, skill procedure, and commit diff for fix-config-and-create-datasets. The feature is close, but it fails a stated requirement because two Lakewood addresses use ZIP codes outside 80226-80232."
+}
