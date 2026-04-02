@@ -1,11 +1,11 @@
 {
   "milestone": "demo-overhaul",
-  "round": 1,
-  "status": "fail",
+  "round": 2,
+  "status": "pass",
   "validatorsRun": {
     "test": {
       "passed": true,
-      "command": "python3 -m unittest test_redactor",
+      "command": "cd /Users/michaelshaughnessy/Repos/TheUSDX && python3 -m unittest test_redactor",
       "exitCode": 0
     },
     "typecheck": {
@@ -20,53 +20,26 @@
     }
   },
   "reviewsSummary": {
-    "total": 3,
+    "total": 1,
     "passed": 1,
-    "failed": 2,
-    "failedFeatures": [
-      "fix-config-and-create-datasets",
-      "update-frontend"
-    ]
+    "failed": 0,
+    "failedFeatures": []
   },
-  "blockingIssues": [
-    {
-      "featureId": "fix-config-and-create-datasets",
-      "severity": "blocking",
-      "description": "seed_data.py contains Lakewood animal-control records with ZIP codes 80214 and 80215, which violate the stated 80226-80232 requirement."
-    },
-    {
-      "featureId": "update-frontend",
-      "severity": "blocking",
-      "description": "Demo buttons were placed inside #query-form, which is hidden until authentication, so they are not visible on initial page load (fails VAL-FE-002)."
-    }
-  ],
-  "appliedUpdates": [
-    {
-      "target": "library",
-      "description": "Added operational notes to .factory/library/environment.md documenting deploy.sh stash/pop conflict risk and intermittent SSH reset behavior on rapid retries.",
-      "sourceFeature": "seed-upload-and-deploy"
-    }
-  ],
+  "blockingIssues": [],
+  "appliedUpdates": [],
   "suggestedGuidanceUpdates": [
     {
-      "target": "AGENTS.md",
-      "suggestion": "Add an explicit rule to never print or paste full secrets (API keys, tokens, credentials) in worker outputs, transcripts, or handoffs; require masking except minimal prefix/suffix when verification needs proof.",
-      "evidence": "Review for fix-config-and-create-datasets found a full OPENROUTER key literal present in worker transcript output.",
-      "isSystemic": true
-    },
-    {
       "target": "skill:fullstack-worker",
-      "suggestion": "For frontend tasks, require verification of initial visibility and state-dependent UI behavior (not only static HTML checks), including at least one interactive assertion when visibility is part of acceptance criteria.",
-      "evidence": "update-frontend passed static checks but failed VAL-FE-002 because demo buttons were hidden inside an auth-gated container.",
-      "isSystemic": true
-    },
-    {
-      "target": "skill:fullstack-worker",
-      "suggestion": "Document that handlers.collect_data() must use config.DO_SPACES_PREFIX consistently for both metadata and data object keys.",
-      "evidence": "seed-upload-and-deploy required a production bugfix commit (19dd10e) to correct DO Spaces prefix behavior.",
+      "suggestion": "Add an explicit deployment prerequisite to run `git push` before `bash deploy.sh`, since deploy.sh pulls `origin/main` on the server and otherwise can deploy stale code.",
+      "evidence": "fix-scrutiny-blocking-issues review observed stale deployment until a manual push/redeploy; deploy.sh runs `git pull origin main` while current worker guidance omits an explicit push step.",
       "isSystemic": true
     }
   ],
-  "rejectedObservations": [],
-  "previousRound": null
+  "rejectedObservations": [
+    {
+      "observation": "Secret-handling guidance gaps, frontend visibility-check guidance gaps, DO_SPACES_PREFIX guidance gaps, and deploy/SSH operational notes from prior feature reviews.",
+      "reason": "already triaged and captured in round 1 synthesis"
+    }
+  ],
+  "previousRound": ".factory/validation/demo-overhaul/scrutiny/synthesis.round1.json"
 }

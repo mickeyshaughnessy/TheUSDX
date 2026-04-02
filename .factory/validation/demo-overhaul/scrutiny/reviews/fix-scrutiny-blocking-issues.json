@@ -1,0 +1,21 @@
+{
+  "featureId": "fix-scrutiny-blocking-issues",
+  "reviewedAt": "2026-04-02T20:56:03Z",
+  "commitId": "4a886a9770822c77e4b48e5647cc92ee71e0006b",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "This rerun fix addresses both prior blocking findings. The Lakewood ZIP violations from fix-config-and-create-datasets are corrected (seed_data.py now uses valid ZIPs and contains no 80214/80215). The hidden demo-button issue from update-frontend is corrected by moving demo buttons into a visible pre-auth container outside the hidden #query-form and wiring click behavior to auth-aware prefill.",
+    "issues": []
+  },
+  "sharedStateObservations": [
+    {
+      "area": "skills",
+      "observation": "Deployment guidance is missing an explicit `git push` step before `bash deploy.sh`, which can cause a stale remote deployment on the first attempt.",
+      "evidence": "fullstack-worker SKILL.md:43-46 and mission AGENTS.md:31-33 list commit -> seed -> deploy (no push), while deploy.sh performs `git pull origin main` (deploy.sh:26). In this fix transcript skeleton, worker noted initial deploy showed old commit and then pushed/redeployed."
+    }
+  ],
+  "addressesFailureFrom": "/Users/michaelshaughnessy/Repos/TheUSDX/.factory/validation/demo-overhaul/scrutiny/synthesis.json",
+  "summary": "Reviewed handoff, transcript skeleton, commit diff, and prior failed reviews for fix-config-and-create-datasets and update-frontend. The fix commit 4a886a9 fully resolves both prior blocking issues and introduces no new high-confidence blocking or non-blocking defects. Review passes."
+}
