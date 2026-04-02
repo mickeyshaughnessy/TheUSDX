@@ -154,42 +154,59 @@ def _redact_chunk(chunk):
         raise
 
 
+def _redact_large_dict(data):
+    """Chunk a large dict by splitting nested lists, then redact."""
+    result = {}
+    for key, value in data.items():
+        if isinstance(value, list) and len(value) > 3:
+            chunk_size = 3
+            redacted_list = []
+            for i in range(0, len(value), chunk_size):
+                chunk_result = _redact_chunk({key: value[i:i + chunk_size]})
+                if isinstance(chunk_result, dict):
+                    redacted_list.extend(chunk_result.get(key, []))
+                elif isinstance(chunk_result, list):
+                    redacted_list.extend(chunk_result)
+            result[key] = redacted_list
+        else:
+            result[key] = value
+    # If result is still large, just send it as-is (best effort)
+    if json.dumps(result).strip() == '{}':
+        return _redact_chunk(data)
+    return _redact_chunk(result)
+
+
 def redact_data(data):
     """
     AI-powered redactor that applies differential privacy and removes sensitive PII.
     Chunks large inputs to stay within LLM token limits (~2000 tokens per chunk).
     """
     try:
-        # For list payloads, chunk by records to stay under token limit
-        if isinstance(data, list) and len(data) > 3:
-            chunk_size = 3
-            redacted_chunks = []
-            for i in range(0, len(data), chunk_size):
-                chunk = data[i:i + chunk_size]
-                result = _redact_chunk(chunk)
-                if isinstance(result, list):
-                    redacted_chunks.extend(result)
-                else:
-                    redacted_chunks.append(result)
-            return redacted_chunks
+        # For list payloads, chunk to stay under token limit
+        if isinstance(data, list):
+            data_str = json.dumps(data)
+            if len(data) > 3 or len(data_str) > 6000:
+                # Process each list element individually if large,
+                # or in small chunks
+                redacted_chunks = []
+                for item in data:
+                    item_str = json.dumps(item)
+                    if isinstance(item, dict) and len(item_str) > 6000:
+                        # Chunk nested lists within this dict
+                        redacted_item = _redact_large_dict(item)
+                    else:
+                        redacted_item = _redact_chunk(item)
+                    if isinstance(redacted_item, list):
+                        redacted_chunks.extend(redacted_item)
+                    else:
+                        redacted_chunks.append(redacted_item)
+                return redacted_chunks
+            return _redact_chunk(data)
 
         # For dict payloads, check size and chunk nested lists if needed
         data_str = json.dumps(data)
         if len(data_str) > 6000:
-            # Chunk top-level list-valued keys
-            result = {}
-            for key, value in (data.items() if isinstance(data, dict) else {}.items()):
-                if isinstance(value, list) and len(value) > 3:
-                    chunk_size = 3
-                    redacted_list = []
-                    for i in range(0, len(value), chunk_size):
-                        chunk_result = _redact_chunk({key: value[i:i + chunk_size]})
-                        if isinstance(chunk_result, dict):
-                            redacted_list.extend(chunk_result.get(key, []))
-                    result[key] = redacted_list
-                else:
-                    result[key] = value
-            return _redact_chunk(result)
+            return _redact_large_dict(data)
 
         return _redact_chunk(data)
 
