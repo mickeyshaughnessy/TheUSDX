@@ -14,311 +14,295 @@ import config
 
 DATASETS = [
     # -------------------------------------------------------------------------
-    # Census & Demographics
+    # CIA Human Contractors Employment Records
     # -------------------------------------------------------------------------
     {
-        "id": "census-pop-2023",
-        "category": "census",
-        "title": "US Population by State 2023",
-        "description": "US Census Bureau state-level population estimates for 2023",
-        "keywords": ["census", "population", "demographics", "state", "residents"],
+        "id": "cia-contractor-employment",
+        "category": "intelligence",
+        "title": "CIA Human Contractors Employment Records",
+        "description": "Classified employment records for CIA human intelligence contractors including personnel details, security clearances, facility assignments, and contract terms",
+        "keywords": ["cia", "contractors", "employment", "clearance", "intelligence", "classified", "personnel", "security", "government", "clandestine"],
         "data": {
-            "source": "US Census Bureau",
-            "year": 2023,
+            "source": "Central Intelligence Agency – Human Resources Directorate",
+            "classification": "TOP SECRET // HCS // NOFORN",
+            "date_generated": "2025-01-15",
             "records": [
-                {"state": "California", "population": 38965193, "density_per_sqmi": 256},
-                {"state": "Texas", "population": 30503301, "density_per_sqmi": 116},
-                {"state": "Florida", "population": 22610726, "density_per_sqmi": 419},
-                {"state": "New York", "population": 19571216, "density_per_sqmi": 415},
-                {"state": "Pennsylvania", "population": 12961683, "density_per_sqmi": 291},
-                {"state": "Illinois", "population": 12549689, "density_per_sqmi": 226},
-                {"state": "Ohio", "population": 11785935, "density_per_sqmi": 288},
-                {"state": "Georgia", "population": 11029227, "density_per_sqmi": 191},
-                {"state": "North Carolina", "population": 10835491, "density_per_sqmi": 222},
-                {"state": "Michigan", "population": 10037261, "density_per_sqmi": 177},
-                {"state": "Colorado", "population": 5877610, "density_per_sqmi": 57},
-                {"state": "Wyoming", "population": 584057, "density_per_sqmi": 6}
+                {
+                    "employee_id": "CIA-HC-2019-04371",
+                    "contract_number": "HCS-2019-00284",
+                    "name": "Marcus J. Thompson",
+                    "position_title": "Signals Intelligence Analyst",
+                    "clearance_level": "TS/SCI",
+                    "assignment_location": "George Bush Center for Intelligence, Langley, VA 22101",
+                    "contract_start": "2019-03-01",
+                    "contract_end": "2024-02-29",
+                    "pay_grade": "GS-14",
+                    "annual_salary": 122530,
+                    "supervising_officer": "Deputy Director Karen M. Ortiz"
+                },
+                {
+                    "employee_id": "CIA-HC-2020-05892",
+                    "contract_number": "HCS-2020-00517",
+                    "name": "Yuna Park",
+                    "position_title": "Clandestine Operations Specialist",
+                    "clearance_level": "TS/SCI",
+                    "assignment_location": "Camp Peary (The Farm), Williamsburg, VA 23185",
+                    "contract_start": "2020-06-15",
+                    "contract_end": "2025-06-14",
+                    "pay_grade": "GS-15",
+                    "annual_salary": 142701,
+                    "supervising_officer": "Station Chief Robert A. Glendinning"
+                },
+                {
+                    "employee_id": "CIA-HC-2018-03106",
+                    "contract_number": "HCS-2018-00193",
+                    "name": "Dmitri Volkov",
+                    "position_title": "Counterintelligence Debriefer",
+                    "clearance_level": "Top Secret",
+                    "assignment_location": "Harvey Point Defense Testing Activity, Hertford, NC 27944",
+                    "contract_start": "2018-09-01",
+                    "contract_end": "2023-08-31",
+                    "pay_grade": "GS-14",
+                    "annual_salary": 119413,
+                    "supervising_officer": "Group Chief Adrienne L. Chastain"
+                },
+                {
+                    "employee_id": "CIA-HC-2021-07244",
+                    "contract_number": "HCS-2021-00631",
+                    "name": "Fatima Al-Rashidi",
+                    "position_title": "Open Source Intelligence Analyst",
+                    "clearance_level": "Secret",
+                    "assignment_location": "CIA Annex, Tysons Corner, VA 22182",
+                    "contract_start": "2021-01-10",
+                    "contract_end": "2025-01-09",
+                    "pay_grade": "GS-13",
+                    "annual_salary": 106823,
+                    "supervising_officer": "Deputy Director Karen M. Ortiz"
+                },
+                {
+                    "employee_id": "CIA-HC-2017-02558",
+                    "contract_number": "HCS-2017-00142",
+                    "name": "Rafael Mendes-Cruz",
+                    "position_title": "Covert Communications Engineer",
+                    "clearance_level": "TS/SCI",
+                    "assignment_location": "George Bush Center for Intelligence, Langley, VA 22101",
+                    "contract_start": "2017-04-22",
+                    "contract_end": "2022-04-21",
+                    "pay_grade": "GS-15",
+                    "annual_salary": 138572,
+                    "supervising_officer": "Technical Director Neil W. Buchanan"
+                },
+                {
+                    "employee_id": "CIA-HC-2022-08831",
+                    "contract_number": "HCS-2022-00789",
+                    "name": "Priya Ramanathan",
+                    "position_title": "Geospatial Intelligence Specialist",
+                    "clearance_level": "TS/SCI",
+                    "assignment_location": "National Reconnaissance Office Liaison, Chantilly, VA 20151",
+                    "contract_start": "2022-08-01",
+                    "contract_end": "2027-07-31",
+                    "pay_grade": "GS-14",
+                    "annual_salary": 125409,
+                    "supervising_officer": "Station Chief Robert A. Glendinning"
+                },
+                {
+                    "employee_id": "CIA-HC-2019-04920",
+                    "contract_number": "HCS-2019-00341",
+                    "name": "James O. Whitfield",
+                    "position_title": "Targeting Officer – Counterterrorism",
+                    "clearance_level": "TS/SCI",
+                    "assignment_location": "Camp Peary (The Farm), Williamsburg, VA 23185",
+                    "contract_start": "2019-11-18",
+                    "contract_end": "2024-11-17",
+                    "pay_grade": "GS-15",
+                    "annual_salary": 145298,
+                    "supervising_officer": "Group Chief Adrienne L. Chastain"
+                },
+                {
+                    "employee_id": "CIA-HC-2023-09415",
+                    "contract_number": "HCS-2023-00902",
+                    "name": "Mei-Ling Chen",
+                    "position_title": "Technical Operations Officer",
+                    "clearance_level": "Top Secret",
+                    "assignment_location": "George Bush Center for Intelligence, Langley, VA 22101",
+                    "contract_start": "2023-02-13",
+                    "contract_end": "2028-02-12",
+                    "pay_grade": "GS-13",
+                    "annual_salary": 109192,
+                    "supervising_officer": "Technical Director Neil W. Buchanan"
+                },
+                {
+                    "employee_id": "CIA-HC-2020-06310",
+                    "contract_number": "HCS-2020-00588",
+                    "name": "Kwame Asante-Mensah",
+                    "position_title": "Human Intelligence (HUMINT) Case Officer",
+                    "clearance_level": "TS/SCI",
+                    "assignment_location": "CIA Station, U.S. Embassy Compound, undisclosed OCONUS",
+                    "contract_start": "2020-10-01",
+                    "contract_end": "2025-09-30",
+                    "pay_grade": "SES",
+                    "annual_salary": 183300,
+                    "supervising_officer": "Deputy Director Karen M. Ortiz"
+                },
+                {
+                    "employee_id": "CIA-HC-2021-07801",
+                    "contract_number": "HCS-2021-00674",
+                    "name": "Elena Vasquez-Moreno",
+                    "position_title": "Cryptanalysis and Signals Processing Specialist",
+                    "clearance_level": "TS/SCI",
+                    "assignment_location": "NSA Liaison Office, Fort Meade, MD 20755",
+                    "contract_start": "2021-07-06",
+                    "contract_end": "2026-07-05",
+                    "pay_grade": "GS-14",
+                    "annual_salary": 127840,
+                    "supervising_officer": "Technical Director Neil W. Buchanan"
+                }
             ]
         }
     },
     # -------------------------------------------------------------------------
-    # Economic Indicators
+    # Lakewood, CO Animal Control Records
     # -------------------------------------------------------------------------
     {
-        "id": "gdp-quarterly-2024",
-        "category": "economic",
-        "title": "US GDP by Quarter 2023-2024",
-        "description": "Bureau of Economic Analysis quarterly GDP growth rate data",
-        "keywords": ["gdp", "economy", "growth", "quarterly", "bea", "economic"],
+        "id": "lakewood-animal-control",
+        "category": "municipal",
+        "title": "City of Lakewood, CO – Animal Control Service Records",
+        "description": "Municipal animal control incident reports, licensing violations, and service call records for the City of Lakewood, Jefferson County, Colorado",
+        "keywords": ["animal control", "lakewood", "colorado", "municipal", "pets", "violations", "complaints", "licensing", "dogs", "cats", "bite report"],
         "data": {
-            "source": "Bureau of Economic Analysis",
+            "source": "City of Lakewood Animal Control Division – Jefferson County, CO",
+            "fiscal_year": "2024-2025",
             "records": [
-                {"quarter": "Q1 2023", "gdp_billions": 26835.0, "growth_rate_pct": 2.2},
-                {"quarter": "Q2 2023", "gdp_billions": 27063.0, "growth_rate_pct": 2.1},
-                {"quarter": "Q3 2023", "gdp_billions": 27358.0, "growth_rate_pct": 4.9},
-                {"quarter": "Q4 2023", "gdp_billions": 27491.0, "growth_rate_pct": 3.4},
-                {"quarter": "Q1 2024", "gdp_billions": 27634.0, "growth_rate_pct": 1.4},
-                {"quarter": "Q2 2024", "gdp_billions": 27872.0, "growth_rate_pct": 3.0},
-                {"quarter": "Q3 2024", "gdp_billions": 28116.0, "growth_rate_pct": 3.1},
-                {"quarter": "Q4 2024", "gdp_billions": 28369.0, "growth_rate_pct": 2.3}
-            ]
-        }
-    },
-    {
-        "id": "unemployment-monthly-2024",
-        "category": "employment",
-        "title": "US Unemployment Rate by Month 2024",
-        "description": "Bureau of Labor Statistics monthly unemployment rate data",
-        "keywords": ["unemployment", "jobs", "labor", "employment", "bls", "work"],
-        "data": {
-            "source": "Bureau of Labor Statistics",
-            "year": 2024,
-            "records": [
-                {"month": "Jan 2024", "rate_pct": 3.7, "nonfarm_jobs_added": 256000},
-                {"month": "Feb 2024", "rate_pct": 3.9, "nonfarm_jobs_added": 270000},
-                {"month": "Mar 2024", "rate_pct": 3.8, "nonfarm_jobs_added": 310000},
-                {"month": "Apr 2024", "rate_pct": 3.9, "nonfarm_jobs_added": 165000},
-                {"month": "May 2024", "rate_pct": 4.0, "nonfarm_jobs_added": 218000},
-                {"month": "Jun 2024", "rate_pct": 4.1, "nonfarm_jobs_added": 179000},
-                {"month": "Jul 2024", "rate_pct": 4.3, "nonfarm_jobs_added": 89000},
-                {"month": "Aug 2024", "rate_pct": 4.2, "nonfarm_jobs_added": 159000},
-                {"month": "Sep 2024", "rate_pct": 4.1, "nonfarm_jobs_added": 254000},
-                {"month": "Oct 2024", "rate_pct": 4.1, "nonfarm_jobs_added": 36000},
-                {"month": "Nov 2024", "rate_pct": 4.2, "nonfarm_jobs_added": 227000},
-                {"month": "Dec 2024", "rate_pct": 4.1, "nonfarm_jobs_added": 256000}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Federal Budget & Spending
-    # -------------------------------------------------------------------------
-    {
-        "id": "federal-budget-2024",
-        "category": "budget",
-        "title": "US Federal Budget FY2024",
-        "description": "Office of Management and Budget federal receipts and outlays by category",
-        "keywords": ["budget", "spending", "federal", "fiscal", "omb", "deficit", "revenue"],
-        "data": {
-            "source": "Office of Management and Budget",
-            "fiscal_year": 2024,
-            "total_receipts_billions": 4918,
-            "total_outlays_billions": 6751,
-            "deficit_billions": 1833,
-            "outlays_by_category": [
-                {"category": "Social Security", "amount_billions": 1351},
-                {"category": "Medicare", "amount_billions": 1027},
-                {"category": "Medicaid", "amount_billions": 616},
-                {"category": "Defense", "amount_billions": 874},
-                {"category": "Net Interest", "amount_billions": 892},
-                {"category": "Veterans Benefits", "amount_billions": 302},
-                {"category": "Education", "amount_billions": 238},
-                {"category": "Transportation", "amount_billions": 124},
-                {"category": "Other", "amount_billions": 1327}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Public Health
-    # -------------------------------------------------------------------------
-    {
-        "id": "cdc-leading-causes-death-2022",
-        "category": "public_health",
-        "title": "CDC Leading Causes of Death US 2022",
-        "description": "CDC National Center for Health Statistics leading causes of death",
-        "keywords": ["health", "mortality", "death", "cdc", "disease", "causes"],
-        "data": {
-            "source": "CDC National Center for Health Statistics",
-            "year": 2022,
-            "total_deaths": 3273674,
-            "records": [
-                {"rank": 1, "cause": "Heart Disease", "deaths": 702880, "rate_per_100k": 209.3},
-                {"rank": 2, "cause": "Cancer", "deaths": 608371, "rate_per_100k": 181.1},
-                {"rank": 3, "cause": "COVID-19", "deaths": 186552, "rate_per_100k": 55.6},
-                {"rank": 4, "cause": "Accidents (Unintentional Injuries)", "deaths": 227039, "rate_per_100k": 67.6},
-                {"rank": 5, "cause": "Stroke", "deaths": 162895, "rate_per_100k": 48.5},
-                {"rank": 6, "cause": "Chronic Respiratory Disease", "deaths": 143956, "rate_per_100k": 42.9},
-                {"rank": 7, "cause": "Alzheimer's Disease", "deaths": 119399, "rate_per_100k": 35.6},
-                {"rank": 8, "cause": "Diabetes", "deaths": 103294, "rate_per_100k": 30.8},
-                {"rank": 9, "cause": "Nephritis/Kidney Disease", "deaths": 57937, "rate_per_100k": 17.3},
-                {"rank": 10, "cause": "Suicide", "deaths": 47646, "rate_per_100k": 14.2}
-            ]
-        }
-    },
-    {
-        "id": "fda-drug-approvals-2024",
-        "category": "public_health",
-        "title": "FDA Novel Drug Approvals 2024",
-        "description": "FDA Center for Drug Evaluation and Research novel drug approvals",
-        "keywords": ["fda", "drugs", "pharmaceutical", "approvals", "medicine", "health"],
-        "data": {
-            "source": "FDA Center for Drug Evaluation and Research",
-            "year": 2024,
-            "total_approvals": 50,
-            "records": [
-                {"drug": "Imdelltra", "condition": "Small Cell Lung Cancer", "type": "Biologic", "month": "March"},
-                {"drug": "Cobenfy", "condition": "Schizophrenia", "type": "NME", "month": "September"},
-                {"drug": "Kisunla", "condition": "Alzheimer's Disease", "type": "Biologic", "month": "July"},
-                {"drug": "Zepbound", "condition": "Obesity", "type": "NME", "month": "November 2023 (full year 2024)"},
-                {"drug": "Iqirvo", "condition": "Primary Biliary Cholangitis", "type": "NME", "month": "June"},
-                {"drug": "Tryvio", "condition": "Hypertension", "type": "NME", "month": "March"},
-                {"drug": "Pombiliti", "condition": "Pompe Disease", "type": "Biologic", "month": "August"}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Energy
-    # -------------------------------------------------------------------------
-    {
-        "id": "eia-energy-consumption-2023",
-        "category": "energy",
-        "title": "US Energy Consumption by Source 2023",
-        "description": "EIA annual energy review by primary energy source",
-        "keywords": ["energy", "eia", "electricity", "renewables", "fossil fuels", "consumption"],
-        "data": {
-            "source": "US Energy Information Administration",
-            "year": 2023,
-            "total_quads": 97.3,
-            "records": [
-                {"source": "Petroleum", "quads": 35.2, "share_pct": 36.2},
-                {"source": "Natural Gas", "quads": 32.7, "share_pct": 33.6},
-                {"source": "Coal", "quads": 9.2, "share_pct": 9.5},
-                {"source": "Nuclear", "quads": 8.1, "share_pct": 8.3},
-                {"source": "Renewables", "quads": 12.1, "share_pct": 12.4},
-                {"source": "  - Wind", "quads": 3.8, "share_pct": 3.9},
-                {"source": "  - Solar", "quads": 2.1, "share_pct": 2.2},
-                {"source": "  - Hydro", "quads": 2.5, "share_pct": 2.6},
-                {"source": "  - Biomass", "quads": 3.2, "share_pct": 3.3},
-                {"source": "  - Geothermal", "quads": 0.2, "share_pct": 0.2}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Education
-    # -------------------------------------------------------------------------
-    {
-        "id": "nces-enrollment-2023",
-        "category": "education",
-        "title": "US Public School Enrollment 2022-2023",
-        "description": "NCES public elementary and secondary school enrollment statistics",
-        "keywords": ["education", "schools", "enrollment", "students", "nces", "k12"],
-        "data": {
-            "source": "National Center for Education Statistics",
-            "school_year": "2022-2023",
-            "total_enrollment": 49608534,
-            "records": [
-                {"level": "Prekindergarten", "enrollment": 1425802},
-                {"level": "Kindergarten", "enrollment": 3437671},
-                {"level": "Grades 1-8", "enrollment": 27592004},
-                {"level": "Grades 9-12", "enrollment": 15791547},
-                {"level": "Ungraded", "enrollment": 361510}
-            ],
-            "by_type": [
-                {"type": "Regular Public School", "schools": 83784, "enrollment": 47854023},
-                {"type": "Charter School", "schools": 7853, "enrollment": 3754511}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Housing
-    # -------------------------------------------------------------------------
-    {
-        "id": "hud-housing-2024",
-        "category": "housing",
-        "title": "US Housing Market Statistics 2024",
-        "description": "HUD and Census Bureau housing starts, completions, and prices",
-        "keywords": ["housing", "real estate", "home prices", "hud", "construction"],
-        "data": {
-            "source": "HUD / Census Bureau",
-            "year": 2024,
-            "housing_starts_thousands": 1354,
-            "housing_completions_thousands": 1451,
-            "median_home_price_usd": 412300,
-            "homeownership_rate_pct": 65.6,
-            "records": [
-                {"region": "Northeast", "median_price": 508600, "starts_thousands": 122},
-                {"region": "Midwest", "median_price": 327500, "starts_thousands": 258},
-                {"region": "South", "median_price": 383900, "starts_thousands": 711},
-                {"region": "West", "median_price": 573200, "starts_thousands": 263}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Crime Statistics
-    # -------------------------------------------------------------------------
-    {
-        "id": "fbi-crime-2022",
-        "category": "crime",
-        "title": "FBI Uniform Crime Report 2022",
-        "description": "FBI Uniform Crime Reporting Program national crime statistics",
-        "keywords": ["crime", "fbi", "law enforcement", "statistics", "safety", "police"],
-        "data": {
-            "source": "FBI Uniform Crime Reporting Program",
-            "year": 2022,
-            "note": "Transition year to NIBRS; not all agencies reported",
-            "violent_crime_rate_per_100k": 380.7,
-            "property_crime_rate_per_100k": 1954.4,
-            "records": [
-                {"offense": "Violent Crime (Total)", "estimated_offenses": 1237846},
-                {"offense": "Murder/Non-negligent Manslaughter", "estimated_offenses": 21156},
-                {"offense": "Rape", "estimated_offenses": 117648},
-                {"offense": "Robbery", "estimated_offenses": 266560},
-                {"offense": "Aggravated Assault", "estimated_offenses": 832482},
-                {"offense": "Property Crime (Total)", "estimated_offenses": 6340957},
-                {"offense": "Burglary", "estimated_offenses": 848138},
-                {"offense": "Larceny-Theft", "estimated_offenses": 4847899},
-                {"offense": "Motor Vehicle Theft", "estimated_offenses": 644920}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Environment / Climate
-    # -------------------------------------------------------------------------
-    {
-        "id": "noaa-climate-2024",
-        "category": "environment",
-        "title": "NOAA US Climate Highlights 2024",
-        "description": "NOAA annual climate summary for the contiguous United States",
-        "keywords": ["climate", "temperature", "noaa", "weather", "environment", "co2"],
-        "data": {
-            "source": "NOAA National Centers for Environmental Information",
-            "year": 2024,
-            "contiguous_us_avg_temp_f": 55.8,
-            "departure_from_avg_f": 3.1,
-            "ranking": "Warmest on record for CONUS",
-            "co2_ppm_mauna_loa": 426.9,
-            "records": [
-                {"event": "Extreme Heat Events", "count": 47, "economic_loss_billions": 28.3},
-                {"event": "Hurricanes (US Landfalling)", "count": 3, "economic_loss_billions": 81.2},
-                {"event": "Tornadoes", "count": 1296, "economic_loss_billions": 6.1},
-                {"event": "Flooding Events", "count": 18, "economic_loss_billions": 14.7},
-                {"event": "Wildfires", "acres_burned": 8234571, "economic_loss_billions": 12.4}
-            ]
-        }
-    },
-    # -------------------------------------------------------------------------
-    # Transportation
-    # -------------------------------------------------------------------------
-    {
-        "id": "dot-traffic-fatalities-2023",
-        "category": "transportation",
-        "title": "US Traffic Fatalities 2023",
-        "description": "NHTSA Fatality Analysis Reporting System annual statistics",
-        "keywords": ["traffic", "fatalities", "accidents", "roads", "nhtsa", "transportation"],
-        "data": {
-            "source": "NHTSA Fatality Analysis Reporting System",
-            "year": 2023,
-            "total_fatalities": 40990,
-            "fatality_rate_per_100m_vmt": 1.26,
-            "records": [
-                {"category": "Passenger Cars", "fatalities": 12834},
-                {"category": "Light Trucks (SUVs, Pickups)", "fatalities": 15392},
-                {"category": "Motorcycles", "fatalities": 6218},
-                {"category": "Pedestrians", "fatalities": 7318},
-                {"category": "Pedalcyclists", "fatalities": 1105},
-                {"category": "Large Trucks", "fatalities": 5837},
-                {"category": "Alcohol-Impaired", "fatalities": 13524},
-                {"category": "Speeding-Related", "fatalities": 12151},
-                {"category": "Distracted Driving", "fatalities": 3308}
+                {
+                    "case_number": "LAC-2024-003217",
+                    "date_of_incident": "2024-07-14",
+                    "resident_name": "Gerald R. Kowalski",
+                    "address": "1842 Wadsworth Blvd, Lakewood, CO 80214",
+                    "phone": "(303) 555-0147",
+                    "animal_type": "Dog",
+                    "breed": "German Shepherd mix",
+                    "animal_name": "Sergeant",
+                    "complaint_type": "Dog at large – no leash in public park",
+                    "responding_officer": "ACO Denise Trujillo",
+                    "disposition": "Written warning issued. Owner retrieved animal from Green Mountain Dog Park within 45 minutes. Leash law educational pamphlet provided."
+                },
+                {
+                    "case_number": "LAC-2024-003284",
+                    "date_of_incident": "2024-07-22",
+                    "resident_name": "Thanh Nguyen",
+                    "address": "685 S Kipling Pkwy, Lakewood, CO 80226",
+                    "phone": "(720) 555-0293",
+                    "animal_type": "Dog",
+                    "breed": "Pit Bull Terrier",
+                    "animal_name": "Rocco",
+                    "complaint_type": "Bite report – animal bit mail carrier on left forearm",
+                    "responding_officer": "ACO Marcus Reyes",
+                    "disposition": "Animal impounded for 10-day rabies observation per JeffCo Health Order. Vaccination records current. Owner cited under Lakewood Municipal Code 6.16.030. Animal released 2024-08-01 with mandatory muzzle order."
+                },
+                {
+                    "case_number": "LAC-2024-003301",
+                    "date_of_incident": "2024-07-25",
+                    "resident_name": "Barbara J. Fitzpatrick",
+                    "address": "9305 W Colfax Ave, Lakewood, CO 80215",
+                    "phone": "(303) 555-0618",
+                    "animal_type": "Cat",
+                    "breed": "Domestic Shorthair (tabby)",
+                    "animal_name": "Whiskers",
+                    "complaint_type": "Expired license – annual renewal overdue since March 2024",
+                    "responding_officer": "ACO Denise Trujillo",
+                    "disposition": "License renewed on-site. Late fee of $25.00 assessed and paid. Proof of current rabies vaccination verified. No further action."
+                },
+                {
+                    "case_number": "LAC-2024-003355",
+                    "date_of_incident": "2024-08-03",
+                    "resident_name": "DeShawn Williams",
+                    "address": "2210 S Balsam St, Lakewood, CO 80227",
+                    "phone": "(720) 555-0412",
+                    "animal_type": "Dog",
+                    "breed": "Beagle",
+                    "animal_name": "Biscuit",
+                    "complaint_type": "Excessive barking – noise complaint from adjacent property",
+                    "responding_officer": "ACO Patricia Sandoval",
+                    "disposition": "First offense documented. Owner counseled on barking mitigation strategies. Follow-up inspection scheduled for 2024-08-17. If unresolved, citation per LMC 6.16.050."
+                },
+                {
+                    "case_number": "LAC-2024-003402",
+                    "date_of_incident": "2024-08-11",
+                    "resident_name": "Maria Elena Gutierrez",
+                    "address": "455 S Teller St, Lakewood, CO 80226",
+                    "phone": "(303) 555-0739",
+                    "animal_type": "Dog",
+                    "breed": "Labrador Retriever",
+                    "animal_name": "Cooper",
+                    "complaint_type": "Dog at large – found roaming near Bear Creek Lake Park",
+                    "responding_officer": "ACO Marcus Reyes",
+                    "disposition": "Animal transported to Foothills Animal Shelter. Owner contacted via microchip registry. Animal reclaimed same day. $75.00 impound fee collected. First offense – warning issued."
+                },
+                {
+                    "case_number": "LAC-2024-003478",
+                    "date_of_incident": "2024-08-19",
+                    "resident_name": "Howard K. Lindgren",
+                    "address": "7620 W Jewell Ave, Lakewood, CO 80232",
+                    "phone": "(720) 555-0581",
+                    "animal_type": "Cat",
+                    "breed": "Maine Coon",
+                    "animal_name": "Mr. Fluffington",
+                    "complaint_type": "Animal welfare check – neighbor reported thin, possibly neglected cat",
+                    "responding_officer": "ACO Denise Trujillo",
+                    "disposition": "Welfare check conducted. Animal found in good health; weight within normal range for breed. Indoor/outdoor cat with documented veterinary history. Complaint unfounded. Case closed."
+                },
+                {
+                    "case_number": "LAC-2024-003512",
+                    "date_of_incident": "2024-08-26",
+                    "resident_name": "Susan M. Cho",
+                    "address": "3100 S Sheridan Blvd, Lakewood, CO 80227",
+                    "phone": "(303) 555-0854",
+                    "animal_type": "Dog",
+                    "breed": "Yorkshire Terrier",
+                    "animal_name": "Tinkerbell",
+                    "complaint_type": "Licensing violation – unlicensed animal discovered during routine patrol",
+                    "responding_officer": "ACO Patricia Sandoval",
+                    "disposition": "Owner issued 30-day notice to obtain license. Proof of rabies vaccination required. If not resolved by 2024-09-25, citation of $100.00 fine per LMC 6.08.010."
+                },
+                {
+                    "case_number": "LAC-2024-003589",
+                    "date_of_incident": "2024-09-04",
+                    "resident_name": "Robert L. Abernathy",
+                    "address": "12045 W Alaska Dr, Lakewood, CO 80228",
+                    "phone": "(720) 555-0966",
+                    "animal_type": "Dog",
+                    "breed": "Golden Retriever",
+                    "animal_name": "Buddy",
+                    "complaint_type": "Bite report – animal nipped child at neighborhood block party",
+                    "responding_officer": "ACO Marcus Reyes",
+                    "disposition": "Minor injury documented (no broken skin). Animal quarantined at owner residence for 10-day observation per JeffCo protocol. Vaccination current. Follow-up completed 2024-09-14; no symptoms observed. Case closed with incident report filed."
+                },
+                {
+                    "case_number": "LAC-2024-003641",
+                    "date_of_incident": "2024-09-12",
+                    "resident_name": "Aisha Patel",
+                    "address": "5530 W Mississippi Ave, Lakewood, CO 80226",
+                    "phone": "(303) 555-1082",
+                    "animal_type": "Rabbit",
+                    "breed": "Holland Lop",
+                    "animal_name": "Cinnamon",
+                    "complaint_type": "Exotic/unusual animal inquiry – neighbor unsure if rabbits permitted in residential zone",
+                    "responding_officer": "ACO Patricia Sandoval",
+                    "disposition": "Domestic rabbits permitted under Lakewood Municipal Code 6.04.020 in R-1 and R-2 residential zones. No violation found. Complainant advised of regulations. Case closed."
+                },
+                {
+                    "case_number": "LAC-2024-003698",
+                    "date_of_incident": "2024-09-20",
+                    "resident_name": "Frank D. Novak",
+                    "address": "8790 W Dartmouth Pl, Lakewood, CO 80227",
+                    "phone": "(720) 555-1204",
+                    "animal_type": "Dog",
+                    "breed": "Australian Shepherd",
+                    "animal_name": "Blue",
+                    "complaint_type": "Excessive barking – second offense (prior case LAC-2024-002891)",
+                    "responding_officer": "ACO Denise Trujillo",
+                    "disposition": "Second offense citation issued per LMC 6.16.050(b). Fine of $150.00 assessed. Owner required to attend responsible pet ownership class within 60 days or face additional penalties."
+                }
             ]
         }
     }
