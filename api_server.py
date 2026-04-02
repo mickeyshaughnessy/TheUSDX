@@ -187,7 +187,9 @@ def get_data():
     cache_key = f'result:{query_hash}'
     cached_result = _cache_get(cache_key)
     if cached_result is not None:
+        cache_time = time.time() - start_time
         cached_result['metadata']['cached'] = True
+        cached_result['metadata']['processing_time_seconds'] = round(cache_time, 2)
         return jsonify(cached_result), 200
 
     try:
