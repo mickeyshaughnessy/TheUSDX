@@ -90,9 +90,18 @@ Available datasets metadata:
 Return a JSON list of dataset IDs that best match the request. Format: {{"dataset_ids": ["id1", "id2"]}}"""
         
         ai_response = call_openrouter(prompt, 
-            "You are a federal data matching system. Analyze requests and return matching dataset IDs as JSON.")
+            "You are a federal data matching system. Analyze requests and return matching dataset IDs as JSON. Return ONLY the JSON, no other text.")
         
-        matched_ids = json.loads(ai_response).get('dataset_ids', [])
+        # Extract JSON from response (LLM may append explanatory text)
+        try:
+            matched_ids = json.loads(ai_response).get('dataset_ids', [])
+        except json.JSONDecodeError:
+            start = ai_response.find('{')
+            end = ai_response.find('}', start) + 1
+            if start != -1 and end > start:
+                matched_ids = json.loads(ai_response[start:end]).get('dataset_ids', [])
+            else:
+                matched_ids = []
         
         collected_datasets = []
         for dataset_id in matched_ids:
