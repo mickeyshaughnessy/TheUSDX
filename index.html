@@ -126,6 +126,8 @@
             gap: 16px;
         }
 
+        .results-grid > div { min-width: 0; }
+
         .results-grid h3 { color: #555; }
         .results-grid h3.redacted { color: #667eea; }
 
@@ -135,9 +137,26 @@
             padding: 16px;
             border-radius: 8px;
             overflow: auto;
-            font-size: .78em;
+            font-size: .75em;
             max-height: 420px;
             margin: 8px 0 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .c-blind {
+            color: #fca5a5;
+            background: rgba(220,38,38,.25);
+            border-radius: 3px;
+            padding: 0 3px;
+            font-weight: 700;
+        }
+        .c-smart {
+            color: #86efac;
+            background: rgba(22,163,74,.22);
+            border-radius: 3px;
+            padding: 0 3px;
+            font-weight: 600;
         }
 
         .result-meta { font-size: .8em; color: #888; margin-top: 8px; }
@@ -450,6 +469,52 @@
         } catch (e) { msg.textContent = 'Connection error.'; }
     }
 
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function colorizeRedacted(redacted, original) {
+        // Collect smart-redacted values: leaf strings that differ from original
+        const smartVals = new Set();
+        function findChanged(orig, red) {
+            if (red == null) return;
+            if (Array.isArray(red)) {
+                for (let i = 0; i < red.length; i++) findChanged(orig?.[i], red[i]);
+            } else if (typeof red === 'object') {
+                for (const k of Object.keys(red)) findChanged(orig?.[k], red[k]);
+            } else if (typeof red === 'string' && orig !== red && !red.startsWith('[b(Ex.') && red.length > 3) {
+                smartVals.add(red);
+            }
+        }
+        findChanged(original, redacted);
+
+        // Custom stringifier that injects sentinel bytes around marked values
+        function mark(val, depth) {
+            if (val === null) return 'null';
+            if (typeof val === 'boolean' || typeof val === 'number') return String(val);
+            if (typeof val === 'string') {
+                const q = JSON.stringify(val);
+                if (val.startsWith('[b(Ex.')) return '\x01' + q + '\x02';
+                if (smartVals.has(val))        return '\x03' + q + '\x02';
+                return q;
+            }
+            const pad  = '  '.repeat(depth);
+            const pad1 = '  '.repeat(depth + 1);
+            if (Array.isArray(val)) {
+                if (!val.length) return '[]';
+                return '[\n' + val.map(v => pad1 + mark(v, depth+1)).join(',\n') + '\n' + pad + ']';
+            }
+            const entries = Object.entries(val);
+            if (!entries.length) return '{}';
+            return '{\n' + entries.map(([k,v]) => pad1 + JSON.stringify(k) + ': ' + mark(v, depth+1)).join(',\n') + '\n' + pad + '}';
+        }
+
+        let str = esc(mark(redacted, 0));
+        str = str.replace(/\x01(.*?)\x02/gs, '<span class="c-blind">$1</span>');
+        str = str.replace(/\x03(.*?)\x02/gs, '<span class="c-smart">$1</span>');
+        return str;
+    }
+
     async function doQuery() {
         const description = document.getElementById('demo-query').value.trim();
         const status = document.getElementById('query-status');
@@ -477,7 +542,7 @@
             status.textContent = '';
             document.getElementById('result-area').style.display = 'block';
             document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
-            document.getElementById('result-json').textContent = JSON.stringify(d.data, null, 2);
+            document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
             const m = d.metadata || {};
             const f = d.foia_compliance || {};
             document.getElementById('result-meta').textContent =
