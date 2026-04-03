@@ -158,23 +158,25 @@ def test_redaction_privacy_flag(token):
         return False
 
 def test_redaction_no_ssn_patterns(token):
-    print_test('Redaction: check response excludes raw SSN patterns')
+    print_test('Redaction: check redacted output excludes raw SSN patterns')
     try:
+        # Use a query that will hit the CIA contractor dataset which contains SSNs
         response = requests.post(f'{BASE_URL}/get_data',
             headers={'Authorization': f'Bearer {token}'},
-            json={'description': 'Test data with potential PII'}
+            json={'description': 'CIA contractor employment records with clearance levels'}
         )
-        
+
         assert response.status_code == 200, f'Expected 200, got {response.status_code}'
         data = response.json()
-        
+
         import re
-        data_str = str(data.get('data', {}))
-        ssn_pattern = re.compile(r'\d{3}-\d{2}-\d{4}')
-        
-        assert not ssn_pattern.search(data_str), 'SSN pattern found in redacted data'
-        
-        print_success('No SSN patterns found in response')
+        # Verify raw SSNs are scrubbed from the redacted output (not original_data)
+        redacted_str = str(data.get('data', {}))
+        ssn_pattern = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
+
+        assert not ssn_pattern.search(redacted_str), 'Raw SSN pattern found in redacted output'
+
+        print_success('No raw SSN patterns in redacted output')
         return True
     except Exception as e:
         print_error(f'Failed: {e}')

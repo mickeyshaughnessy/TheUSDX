@@ -1,5 +1,4 @@
 import json
-import json
 import requests
 import boto3
 
@@ -9,7 +8,7 @@ def get_s3_client():
     """Initialize Digital Ocean Spaces client (S3-compatible)"""
     if not config.DO_SPACES_KEY or not config.DO_SPACES_SECRET:
         return None
-    
+
     session = boto3.session.Session()
     return session.client('s3',
         region_name=config.DO_SPACES_REGION,
@@ -31,7 +30,7 @@ def call_openrouter(prompt, system_message="You are a helpful assistant.", use_f
             "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
             "HTTP-Referer": "http://143.110.131.237:6732",
-            "X-Title": "Acme Redactors"
+            "X-Title": "US Federal Data Exchange"
         },
         json={
             "model": model,
@@ -119,14 +118,18 @@ Return a JSON list of dataset IDs that best match the request. Format: {{"datase
         return _get_sample_data(description)
 
 _REDACTION_SYSTEM = (
-    "You are a privacy protection system for federal data. "
-    "Redact PII while maintaining data utility. Return only valid JSON."
+    "You are a privacy protection system for federal records. "
+    "Your job is to redact PII from structured data while preserving its utility. "
+    "Return only valid JSON with no commentary."
 )
 _REDACTION_RULES = (
-    "Replace personally identifiable information (PII) with realistic substitute values. "
-    "Use your judgment to identify what constitutes PII in context. "
-    "Preserve the document's structure, non-PII fields, and readability. "
-    "Return ONLY the redacted JSON data, no explanations."
+    "Replace all personally identifiable information (PII) with realistic substitute values. "
+    "PII includes: names, SSNs, phone numbers, email addresses, physical addresses, "
+    "dates of birth, financial account numbers, medical record numbers, biometric data, "
+    "security clearance details, and any other information that could identify an individual. "
+    "Keep all non-PII fields (categories, codes, statistics, dates of events) intact. "
+    "Use consistent substitutions—if a name appears multiple times, replace it with the same substitute each time. "
+    "Preserve the document structure exactly. Return ONLY the redacted JSON, no explanations."
 )
 
 
@@ -134,7 +137,7 @@ def _redact_chunk(chunk):
     """Redact a single JSON-serializable chunk and return parsed result."""
     chunk_str = json.dumps(chunk, indent=2)
     prompt = (
-        f"Apply differential privacy and redact sensitive personal information:\n\n"
+        f"Redact all PII from this federal record data:\n\n"
         f"{chunk_str}\n\n{_REDACTION_RULES}"
     )
     redacted_str = call_openrouter(prompt, _REDACTION_SYSTEM)

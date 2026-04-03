@@ -406,29 +406,40 @@ CUSTOM PATTERNS TO REDACT:
         
         return "\n".join(rules) if rules else "- Use any appropriate realistic replacements"
     
-    def _call_llm(self, prompt: str, system_message: str) -> str:
-        """Make the LLM API call"""
-        model = self.config.model or config.OPENROUTER_MODEL
-        
+    def _call_llm(self, prompt: str, system_message: str, use_fallback: bool = False) -> str:
+        """Make the LLM API call with fallback model on rate limit or error."""
+        model = self.config.model or (
+            config.OPENROUTER_FALLBACK_MODEL if use_fallback else config.OPENROUTER_MODEL
+        )
+
         response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
+            url=config.OPENROUTER_API_URL,
             headers={
                 "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://143.110.131.237:6732",
+                "X-Title": "US Federal Data Exchange"
             },
             json={
                 "model": model,
                 "temperature": self.config.temperature,
+                "max_tokens": config.LLM_MAX_TOKENS,
                 "messages": [
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
                 ]
-            }
+            },
+            timeout=30
         )
-        
+
+        if response.status_code == 429 and not use_fallback:
+            return self._call_llm(prompt, system_message, use_fallback=True)
+
         if response.status_code != 200:
+            if not use_fallback:
+                return self._call_llm(prompt, system_message, use_fallback=True)
             raise Exception(f"LLM API error: {response.status_code} - {response.text}")
-        
+
         result = response.json()
         return result['choices'][0]['message']['content']
     

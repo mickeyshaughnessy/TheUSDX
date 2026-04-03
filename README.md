@@ -121,10 +121,10 @@ Open `http://localhost:6732/api_docs.html` and use the interactive test runner.
 
 All data returned through `/get_data` is automatically processed:
 
-- **Proper Names**: Replaced with alternatives ("Mickey" → "Jamison")
-- **Locations**: Generalized ("123 Main St, Denver" → "Colorado")
-- **PII**: Removed or redacted (SSN, phone, email → "***")
-- **Faces**: Marked in metadata ("[FACE_REDACTED]")
+- **Names**: Replaced with realistic alternatives ("Marcus Thompson" → "Robert Johnson")
+- **Addresses**: Substituted with different but plausible addresses
+- **SSN / credentials**: Masked with `***`
+- **Phone, email, DOB**: Replaced with realistic equivalents
 
 ## Production Deployment
 
