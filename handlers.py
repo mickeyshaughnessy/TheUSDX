@@ -117,29 +117,80 @@ Return a JSON list of dataset IDs that best match the request. Format: {{"datase
         print(f"Data collection error: {e}")
         return _get_sample_data(description)
 
+# ---------------------------------------------------------------------------
+# FOIA Two-Tier Redaction System — 5 U.S.C. § 552
+#
+# Tier 1 BLIND  [b(Ex.N)] — classified, statutory, or operationally sensitive
+#                            info that cannot be released in any form
+# Tier 2 SMART  <substitute> — personal privacy info replaced with a different
+#                              but realistic equivalent value
+# ---------------------------------------------------------------------------
+
 _REDACTION_SYSTEM = (
-    "You are a privacy protection system for federal records. "
-    "Your job is to redact PII from structured data while preserving its utility. "
-    "Return only valid JSON with no commentary."
+    "You are a FOIA compliance officer processing federal agency records for public release "
+    "under 5 U.S.C. § 552 (Freedom of Information Act). Apply the two-tier redaction scheme "
+    "specified below, then return ONLY the redacted JSON — no commentary, no explanations.\n\n"
+
+    "TIER 1 — BLIND REDACTION: Replace the field value with a [b(Ex.N)] marker that cites "
+    "the applicable FOIA exemption number. Use Tier 1 for classified, operationally sensitive, "
+    "or statutorily protected information that cannot be released in any form.\n\n"
+
+    "TIER 2 — SMART REDACTION: Replace the field value with a different but realistic substitute "
+    "of the same type (a different plausible full name, a different real-sounding address in the "
+    "same city, a different valid phone number, etc.). Use Tier 2 for personal privacy data where "
+    "record structure must be preserved but the individual must not be identifiable.\n\n"
+
+    "SEGREGABILITY — 5 U.S.C. § 552(b): Release all reasonably segregable non-exempt portions. "
+    "Do NOT redact administrative IDs, event dates, position titles, pay grades, salary amounts, "
+    "complaint categories, or general outcome/disposition text. "
+    "Return only valid JSON."
 )
+
 _REDACTION_RULES = (
-    "Replace all personally identifiable information (PII) with realistic substitute values. "
-    "PII includes: names, SSNs, phone numbers, email addresses, physical addresses, "
-    "dates of birth, financial account numbers, medical record numbers, biometric data, "
-    "security clearance details, and any other information that could identify an individual. "
-    "Keep all non-PII fields (categories, codes, statistics, dates of events) intact. "
-    "Use consistent substitutions—if a name appears multiple times, replace it with the same substitute each time. "
-    "Preserve the document structure exactly. Return ONLY the redacted JSON, no explanations."
+    "TIER 1 — BLIND REDACT (replace value with [b(Ex.N)] marker):\n"
+    "  [b(Ex.1)]  Classification markings — e.g. TOP SECRET, HCS, NOFORN, SCI\n"
+    "  [b(Ex.1)]  Security clearance levels — e.g. TS/SCI, Top Secret, Secret\n"
+    "  [b(Ex.1)]  Covert or classified facility names and street addresses\n"
+    "             (Camp Peary / The Farm, Harvey Point, undisclosed OCONUS stations)\n"
+    "  [b(Ex.3)]  Social Security Numbers (SSN)\n"
+    "  [b(Ex.3)]  Intelligence program identifiers, operation codenames, source identifiers\n"
+    "  [b(Ex.3)]  Biometric identifiers\n\n"
+
+    "TIER 2 — SMART REDACT (replace value with realistic substitute):\n"
+    "  Ex.6  Individual names (contractors, employees, civilians)\n"
+    "        → substitute a different realistic full name\n"
+    "  Ex.6  Supervising officer names\n"
+    "        → substitute a different realistic name and title\n"
+    "  Ex.6  Dates of birth\n"
+    "        → shift by a random amount (±1–5 years, different month and day)\n"
+    "  Ex.6  Personal and residential street addresses\n"
+    "        → substitute a different plausible address in the same city and state\n"
+    "  Ex.6  Personal phone numbers\n"
+    "        → substitute a different realistic phone number with the same area code\n"
+    "  Ex.6  Personal email addresses\n"
+    "        → substitute a different realistic email address\n"
+    "  Ex.7(C)  Names of third parties in law enforcement or incident records\n"
+    "           → substitute a different realistic name\n\n"
+
+    "PRESERVE — do NOT redact these fields:\n"
+    "  Case numbers, employee IDs, contract numbers\n"
+    "  Dates of events and incidents\n"
+    "  Position titles and pay grades\n"
+    "  Annual salary amounts\n"
+    "  Animal types, breeds, and pet names\n"
+    "  Complaint categories and general disposition/outcome text\n"
+    "  Non-covert facility names used as general location context (Langley, VA; Fort Meade, MD)\n\n"
+
+    "CONSISTENCY: if a name or value appears more than once, use the same substitute throughout.\n\n"
+
+    "DATA TO REDACT:\n"
 )
 
 
 def _redact_chunk(chunk):
-    """Redact a single JSON-serializable chunk and return parsed result."""
+    """Redact a single JSON-serializable chunk using the FOIA two-tier scheme."""
     chunk_str = json.dumps(chunk, indent=2)
-    prompt = (
-        f"Redact all PII from this federal record data:\n\n"
-        f"{chunk_str}\n\n{_REDACTION_RULES}"
-    )
+    prompt = _REDACTION_RULES + chunk_str
     redacted_str = call_openrouter(prompt, _REDACTION_SYSTEM)
     try:
         return json.loads(redacted_str)

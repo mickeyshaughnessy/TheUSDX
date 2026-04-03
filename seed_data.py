@@ -30,7 +30,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2019-04371",
                     "contract_number": "HCS-2019-00284",
+                    "ssn": "412-67-8234",
                     "name": "Marcus J. Thompson",
+                    "date_of_birth": "1984-06-12",
                     "position_title": "Signals Intelligence Analyst",
                     "clearance_level": "TS/SCI",
                     "assignment_location": "George Bush Center for Intelligence, Langley, VA 22101",
@@ -43,7 +45,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2020-05892",
                     "contract_number": "HCS-2020-00517",
+                    "ssn": "529-83-1047",
                     "name": "Yuna Park",
+                    "date_of_birth": "1990-11-03",
                     "position_title": "Clandestine Operations Specialist",
                     "clearance_level": "TS/SCI",
                     "assignment_location": "Camp Peary (The Farm), Williamsburg, VA 23185",
@@ -56,9 +60,11 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2018-03106",
                     "contract_number": "HCS-2018-00193",
+                    "ssn": "381-56-9203",
                     "name": "Dmitri Volkov",
+                    "date_of_birth": "1979-02-28",
                     "position_title": "Counterintelligence Debriefer",
-                    "clearance_level": "Top Secret",
+                    "clearance_level": "TS/SCI",
                     "assignment_location": "Harvey Point Defense Testing Activity, Hertford, NC 27944",
                     "contract_start": "2018-09-01",
                     "contract_end": "2023-08-31",
@@ -69,7 +75,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2021-07244",
                     "contract_number": "HCS-2021-00631",
+                    "ssn": "647-29-0815",
                     "name": "Fatima Al-Rashidi",
+                    "date_of_birth": "1993-08-17",
                     "position_title": "Open Source Intelligence Analyst",
                     "clearance_level": "Secret",
                     "assignment_location": "CIA Annex, Tysons Corner, VA 22182",
@@ -82,7 +90,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2017-02558",
                     "contract_number": "HCS-2017-00142",
+                    "ssn": "318-74-5629",
                     "name": "Rafael Mendes-Cruz",
+                    "date_of_birth": "1977-04-09",
                     "position_title": "Covert Communications Engineer",
                     "clearance_level": "TS/SCI",
                     "assignment_location": "George Bush Center for Intelligence, Langley, VA 22101",
@@ -95,7 +105,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2022-08831",
                     "contract_number": "HCS-2022-00789",
+                    "ssn": "724-51-3086",
                     "name": "Priya Ramanathan",
+                    "date_of_birth": "1988-12-22",
                     "position_title": "Geospatial Intelligence Specialist",
                     "clearance_level": "TS/SCI",
                     "assignment_location": "National Reconnaissance Office Liaison, Chantilly, VA 20151",
@@ -108,7 +120,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2019-04920",
                     "contract_number": "HCS-2019-00341",
+                    "ssn": "536-18-7402",
                     "name": "James O. Whitfield",
+                    "date_of_birth": "1981-09-14",
                     "position_title": "Targeting Officer – Counterterrorism",
                     "clearance_level": "TS/SCI",
                     "assignment_location": "Camp Peary (The Farm), Williamsburg, VA 23185",
@@ -121,7 +135,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2023-09415",
                     "contract_number": "HCS-2023-00902",
+                    "ssn": "493-62-1857",
                     "name": "Mei-Ling Chen",
+                    "date_of_birth": "1995-03-30",
                     "position_title": "Technical Operations Officer",
                     "clearance_level": "Top Secret",
                     "assignment_location": "George Bush Center for Intelligence, Langley, VA 22101",
@@ -134,7 +150,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2020-06310",
                     "contract_number": "HCS-2020-00588",
+                    "ssn": "261-47-9034",
                     "name": "Kwame Asante-Mensah",
+                    "date_of_birth": "1975-07-05",
                     "position_title": "Human Intelligence (HUMINT) Case Officer",
                     "clearance_level": "TS/SCI",
                     "assignment_location": "CIA Station, U.S. Embassy Compound, undisclosed OCONUS",
@@ -147,7 +165,9 @@ DATASETS = [
                 {
                     "employee_id": "CIA-HC-2021-07801",
                     "contract_number": "HCS-2021-00674",
+                    "ssn": "847-30-6519",
                     "name": "Elena Vasquez-Moreno",
+                    "date_of_birth": "1986-01-18",
                     "position_title": "Cryptanalysis and Signals Processing Specialist",
                     "clearance_level": "TS/SCI",
                     "assignment_location": "NSA Liaison Office, Fort Meade, MD 20755",

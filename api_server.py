@@ -207,6 +207,13 @@ def get_data():
                 'records_returned': len(redacted_data) if isinstance(redacted_data, list) else 1,
                 'privacy_applied': True,
                 'cached': False
+            },
+            'foia_compliance': {
+                'statute': '5 U.S.C. § 552 (Freedom of Information Act)',
+                'blind_redactions': '[b(Ex.N)] markers — Ex.1 classified info, Ex.3 statutorily protected (SSNs, program identifiers), Ex.7(F) life/safety',
+                'smart_redactions': 'Realistic substitutes — Ex.6 personal privacy (names, addresses, DOB, phone), Ex.7(C) third-party names in law enforcement records',
+                'segregability': 'Non-exempt fields preserved per § 552(b): case IDs, event dates, titles, pay grades, dispositions',
+                'presumption': 'Openness — withheld only where disclosure would harm a protected interest per § 552(a)(8)(A)'
             }
         }
         _cache_set(cache_key, result)
