@@ -76,7 +76,7 @@ def collect_data(description):
         response = s3_client.list_objects_v2(Bucket=config.DO_SPACES_BUCKET, Prefix=f'{prefix}metadata/')
         
         if 'Contents' in response:
-            for obj in response['Contents'][:10]:
+            for obj in response['Contents'][:20]:
                 metadata_obj = s3_client.get_object(Bucket=config.DO_SPACES_BUCKET, Key=obj['Key'])
                 metadata = json.loads(metadata_obj['Body'].read().decode('utf-8'))
                 metadata_list.append(metadata)
@@ -154,7 +154,13 @@ _REDACTION_RULES = (
     "             (Camp Peary / The Farm, Harvey Point, undisclosed OCONUS stations)\n"
     "  [b(Ex.3)]  Social Security Numbers (SSN)\n"
     "  [b(Ex.3)]  Intelligence program identifiers, operation codenames, source identifiers\n"
-    "  [b(Ex.3)]  Biometric identifiers\n\n"
+    "  [b(Ex.3)]  Biometric identifiers\n"
+    "  [b(Ex.3)]  Driver's license numbers, VINs, license plates (DPPA — 18 U.S.C. § 2721)\n"
+    "  [b(Ex.1)]  Military deployment destinations, unit assignment locations, and mission names\n"
+    "  [b(Ex.1)]  Foreign intelligence target names, nationalities, and target affiliations\n"
+    "  [b(Ex.1)]  SIGINT collection facility names and selector values\n"
+    "  [b(Ex.7(F))]  Prison housing unit assignments, security classification levels, gang affiliations\n"
+    "  [b(Ex.7(F))]  Medical conditions of incarcerated persons\n\n"
 
     "TIER 2 — SMART REDACT (replace value with realistic substitute):\n"
     "  Ex.6  Individual names (contractors, employees, civilians)\n"

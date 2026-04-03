@@ -84,8 +84,18 @@
 
         .panel + .panel { margin-top: 14px; }
 
-        .demo-buttons { display: flex; gap: 12px; }
-        .demo-btn { flex: 1; padding: 12px 16px; }
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: white;
+            color: #333;
+            cursor: pointer;
+        }
+        select:focus { outline: 2px solid #667eea; border-color: #667eea; }
 
         .form-grid { display: grid; gap: 12px; }
 
@@ -228,16 +238,36 @@
         <div class="panel">
             <h3>Demo Queries</h3>
             <p style="font-size:.9em;color:#666;margin-bottom:14px">
-                Click a demo to load a sample query, then sign in to run it.
-                <strong>CIA records</strong> show both blind (<code>[b(Ex.1)]</code> clearances,
-                <code>[b(Ex.3)]</code> SSNs) and smart (name/address substitution) redaction.
-                <strong>Animal control records</strong> show smart-only Ex.6 redaction of
-                resident names, addresses, and phone numbers.
+                Choose a dataset to load a sample query, then sign in to run it.
+                Each dataset demonstrates different FOIA exemption profiles —
+                from near-total blind redaction (NSA, DMV) to mixed blind+smart (CIA, military)
+                to smart-only (arrests, animal control).
             </p>
-            <div class="demo-buttons">
-                <button onclick="handleDemoClick('cia')" class="btn demo-btn">CIA Contractor Records</button>
-                <button onclick="handleDemoClick('animal')" class="btn demo-btn">Lakewood Animal Control</button>
-            </div>
+            <select id="demo-select" onchange="handleDemoClick(this.value)">
+                <option value="">— Select a dataset —</option>
+                <optgroup label="Intelligence &amp; Military">
+                    <option value="cia">CIA Human Intelligence Contractor Records</option>
+                    <option value="nsa">NSA SIGINT Foreign Surveillance Targets</option>
+                    <option value="army">Army 82nd Airborne Deployment Records</option>
+                </optgroup>
+                <optgroup label="Law Enforcement &amp; Justice">
+                    <option value="ice">ICE Immigration Detention Cases</option>
+                    <option value="bop">Federal Bureau of Prisons — Inmate Records</option>
+                    <option value="chicago">Chicago PD Arrest Records</option>
+                </optgroup>
+                <optgroup label="Benefits &amp; Health">
+                    <option value="ssa">SSA Disability Beneficiary Records</option>
+                    <option value="nih">NIH Clinical Trial Participants</option>
+                    <option value="fda">FDA Adverse Event Reports</option>
+                </optgroup>
+                <optgroup label="Agriculture &amp; Licensing">
+                    <option value="usda">USDA Farm Subsidy Payments</option>
+                    <option value="dmv">Colorado DMV Driver Records</option>
+                </optgroup>
+                <optgroup label="Municipal">
+                    <option value="animal">Lakewood, CO Animal Control Records</option>
+                </optgroup>
+            </select>
         </div>
 
         <div id="auth-form" class="panel">
@@ -259,7 +289,7 @@
         <div id="query-form" class="panel" style="display:none">
             <h3>Query Records</h3>
             <p style="font-size:.9em;color:#666;margin-bottom:10px">
-                Select a demo above or enter your own query:
+                Choose a dataset from the dropdown above, or enter your own query:
             </p>
             <textarea id="demo-query" rows="3"
                 placeholder="e.g. CIA contractor employment records with clearance levels and assignment locations"></textarea>
@@ -328,7 +358,17 @@
     let _pendingDemo = null;
 
     const DEMO_QUERIES = {
-        cia: 'Show employment records for CIA human intelligence contractors including clearance levels and assignment locations',
+        cia:    'Show employment records for CIA human intelligence contractors including clearance levels and assignment locations',
+        nsa:    'NSA SIGINT foreign surveillance targets including collection programs and intercept content summaries',
+        army:   'Army 82nd Airborne deployment records including soldier assignments, ranks, and deployment destinations',
+        ice:    'ICE immigration detention case records including alien registration numbers, charges, and case status',
+        bop:    'Federal Bureau of Prisons inmate records including offense, sentence, security classification, and housing',
+        chicago:'Chicago Police Department arrest records including booking numbers, charges, and case status',
+        ssa:    'Social Security disability beneficiary records including benefit amounts, disability category, and payment method',
+        nih:    'NIH clinical trial participant records including enrollment, treatment arm, and adverse events',
+        fda:    'FDA adverse event reports including suspect drugs, patient outcomes, and reporter information',
+        usda:   'USDA farm subsidy payment records including producer information, program, and payment amounts',
+        dmv:    'Colorado DMV driver records including license status, violations, and vehicle registration',
         animal: 'Lakewood, CO animal control service records and violations including resident names and addresses'
     };
 
@@ -338,6 +378,7 @@
     }
 
     function handleDemoClick(demoType) {
+        if (!demoType) return;
         if (_token) {
             document.getElementById('demo-query').value = DEMO_QUERIES[demoType];
             document.getElementById('query-form').scrollIntoView({ behavior: 'smooth' });
