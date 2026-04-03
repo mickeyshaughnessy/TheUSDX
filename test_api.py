@@ -73,23 +73,26 @@ def test_login(email, password):
         return None
 
 def test_get_data_authenticated(token):
-    print_test('POST /get_data (authenticated)')
+    print_test('POST /get_data (authenticated) — response structure')
     try:
-        response = requests.post(f'{BASE_URL}/get_data', 
+        response = requests.post(f'{BASE_URL}/get_data',
             headers={'Authorization': f'Bearer {token}'},
-            json={'description': 'Census data for Colorado from 2020-2023'}
+            json={'description': 'CIA contractor employment records'}
         )
-        
+
         assert response.status_code == 200, f'Expected 200, got {response.status_code}'
         data = response.json()
-        assert data['status'] == 'success', f'Expected success status'
-        assert 'data' in data, 'No data in response'
-        assert 'metadata' in data, 'No metadata in response'
-        
-        print_success('Data retrieval successful')
+        assert data['status'] == 'success', 'Expected status: success'
+        assert 'original_data' in data, 'Missing original_data field'
+        assert 'data' in data, 'Missing data field'
+        assert 'metadata' in data, 'Missing metadata field'
+        assert 'foia_compliance' in data, 'Missing foia_compliance field'
+        assert data['foia_compliance']['statute'], 'foia_compliance.statute is empty'
+
+        print_success('Response structure correct (original_data, data, metadata, foia_compliance)')
         print_info(f'Processing time: {data["metadata"]["processing_time_seconds"]}s')
         print_info(f'Records returned: {data["metadata"]["records_returned"]}')
-        print_info(f'Privacy applied: {data["metadata"]["privacy_applied"]}')
+        print_info(f'Statute: {data["foia_compliance"]["statute"]}')
         return True
     except Exception as e:
         print_error(f'Failed: {e}')
@@ -181,6 +184,84 @@ def test_redaction_no_ssn_patterns(token):
     except Exception as e:
         print_error(f'Failed: {e}')
         return False
+
+def test_foia_blind_markers(token):
+    print_test('FOIA Tier 1: [b(Ex.N)] blind markers present in CIA redacted output')
+    try:
+        response = requests.post(f'{BASE_URL}/get_data',
+            headers={'Authorization': f'Bearer {token}'},
+            json={'description': 'CIA contractor employment records with clearance levels and SSNs'}
+        )
+
+        assert response.status_code == 200, f'Expected 200, got {response.status_code}'
+        data = response.json()
+        redacted_str = str(data.get('data', {}))
+
+        assert '[b(Ex.' in redacted_str, 'No [b(Ex.N)] blind redaction markers found in redacted output'
+
+        print_success('[b(Ex.N)] blind redaction markers present in CIA output')
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+
+def test_foia_smart_redaction(token):
+    print_test('FOIA Tier 2: original names absent from redacted output (Ex.6 smart redaction)')
+    try:
+        response = requests.post(f'{BASE_URL}/get_data',
+            headers={'Authorization': f'Bearer {token}'},
+            json={'description': 'CIA contractor employment records'}
+        )
+
+        assert response.status_code == 200, f'Expected 200, got {response.status_code}'
+        data = response.json()
+
+        import re
+        orig_str = str(data.get('original_data', {}))
+        red_str = str(data.get('data', {}))
+
+        # Extract first contractor name from original and verify it's gone from redacted
+        name_match = re.search(r"'name':\s*'([^']+)'", orig_str)
+        if name_match:
+            original_name = name_match.group(1)
+            assert original_name not in red_str, \
+                f'Original name "{original_name}" found unchanged in redacted output'
+            print_success(f'Original name "{original_name}" replaced in redacted output')
+        else:
+            print_info('Could not extract name from original_data to compare')
+
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+
+def test_foia_compliance_block(token):
+    print_test('FOIA compliance block: present with required fields')
+    try:
+        response = requests.post(f'{BASE_URL}/get_data',
+            headers={'Authorization': f'Bearer {token}'},
+            json={'description': 'CIA contractor employment records'}
+        )
+
+        assert response.status_code == 200, f'Expected 200, got {response.status_code}'
+        data = response.json()
+
+        foia = data.get('foia_compliance', {})
+        assert foia, 'foia_compliance block missing from response'
+        assert '5 U.S.C.' in foia.get('statute', ''), 'foia_compliance.statute missing 5 U.S.C. citation'
+        assert foia.get('blind_redactions'), 'foia_compliance.blind_redactions is empty'
+        assert foia.get('smart_redactions'), 'foia_compliance.smart_redactions is empty'
+        assert foia.get('segregability'), 'foia_compliance.segregability is empty'
+
+        print_success('foia_compliance block present with all required fields')
+        print_info(f'Statute: {foia["statute"]}')
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
 
 def test_redaction_module_import():
     print_test('Redaction module: import and configuration')
@@ -305,7 +386,10 @@ def main():
     if token:
         results.append(test_redaction_privacy_flag(token))
         results.append(test_redaction_no_ssn_patterns(token))
-    
+        results.append(test_foia_blind_markers(token))
+        results.append(test_foia_smart_redaction(token))
+        results.append(test_foia_compliance_block(token))
+
     results.append(test_redaction_module_import())
     results.append(test_redaction_prompt_generation())
     results.append(test_redaction_two_phase_order())

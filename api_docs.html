@@ -245,155 +245,153 @@
         
         <div class="endpoint">
             <h3><span class="method post">POST</span><span class="path">/get_data</span></h3>
-            <p>Request federal data with AI-powered collection and privacy protection.</p>
+            <p>Request federal data with AI-powered dataset matching and FOIA-compliant two-tier redaction.</p>
             <p><strong>Authentication:</strong> Required (JWT)</p>
             <p><strong>Request Body:</strong></p>
             <pre>{
-  "description": "Population data for Colorado from 2020-2023"
+  "description": "CIA contractor employment records with clearance levels"
 }</pre>
             <p><strong>Response (200):</strong></p>
             <pre>{
   "status": "success",
-  "data": {
-    "query": "Population data for Colorado from 2020-2023",
-    "source": "US Federal Data Exchange",
-    "records": [
-      {
-        "id": "FED-001",
-        "category": "census",
-        "data": {
-          "location": "Colorado",
-          "population": 5773714,
-          "year": 2023
-        }
+  "original_data": [
+    {
+      "id": "cia-contractor-employment",
+      "category": "intelligence",
+      "data": {
+        "classification": "TOP SECRET // HCS // NOFORN",
+        "records": [
+          {
+            "employee_id": "CIA-HC-2019-04371",
+            "ssn": "412-67-8234",
+            "name": "Marcus J. Thompson",
+            "date_of_birth": "1984-06-12",
+            "position_title": "Signals Intelligence Analyst",
+            "clearance_level": "TS/SCI",
+            "assignment_location": "Camp Peary (The Farm), Williamsburg, VA",
+            "pay_grade": "GS-14",
+            "annual_salary": 122530,
+            "supervising_officer": "Deputy Director Karen M. Ortiz"
+          }
+        ]
       }
-    ]
-  },
+    }
+  ],
+  "data": [
+    {
+      "id": "cia-contractor-employment",
+      "category": "intelligence",
+      "data": {
+        "classification": "[b(Ex.1)]",
+        "records": [
+          {
+            "employee_id": "CIA-HC-2019-04371",
+            "ssn": "[b(Ex.3)]",
+            "name": "David R. Ellison",
+            "date_of_birth": "1981-09-23",
+            "position_title": "Signals Intelligence Analyst",
+            "clearance_level": "[b(Ex.1)]",
+            "assignment_location": "[b(Ex.1)]",
+            "pay_grade": "GS-14",
+            "annual_salary": 122530,
+            "supervising_officer": "Deputy Director Patricia L. Monroe"
+          }
+        ]
+      }
+    }
+  ],
   "metadata": {
-    "processing_time_seconds": 1.23,
+    "processing_time_seconds": 4.82,
     "records_returned": 1,
-    "privacy_applied": true
+    "privacy_applied": true,
+    "cached": false
+  },
+  "foia_compliance": {
+    "statute": "5 U.S.C. § 552 (Freedom of Information Act)",
+    "blind_redactions": "[b(Ex.N)] markers — Ex.1 classified info, Ex.3 SSNs/program IDs",
+    "smart_redactions": "Realistic substitutes — Ex.6 names/addresses/DOB/phone, Ex.7(C) third-party names",
+    "segregability": "Non-exempt fields preserved per § 552(b): case IDs, event dates, titles, pay grades, dispositions",
+    "presumption": "Openness — withheld only where disclosure would harm a protected interest"
   }
 }</pre>
         </div>
         
-        <h2>PRIVACY & REDACTION</h2>
-        <p>All data returned through /get_data is automatically processed for privacy using the AI Redactor system.</p>
-        
-        <h3>Redaction Techniques</h3>
+        <h2>FOIA COMPLIANCE & REDACTION</h2>
+        <p>All data returned through /get_data is processed under the Freedom of Information Act (5 U.S.C. § 552) using a two-tier redaction scheme. The response includes both the original unredacted record and the FOIA-compliant release.</p>
+
+        <h3>Tier 1 — Blind Redaction [b(Ex.N)]</h3>
+        <p>Classified, statutorily protected, or operationally sensitive information is suppressed entirely and replaced with a <strong>[b(Ex.N)]</strong> marker citing the applicable FOIA exemption. No substitute value is provided.</p>
         <table>
             <tr>
-                <th>Technique</th>
-                <th>Description</th>
+                <th>Exemption</th>
+                <th>Field Types</th>
                 <th>Example</th>
             </tr>
             <tr>
-                <td>MASK</td>
-                <td>Replace with ***</td>
-                <td>"123-45-6789" → "***"</td>
+                <td>Ex.1</td>
+                <td>Classification markings, security clearance levels, covert facility names and addresses</td>
+                <td>"TOP SECRET // HCS // NOFORN" → "[b(Ex.1)]"<br>"TS/SCI" → "[b(Ex.1)]"<br>"Camp Peary (The Farm)..." → "[b(Ex.1)]"</td>
             </tr>
             <tr>
-                <td>SUBSTITUTE</td>
-                <td>Replace with equivalent values</td>
-                <td>"Mickey" → "Jamison"</td>
+                <td>Ex.3</td>
+                <td>Social Security Numbers (CIA Act of 1949), intelligence program identifiers, biometric identifiers</td>
+                <td>"412-67-8234" → "[b(Ex.3)]"</td>
             </tr>
             <tr>
-                <td>BOTH (default)</td>
-                <td>Mask critical data first, then substitute remaining PII</td>
-                <td>SSN masked, names substituted</td>
-            </tr>
-        </table>
-        
-        <h3>Sophistication Levels</h3>
-        <table>
-            <tr>
-                <th>Level</th>
-                <th>Scope</th>
-            </tr>
-            <tr>
-                <td>MINIMAL</td>
-                <td>Explicit PII only (SSN, phone, email, full names)</td>
-            </tr>
-            <tr>
-                <td>STANDARD (default)</td>
-                <td>+ Addresses, dates of birth, account numbers</td>
-            </tr>
-            <tr>
-                <td>COMPREHENSIVE</td>
-                <td>+ Nicknames, locations, employers, relationships</td>
-            </tr>
-            <tr>
-                <td>PARANOID</td>
-                <td>+ Any info that could lead to re-identification</td>
+                <td>Ex.7(F)</td>
+                <td>Information that could endanger life or physical safety</td>
+                <td>Source identities, field operative locations</td>
             </tr>
         </table>
-        
-        <h3>Data Types Redacted</h3>
+
+        <h3>Tier 2 — Smart Redaction (realistic substitutes)</h3>
+        <p>Personal privacy data is replaced with a different but realistic equivalent value. Record structure is fully preserved.</p>
         <table>
             <tr>
-                <th>PII Type</th>
-                <th>Treatment</th>
+                <th>Exemption</th>
+                <th>Field Types</th>
                 <th>Example</th>
             </tr>
             <tr>
-                <td>Proper Names</td>
-                <td>Substitution</td>
-                <td>"Mickey" → "Jamison"</td>
+                <td>Ex.6</td>
+                <td>Individual names (contractors, employees, civilians), supervising officer names, dates of birth, personal addresses, phone numbers, email addresses</td>
+                <td>"Marcus J. Thompson" → "David R. Ellison"<br>"1984-06-12" → "1981-09-23"<br>"(303) 555-0147" → "(303) 555-0823"</td>
             </tr>
             <tr>
-                <td>Specific Locations</td>
-                <td>Substitution</td>
-                <td>"123 Main St, Denver" → "456 Oak Ave, Phoenix"</td>
-            </tr>
-            <tr>
-                <td>SSN</td>
-                <td>Mask</td>
-                <td>"123-45-6789" → "***"</td>
-            </tr>
-            <tr>
-                <td>Phone Numbers</td>
-                <td>Substitution</td>
-                <td>"555-1234" → "555-9876"</td>
-            </tr>
-            <tr>
-                <td>Email Addresses</td>
-                <td>Substitution</td>
-                <td>"john@email.com" → "robert@email.com"</td>
-            </tr>
-            <tr>
-                <td>Financial Accounts</td>
-                <td>Mask</td>
-                <td>"****-****-****-1234" → "***"</td>
-            </tr>
-            <tr>
-                <td>Medical Info</td>
-                <td>Mask</td>
-                <td>Diagnosis codes → "***"</td>
-            </tr>
-            <tr>
-                <td>Nicknames (COMPREHENSIVE+)</td>
-                <td>Substitution</td>
-                <td>"Big Mike" → "Tall Tom"</td>
-            </tr>
-            <tr>
-                <td>Employers (COMPREHENSIVE+)</td>
-                <td>Substitution</td>
-                <td>"Acme Corp" → "Widget Inc"</td>
-            </tr>
-            <tr>
-                <td>Faces (in metadata)</td>
-                <td>Marker</td>
-                <td>"face_id_123" → "[FACE_REDACTED]"</td>
+                <td>Ex.7(C)</td>
+                <td>Names of third parties in law enforcement or incident records</td>
+                <td>Bite victim, complainant names → realistic substitutes</td>
             </tr>
         </table>
-        
-        <h3>Two-Phase Processing</h3>
-        <p>When using BOTH technique (default), redaction occurs in two phases:</p>
-        <ol style="margin-left: 20px; color: #FFFFFF;">
-            <li><strong style="color: #FFFF00;">Phase 1 - Masking:</strong> Critical data (SSN, passwords, financial accounts, medical records) replaced with ***</li>
-            <li><strong style="color: #FFFF00;">Phase 2 - Substitution:</strong> Remaining PII (names, locations, phone numbers) replaced with realistic equivalents</li>
-        </ol>
-        <p style="margin-top: 10px;">This ensures sensitive data is completely hidden while maintaining document readability.</p>
+
+        <h3>Segregability — Fields Preserved</h3>
+        <p>Per 5 U.S.C. § 552(b), all reasonably segregable non-exempt portions are released in full:</p>
+        <table>
+            <tr>
+                <th>Field Category</th>
+                <th>Examples</th>
+            </tr>
+            <tr>
+                <td>Administrative identifiers</td>
+                <td>Employee IDs, contract numbers, case numbers</td>
+            </tr>
+            <tr>
+                <td>Dates of events</td>
+                <td>Contract start/end, incident dates</td>
+            </tr>
+            <tr>
+                <td>Position and grade</td>
+                <td>Position titles, pay grades (GS-14, SES), annual salaries</td>
+            </tr>
+            <tr>
+                <td>Outcome/disposition</td>
+                <td>Complaint categories, disposition summaries, citation codes</td>
+            </tr>
+            <tr>
+                <td>Non-sensitive location context</td>
+                <td>General city/state, publicly known facility names (Langley, VA; Fort Meade, MD)</td>
+            </tr>
+        </table>
         
         <h2>ERROR CODES</h2>
         <table>
@@ -431,7 +429,7 @@
         <p><strong>Protocol:</strong> HTTP/HTTPS</p>
         <p><strong>Port:</strong> 6732</p>
         <p><strong>Infrastructure:</strong> Digital Ocean VM + Spaces (S3-compatible storage)</p>
-        <p><strong>AI Model:</strong> OpenRouter (Google Gemini 2.0 Flash - Free tier)</p>
+        <p><strong>AI Model:</strong> OpenRouter — Llama 3.2 3B (free tier) with Claude 3.5 Haiku fallback</p>
         <p><strong>Authentication:</strong> JWT (30-day expiration)</p>
         
         <div class="header" style="margin-top: 50px;">
@@ -523,21 +521,23 @@
                 if (!data.token) throw new Error('No token received');
             });
             
-            await test('Get data with authentication', async () => {
+            await test('Get data — response structure (status, original_data, data, metadata, foia_compliance)', async () => {
                 const res = await fetch(`${API_URL}/get_data`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${testToken}`
-                    },
-                    body: JSON.stringify({ description: 'Test census data' })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                    body: JSON.stringify({ description: 'CIA contractor employment records' })
                 });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
                 const data = await res.json();
-                if (data.status !== 'success') throw new Error('Invalid response');
+                if (data.status !== 'success') throw new Error('Missing status:success');
+                if (!data.original_data) throw new Error('Missing original_data field');
+                if (!data.data) throw new Error('Missing data field');
+                if (!data.metadata) throw new Error('Missing metadata field');
+                if (!data.foia_compliance) throw new Error('Missing foia_compliance field');
+                if (!data.foia_compliance.statute) throw new Error('Missing foia_compliance.statute');
             });
-            
-            await test('Reject unauthenticated data request', async () => {
+
+            await test('Reject unauthenticated data request (401)', async () => {
                 const res = await fetch(`${API_URL}/get_data`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -545,92 +545,70 @@
                 });
                 if (res.status !== 401) throw new Error(`Expected 401, got ${res.status}`);
             });
-            
-            await test('Redaction: verify privacy_applied flag', async () => {
+
+            await test('FOIA — metadata.privacy_applied is true', async () => {
                 const res = await fetch(`${API_URL}/get_data`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${testToken}`
-                    },
-                    body: JSON.stringify({ description: 'Personal records with names and SSN' })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                    body: JSON.stringify({ description: 'CIA contractor employment records' })
                 });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
                 const data = await res.json();
-                if (!data.metadata.privacy_applied) throw new Error('Privacy not applied');
+                if (!data.metadata.privacy_applied) throw new Error('privacy_applied is not true');
             });
-            
-            await test('Redaction Test #1: Names and Email', async () => {
-                const inputQuery = 'Get records for John Smith, email: john.smith@example.com';
-                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">INPUT:</strong> ${inputQuery}</pre>`;
-                
+
+            await test('FOIA — Tier 1 blind [b(Ex.N)] markers present in CIA redacted output', async () => {
                 const res = await fetch(`${API_URL}/get_data`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${testToken}`
-                    },
-                    body: JSON.stringify({ description: inputQuery })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                    body: JSON.stringify({ description: 'CIA contractor employment records with clearance levels and SSNs' })
                 });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
                 const data = await res.json();
-                
-                const responseStr = JSON.stringify(data.data, null, 2);
-                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">OUTPUT:</strong>\n${responseStr}</pre>`;
-                
-                // Verify no original PII appears
-                if (responseStr.toLowerCase().includes('john.smith@example.com')) {
-                    throw new Error('Original email found in redacted response');
-                }
+                const redactedStr = JSON.stringify(data.data);
+                output += `<pre style="margin:8px 20px;font-size:.85em;max-height:200px;overflow:auto"><strong style="color:#FFFF00">REDACTED SNIPPET:</strong>\n${JSON.stringify(data.data, null, 2).slice(0, 800)}...</pre>`;
+                if (!redactedStr.includes('[b(Ex.')) throw new Error('No [b(Ex.N)] blind redaction markers found in CIA output');
             });
-            
-            await test('Redaction Test #2: SSN and Phone', async () => {
-                const inputQuery = 'Records for SSN 123-45-6789, phone: 555-123-4567';
-                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">INPUT:</strong> ${inputQuery}</pre>`;
-                
+
+            await test('FOIA — Tier 1: raw SSN pattern absent from redacted output', async () => {
                 const res = await fetch(`${API_URL}/get_data`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${testToken}`
-                    },
-                    body: JSON.stringify({ description: inputQuery })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                    body: JSON.stringify({ description: 'CIA contractor employment records' })
                 });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
                 const data = await res.json();
-                
-                const responseStr = JSON.stringify(data.data, null, 2);
-                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">OUTPUT:</strong>\n${responseStr}</pre>`;
-                
-                // Verify SSN pattern is removed
-                const ssnPattern = /\d{3}-\d{2}-\d{4}/;
-                if (ssnPattern.test(responseStr)) {
-                    throw new Error('SSN pattern found in redacted response');
-                }
+                const redactedStr = JSON.stringify(data.data);
+                if (/\b\d{3}-\d{2}-\d{4}\b/.test(redactedStr)) throw new Error('Raw SSN pattern found in redacted output');
             });
-            
-            await test('Redaction Test #3: Address and DOB', async () => {
-                const inputQuery = 'Person at 123 Main Street, Denver CO 80202, born 01/15/1985';
-                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">INPUT:</strong> ${inputQuery}</pre>`;
-                
+
+            await test('FOIA — Tier 2: original_data contains names not present in redacted data', async () => {
                 const res = await fetch(`${API_URL}/get_data`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${testToken}`
-                    },
-                    body: JSON.stringify({ description: inputQuery })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                    body: JSON.stringify({ description: 'CIA contractor employment records' })
                 });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                
-                const responseStr = JSON.stringify(data.data, null, 2);
-                output += `<pre style="margin: 10px 20px; font-size: 0.9em;"><strong style="color: #FFFF00;">OUTPUT:</strong>\n${responseStr}</pre>`;
-                
-                // Verify address components are redacted/substituted
-                if (responseStr.includes('123 Main Street')) {
-                    throw new Error('Original address found in redacted response');
-                }
+                const d = await res.json();
+                const origStr = JSON.stringify(d.original_data);
+                const redStr = JSON.stringify(d.data);
+                // At least one name from original should not appear in redacted
+                const nameMatch = origStr.match(/"name":\s*"([^"]+)"/);
+                if (nameMatch && redStr.includes(nameMatch[1])) throw new Error(`Original name "${nameMatch[1]}" found unchanged in redacted output`);
+            });
+
+            await test('FOIA — Lakewood animal control: Ex.6 smart redaction (no original resident names)', async () => {
+                const res = await fetch(`${API_URL}/get_data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                    body: JSON.stringify({ description: 'Lakewood animal control service records and violations' })
+                });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const d = await res.json();
+                const origStr = JSON.stringify(d.original_data);
+                const redStr = JSON.stringify(d.data);
+                const nameMatch = origStr.match(/"resident_name":\s*"([^"]+)"/);
+                if (nameMatch && redStr.includes(nameMatch[1])) throw new Error(`Original resident name "${nameMatch[1]}" found unchanged in redacted output`);
             });
             
             output += `<p class="info">─────────────────────────</p>`;
