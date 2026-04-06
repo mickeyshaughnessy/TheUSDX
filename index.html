@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>US Federal Data Exchange</title>
+    <title>Poseidon — Federal Intelligence Data Platform</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #d0dae8;
+            background: linear-gradient(160deg, #060d1a 0%, #0a1f3a 60%, #0d2b50 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -20,189 +20,243 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 920px;
             width: 100%;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 60px;
+            background: rgba(10, 22, 44, 0.92);
+            border: 1px solid rgba(0, 180, 220, 0.25);
+            border-radius: 4px;
+            box-shadow: 0 0 60px rgba(0, 100, 180, 0.18), 0 2px 0 rgba(0, 180, 220, 0.4) inset;
+            padding: 56px 64px;
         }
 
-        h1 { font-size: 2.4em; color: #667eea; margin-bottom: 16px; }
-        h2 { font-size: 1.6em; color: #555; margin: 36px 0 12px; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
-        h3 { color: #667eea; margin-bottom: 8px; }
+        .wordmark {
+            display: flex;
+            align-items: baseline;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
 
-        p { margin-bottom: 14px; font-size: 1.05em; color: #555; }
+        h1 {
+            font-size: 2.6em;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #e8f4ff;
+            text-transform: uppercase;
+        }
+
+        .badge {
+            font-size: 0.55em;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            color: #00b4d8;
+            border: 1px solid rgba(0, 180, 220, 0.5);
+            padding: 3px 8px;
+            border-radius: 2px;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+
+        .tagline {
+            font-size: 0.78em;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #4a7fa5;
+            margin-bottom: 28px;
+        }
+
+        h2 {
+            font-size: 0.72em;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #00b4d8;
+            margin: 38px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(0, 180, 220, 0.2);
+        }
+
+        h3 { color: #90c8e0; margin-bottom: 6px; font-size: 0.95em; font-weight: 600; }
+
+        p { margin-bottom: 12px; font-size: 1em; color: #9ab4cc; }
 
         .mission {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 18px 20px;
-            margin: 24px 0;
-            color: #555;
-            font-size: 1em;
+            background: rgba(0, 30, 60, 0.7);
+            border-left: 3px solid #00b4d8;
+            padding: 18px 22px;
+            margin: 22px 0;
+            color: #9ab4cc;
+            font-size: 0.95em;
         }
 
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin: 20px 0;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 14px;
+            margin: 18px 0;
         }
 
         .feature {
-            padding: 18px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            font-size: .95em;
-            color: #555;
+            padding: 16px 18px;
+            background: rgba(0, 30, 60, 0.5);
+            border: 1px solid rgba(0, 180, 220, 0.12);
+            border-radius: 2px;
+            font-size: 0.88em;
+            color: #7a9ab8;
         }
 
         .btn {
             display: inline-block;
-            padding: 12px 28px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: .95rem;
+            padding: 10px 24px;
+            background: transparent;
+            color: #00b4d8;
+            border: 1px solid rgba(0, 180, 220, 0.6);
+            border-radius: 2px;
+            font-size: 0.82rem;
             font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
             cursor: pointer;
             text-decoration: none;
-            transition: opacity .2s;
+            transition: background .2s, color .2s;
         }
-        .btn:hover { opacity: .85; }
-        .btn-secondary { background: #764ba2; }
+        .btn:hover { background: rgba(0, 180, 220, 0.12); color: #e8f4ff; }
+        .btn-secondary { border-color: rgba(0, 100, 160, 0.5); color: #4a7fa5; }
+        .btn-secondary:hover { background: rgba(0, 80, 140, 0.15); color: #e8f4ff; }
 
         .panel {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 24px;
-            border: 1px solid #ddd;
+            background: rgba(6, 18, 38, 0.8);
+            border: 1px solid rgba(0, 180, 220, 0.12);
+            border-radius: 2px;
+            padding: 22px 24px;
         }
 
-        .panel + .panel { margin-top: 14px; }
+        .panel + .panel { margin-top: 12px; }
 
         select {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 1rem;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 180, 220, 0.25);
+            border-radius: 2px;
+            font-size: 0.92rem;
             font-family: inherit;
-            background: white;
-            color: #333;
+            background: rgba(6, 18, 38, 0.9);
+            color: #c0d8ec;
             cursor: pointer;
         }
-        select:focus { outline: 2px solid #667eea; border-color: #667eea; }
+        select:focus { outline: none; border-color: #00b4d8; }
 
-        .form-grid { display: grid; gap: 12px; }
+        .form-grid { display: grid; gap: 10px; }
 
         input[type="email"],
         input[type="password"],
         textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 1rem;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 180, 220, 0.2);
+            border-radius: 2px;
+            font-size: 0.92rem;
             font-family: inherit;
+            background: rgba(6, 18, 38, 0.9);
+            color: #c0d8ec;
         }
+        input::placeholder, textarea::placeholder { color: #3a5a78; }
 
         textarea { resize: vertical; }
 
-        .btn-row { display: flex; gap: 12px; }
+        .btn-row { display: flex; gap: 10px; }
         .btn-row .btn { flex: 1; text-align: center; }
 
-        .status-msg { margin-top: 10px; font-size: .9em; }
-        .status-msg.error { color: #e74c3c; }
-        .status-msg.info  { color: #667eea; }
-        .status-msg.warn  { color: #764ba2; font-weight: 600; }
+        .status-msg { margin-top: 10px; font-size: .85em; }
+        .status-msg.error { color: #e05060; }
+        .status-msg.info  { color: #00b4d8; }
+        .status-msg.warn  { color: #c8a840; font-weight: 600; }
 
         .results-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: 14px;
         }
 
         .results-grid > div { min-width: 0; }
 
-        .results-grid h3 { color: #555; }
-        .results-grid h3.redacted { color: #667eea; }
+        .results-grid h3 { color: #7a9ab8; font-size: 0.82em; letter-spacing: 0.1em; text-transform: uppercase; }
+        .results-grid h3.redacted { color: #00b4d8; }
 
         pre.code-block {
-            background: #1e1e2e;
-            color: #cdd6f4;
-            padding: 16px;
-            border-radius: 8px;
+            background: #030810;
+            color: #8ab4cc;
+            padding: 14px;
+            border: 1px solid rgba(0, 180, 220, 0.12);
+            border-radius: 2px;
             overflow: auto;
-            font-size: .75em;
-            max-height: 420px;
+            font-size: .72em;
+            max-height: 400px;
             margin: 8px 0 0;
             white-space: pre-wrap;
             word-break: break-word;
         }
 
         .c-blind {
-            color: #fca5a5;
-            background: rgba(220,38,38,.25);
-            border-radius: 3px;
+            color: #ff6b6b;
+            background: rgba(200, 40, 40, 0.2);
+            border-radius: 2px;
             padding: 0 3px;
             font-weight: 700;
         }
         .c-smart {
-            color: #86efac;
-            background: rgba(22,163,74,.22);
-            border-radius: 3px;
+            color: #56d9a0;
+            background: rgba(22, 163, 74, 0.18);
+            border-radius: 2px;
             padding: 0 3px;
             font-weight: 600;
         }
 
-        .result-meta { font-size: .8em; color: #888; margin-top: 8px; }
+        .result-meta { font-size: .78em; color: #3a5a78; margin-top: 8px; letter-spacing: 0.05em; }
 
         .foia-legend {
-            background: #f0f4ff;
-            border: 1px solid #c7d2fe;
-            border-radius: 8px;
-            padding: 18px 20px;
-            margin-top: 16px;
+            background: rgba(0, 20, 48, 0.7);
+            border: 1px solid rgba(0, 180, 220, 0.15);
+            border-radius: 2px;
+            padding: 16px 18px;
+            margin-top: 14px;
         }
-        .foia-legend h4 { color: #4338ca; margin-bottom: 12px; font-size: .95em; }
-        .legend-grid { display: grid; gap: 10px; }
-        .legend-item { display: flex; gap: 12px; align-items: flex-start; font-size: .85em; color: #444; }
+        .foia-legend h4 { color: #00b4d8; margin-bottom: 10px; font-size: .78em; letter-spacing: 0.14em; text-transform: uppercase; }
+        .legend-grid { display: grid; gap: 8px; }
+        .legend-item { display: flex; gap: 12px; align-items: flex-start; font-size: .82em; color: #6a8aaa; }
         .tag {
             flex-shrink: 0;
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 2px 7px;
+            border-radius: 2px;
             font-family: monospace;
-            font-size: .85em;
-            font-weight: 600;
+            font-size: .82em;
+            font-weight: 700;
             white-space: nowrap;
         }
-        .tag-blind  { background: #fee2e2; color: #991b1b; }
-        .tag-smart  { background: #dcfce7; color: #166534; }
-        .tag-open   { background: #e0e7ff; color: #3730a3; }
+        .tag-blind  { background: rgba(200,40,40,.2); color: #ff8080; }
+        .tag-smart  { background: rgba(22,163,74,.18); color: #56d9a0; }
+        .tag-open   { background: rgba(0,100,180,.2); color: #60b4e0; }
 
         .contact-block {
-            background: #667eea;
-            color: white;
-            padding: 28px;
-            border-radius: 8px;
+            background: rgba(0, 30, 60, 0.7);
+            border: 1px solid rgba(0, 180, 220, 0.2);
+            padding: 24px;
+            border-radius: 2px;
             margin-top: 36px;
         }
-        .contact-block h3 { color: white; margin-bottom: 12px; font-size: 1.3em; }
-        .contact-block p { color: rgba(255,255,255,.9); margin-bottom: 6px; font-size: .95em; }
-        .contact-block a { color: white; }
+        .contact-block h3 { color: #00b4d8; margin-bottom: 10px; font-size: 0.78em; letter-spacing: 0.2em; text-transform: uppercase; }
+        .contact-block p { color: rgba(154, 180, 204, 0.85); margin-bottom: 4px; font-size: .9em; }
+        .contact-block a { color: #00b4d8; text-decoration: none; }
+        .contact-block a:hover { color: #e8f4ff; }
 
-        .doc-link { margin-top: 20px; }
+        .doc-link { margin-top: 22px; }
+
+        code { font-family: 'SF Mono', 'Fira Mono', monospace; font-size: 0.88em; color: #56d9a0; }
 
         @media (max-width: 768px) {
-            .container { padding: 28px; }
-            h1 { font-size: 1.8em; }
+            .container { padding: 28px 20px; }
+            h1 { font-size: 1.9em; }
             .results-grid { grid-template-columns: 1fr; }
-            .demo-buttons { flex-direction: column; }
             .btn-row { flex-direction: column; }
         }
     </style>
@@ -210,67 +264,75 @@
 <body>
 <div class="container">
 
-    <h1>US Federal Data Exchange</h1>
+    <div class="wordmark">
+        <h1>Poseidon</h1>
+        <span class="badge">Clearance Required</span>
+    </div>
+    <div class="tagline">Federal Intelligence Data Platform &mdash; FOIA Compliance Division</div>
 
     <p>A FOIA-compliant interface for individual-level government records.
     Submit natural-language queries — our AI matches the right dataset and automatically
     applies two-tier redaction before returning results.</p>
 
     <div class="mission">
-        <strong>Two-tier FOIA redaction (5 U.S.C. § 552):</strong>
+        <strong>Two-tier FOIA redaction (5 U.S.C. &sect; 552):</strong>
         Classified, statutory, and operationally sensitive fields are
         <strong>blind-redacted</strong> with <code>[b(Ex.N)]</code> markers citing the
-        applicable exemption — e.g. SSNs become <code>[b(Ex.3)]</code>,
+        applicable exemption &mdash; e.g. SSNs become <code>[b(Ex.3)]</code>,
         clearance levels become <code>[b(Ex.1)]</code>.
         Personal privacy fields (names, addresses, dates of birth, phone numbers) are
-        <strong>smart-redacted</strong> — replaced with realistic equivalents so record
-        structure is preserved: "Marcus Thompson" becomes "David Ellison",
-        "412-67-8234" becomes <code>[b(Ex.3)]</code>.
-        All non-exempt fields — case numbers, dates, titles, pay grades, dispositions —
+        <strong>smart-redacted</strong> &mdash; replaced with realistic equivalents so record
+        structure is preserved: &ldquo;Marcus Thompson&rdquo; becomes &ldquo;David Ellison&rdquo;,
+        &ldquo;412-67-8234&rdquo; becomes <code>[b(Ex.3)]</code>.
+        All non-exempt fields &mdash; case numbers, dates, titles, pay grades, dispositions &mdash;
         are released in full per the FOIA segregability requirement.
     </div>
 
     <h2>Powered by Acme Redactors</h2>
-    <p>The redaction engine behind this interface is
-    <strong>Acme Redactors</strong> — an AI system purpose-built for FOIA compliance
-    processing. Acme Redactors ingests raw federal records, classifies each field against
+    <p>The redaction engine behind Poseidon is
+    <strong>Acme Redactors</strong> &mdash; an AI system purpose-built for FOIA compliance
+    processing. Acme Redactors deploys a <strong>cloaking device</strong>: a layered identity-masking
+    system that camouflages and protects the identities of both public servants and US citizens
+    appearing in federal records. Rather than simply blacking out sensitive fields, the cloaking
+    device substitutes realistic cover identities &mdash; different names, dates of birth, and
+    contact details &mdash; ensuring that no individual can be traced through released documents
+    while preserving the structural integrity of every record for legitimate oversight and research.</p>
+    <p>Acme Redactors ingests raw federal records, classifies each field against
     the applicable exemption schedule, and applies the two-tier scheme automatically:
     blind <code>[b(Ex.N)]</code> markers for classified or statutorily protected values,
-    and realistic substitute values for personal privacy fields. It preserves all
-    segregable non-exempt content per § 552(b), returning a release-ready JSON document
+    and realistic cover identities for personal privacy fields. It preserves all
+    segregable non-exempt content per &sect; 552(b), returning a release-ready JSON document
     alongside the original for auditing.</p>
 
-    <h2>Features</h2>
+    <h2>Capabilities</h2>
     <div class="features">
         <div class="feature">
-            <h3>AI Matching</h3>
-            Describe records in plain English — AI finds the right dataset.
+            <h3>AI Dataset Matching</h3>
+            Describe records in plain English &mdash; AI selects the right dataset.
         </div>
         <div class="feature">
-            <h3>Smart Redaction</h3>
-            PII is replaced with realistic equivalents, not blacked out.
+            <h3>Cloaking Device</h3>
+            PII replaced with realistic cover identities, not blacked out.
         </div>
         <div class="feature">
-            <h3>Cloud Infrastructure</h3>
+            <h3>Secure Infrastructure</h3>
             Digital Ocean Spaces with S3-compatible object storage.
         </div>
         <div class="feature">
-            <h3>Secure Access</h3>
-            JWT authentication and HTTPS support.
+            <h3>Authenticated Access</h3>
+            JWT authentication and HTTPS enforcement.
         </div>
     </div>
 
-    <h2>Try It</h2>
+    <h2>Intelligence Console</h2>
 
     <div id="demo-section">
 
         <div class="panel">
-            <h3>Demo Queries</h3>
-            <p style="font-size:.9em;color:#666;margin-bottom:14px">
-                Choose a dataset to load a sample query, then sign in to run it.
-                Each dataset demonstrates different FOIA exemption profiles —
-                from near-total blind redaction (NSA, DMV) to mixed blind+smart (CIA, military)
-                to smart-only (arrests, animal control).
+            <h3>Dataset Selection</h3>
+            <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
+                Select a dataset to load a sample query, then authenticate to execute.
+                Each dataset demonstrates a distinct FOIA exemption profile.
             </p>
             <select id="demo-select" onchange="handleDemoClick(this.value)">
                 <option value="">— Select a dataset —</option>
@@ -300,16 +362,16 @@
         </div>
 
         <div id="auth-form" class="panel">
-            <h3>Sign Up / Log In</h3>
+            <h3>Authenticate</h3>
             <p id="auth-prompt" class="status-msg warn" style="display:none">
-                Sign in to run your selected demo
+                Authentication required to execute selected query
             </p>
-            <div class="form-grid" style="margin-top:14px">
-                <input id="demo-email" type="email" placeholder="your@email.com">
-                <input id="demo-password" type="password" placeholder="Password">
+            <div class="form-grid" style="margin-top:12px">
+                <input id="demo-email" type="email" placeholder="operator@domain.gov">
+                <input id="demo-password" type="password" placeholder="Access code">
                 <div class="btn-row">
-                    <button onclick="doSignup()" class="btn">Sign Up</button>
-                    <button onclick="doLogin()" class="btn btn-secondary">Log In</button>
+                    <button onclick="doSignup()" class="btn">Create Account</button>
+                    <button onclick="doLogin()" class="btn btn-secondary">Authenticate</button>
                 </div>
             </div>
             <p id="auth-msg" class="status-msg error"></p>
@@ -317,48 +379,48 @@
 
         <div id="query-form" class="panel" style="display:none">
             <h3>Query Records</h3>
-            <p style="font-size:.9em;color:#666;margin-bottom:10px">
-                Choose a dataset from the dropdown above, or enter your own query:
+            <p style="font-size:.85em;color:#3a5a78;margin-bottom:10px">
+                Select a dataset above or enter an intelligence query directly:
             </p>
             <textarea id="demo-query" rows="3"
                 placeholder="e.g. CIA contractor employment records with clearance levels and assignment locations"></textarea>
-            <button onclick="doQuery()" class="btn" style="margin-top:12px">Fetch &amp; Redact</button>
+            <button onclick="doQuery()" class="btn" style="margin-top:10px">Execute &amp; Redact</button>
             <p id="query-status" class="status-msg info"></p>
         </div>
 
-        <div id="result-area" style="display:none;margin-top:14px">
+        <div id="result-area" style="display:none;margin-top:12px">
             <div class="results-grid">
                 <div>
-                    <h3>Original Record (unredacted)</h3>
+                    <h3>Raw Record (unredacted)</h3>
                     <pre id="result-original" class="code-block"></pre>
                 </div>
                 <div>
-                    <h3 class="redacted">FOIA-Redacted Release</h3>
+                    <h3 class="redacted">FOIA-Processed Release</h3>
                     <pre id="result-json" class="code-block"></pre>
                 </div>
             </div>
             <p id="result-meta" class="result-meta"></p>
 
             <div class="foia-legend">
-                <h4>FOIA Redaction Key &mdash; 5 U.S.C. &sect; 552</h4>
+                <h4>Redaction Key &mdash; 5 U.S.C. &sect; 552</h4>
                 <div class="legend-grid">
                     <div class="legend-item">
                         <span class="tag tag-blind">[b(Ex.N)]</span>
-                        <span><strong>Blind redaction</strong> &mdash; value suppressed entirely.
+                        <span><strong style="color:#9ab4cc">Blind redaction</strong> &mdash; value suppressed entirely.
                         Ex.1: classified national security info (markings, clearance levels, covert facilities).
                         Ex.3: statutorily protected (SSNs under CIA Act; intelligence program identifiers).
                         Ex.7(F): information that could endanger life or safety.</span>
                     </div>
                     <div class="legend-item">
                         <span class="tag tag-smart">David Ellison</span>
-                        <span><strong>Smart redaction</strong> &mdash; realistic substitute value.
+                        <span><strong style="color:#9ab4cc">Cloaked identity</strong> &mdash; realistic cover value injected by Acme Redactors.
                         Ex.6: personal privacy (names, addresses, DOB, phone numbers replaced with
                         different plausible equivalents).
                         Ex.7(C): third-party names in law enforcement records.</span>
                     </div>
                     <div class="legend-item">
                         <span class="tag tag-open">CIA-HC-2019-04371</span>
-                        <span><strong>Released</strong> &mdash; non-exempt, segregable fields preserved:
+                        <span><strong style="color:#9ab4cc">Released</strong> &mdash; non-exempt, segregable fields preserved:
                         case/employee IDs, event dates, position titles, pay grades,
                         salary amounts, complaint categories, disposition summaries.</span>
                     </div>
@@ -383,7 +445,7 @@
 
 <script>
     const API = window.location.origin;
-    let _token = localStorage.getItem('usdx_token') || null;
+    let _token = localStorage.getItem('poseidon_token') || null;
     let _pendingDemo = null;
 
     const DEMO_QUERIES = {
@@ -431,8 +493,8 @@
         const email = document.getElementById('demo-email').value.trim();
         const password = document.getElementById('demo-password').value;
         const msg = document.getElementById('auth-msg');
-        if (!email || !password) { msg.textContent = 'Email and password required.'; return; }
-        msg.textContent = 'Signing up...';
+        if (!email || !password) { msg.textContent = 'Email and access code required.'; return; }
+        msg.textContent = 'Creating account...';
         try {
             const res = await fetch(`${API}/signup`, {
                 method: 'POST',
@@ -442,7 +504,7 @@
             const d = await res.json();
             if (!res.ok) { msg.textContent = d.error || 'Signup failed.'; return; }
             _token = d.token;
-            localStorage.setItem('usdx_token', _token);
+            localStorage.setItem('poseidon_token', _token);
             msg.textContent = '';
             onAuthSuccess();
         } catch (e) { msg.textContent = 'Connection error.'; }
@@ -452,8 +514,8 @@
         const email = document.getElementById('demo-email').value.trim();
         const password = document.getElementById('demo-password').value;
         const msg = document.getElementById('auth-msg');
-        if (!email || !password) { msg.textContent = 'Email and password required.'; return; }
-        msg.textContent = 'Logging in...';
+        if (!email || !password) { msg.textContent = 'Email and access code required.'; return; }
+        msg.textContent = 'Authenticating...';
         try {
             const res = await fetch(`${API}/login`, {
                 method: 'POST',
@@ -461,9 +523,9 @@
                 body: JSON.stringify({ email, password })
             });
             const d = await res.json();
-            if (!res.ok) { msg.textContent = d.error || 'Login failed.'; return; }
+            if (!res.ok) { msg.textContent = d.error || 'Authentication failed.'; return; }
             _token = d.token;
-            localStorage.setItem('usdx_token', _token);
+            localStorage.setItem('poseidon_token', _token);
             msg.textContent = '';
             onAuthSuccess();
         } catch (e) { msg.textContent = 'Connection error.'; }
@@ -474,7 +536,6 @@
     }
 
     function colorizeRedacted(redacted, original) {
-        // Collect smart-redacted values: leaf strings that differ from original
         const smartVals = new Set();
         function findChanged(orig, red) {
             if (red == null) return;
@@ -488,7 +549,6 @@
         }
         findChanged(original, redacted);
 
-        // Custom stringifier that injects sentinel bytes around marked values
         function mark(val, depth) {
             if (val === null) return 'null';
             if (typeof val === 'boolean' || typeof val === 'number') return String(val);
@@ -519,7 +579,7 @@
         const description = document.getElementById('demo-query').value.trim();
         const status = document.getElementById('query-status');
         if (!description) { status.textContent = 'Please enter a query.'; return; }
-        status.textContent = 'Fetching and redacting data\u2026 (may take 10\u201330s)';
+        status.textContent = 'Executing query and applying cloaking device\u2026 (may take 10\u201330s)';
         document.getElementById('result-area').style.display = 'none';
         try {
             const res = await fetch(`${API}/get_data`, {
@@ -532,10 +592,10 @@
             });
             if (res.status === 401) {
                 _token = null;
-                localStorage.removeItem('usdx_token');
+                localStorage.removeItem('poseidon_token');
                 document.getElementById('auth-form').style.display = 'block';
                 document.getElementById('query-form').style.display = 'none';
-                status.textContent = 'Session expired. Please log in again.';
+                status.textContent = 'Session expired. Please re-authenticate.';
                 return;
             }
             const d = await res.json();

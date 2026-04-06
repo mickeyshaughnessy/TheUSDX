@@ -356,7 +356,7 @@ def test_redaction_two_phase_order():
 
 def main():
     print('=' * 60)
-    print('US Federal Data Exchange - Integration Tests')
+    print('Poseidon - Integration Tests')
     print('=' * 60)
     
     results = []

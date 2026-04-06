@@ -111,7 +111,7 @@ def ping():
     return jsonify({
         'status': 'ok',
         'timestamp': datetime.utcnow().isoformat(),
-        'service': 'US Federal Data Exchange'
+        'service': 'Poseidon'
     }), 200
 
 @app.route('/signup', methods=['POST'])

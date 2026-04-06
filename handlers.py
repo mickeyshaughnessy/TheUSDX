@@ -30,7 +30,7 @@ def call_openrouter(prompt, system_message="You are a helpful assistant.", use_f
             "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
             "HTTP-Referer": "http://143.110.131.237:6732",
-            "X-Title": "US Federal Data Exchange"
+            "X-Title": "Poseidon"
         },
         json={
             "model": model,
@@ -273,7 +273,7 @@ def _get_sample_data(description):
     """Generate sample federal data for demo purposes"""
     return {
         'query': description,
-        'source': 'US Federal Data Exchange (Sample)',
+        'source': 'Poseidon (Sample)',
         'records': [
             {
                 'id': 'FED-001',

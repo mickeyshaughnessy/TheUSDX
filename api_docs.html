@@ -3,256 +3,387 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USDX API Documentation</title>
+    <title>Poseidon — API Documentation</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Courier New', monospace;
-            background: #0000AA;
-            color: #00FFFF;
-            padding: 20px;
-            line-height: 1.5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #060d1a;
+            color: #9ab4cc;
+            padding: 0;
+            line-height: 1.6;
         }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: #0000AA;
-            border: 3px double #00FFFF;
-            padding: 20px;
+
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 220px;
+            background: rgba(4, 12, 28, 0.97);
+            border-right: 1px solid rgba(0, 180, 220, 0.12);
+            padding: 32px 0;
+            overflow-y: auto;
+            z-index: 10;
         }
-        
-        .header {
-            text-align: center;
-            border-bottom: 2px solid #00FFFF;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+
+        .sidebar-logo {
+            padding: 0 22px 24px;
+            border-bottom: 1px solid rgba(0, 180, 220, 0.1);
+            margin-bottom: 18px;
         }
-        
-        .header h1 {
-            color: #FFFF00;
-            font-size: 2.5em;
-            text-shadow: 2px 2px #00FFFF;
+
+        .sidebar-logo .name {
+            font-size: 1.2em;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #e8f4ff;
         }
-        
-        .header p {
-            color: #FFFFFF;
-            margin-top: 10px;
+
+        .sidebar-logo .sub {
+            font-size: 0.68em;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #3a5a78;
+            margin-top: 2px;
         }
-        
+
+        .sidebar nav a {
+            display: block;
+            padding: 7px 22px;
+            font-size: 0.8em;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #4a7fa5;
+            text-decoration: none;
+            transition: color .15s, background .15s;
+        }
+
+        .sidebar nav a:hover {
+            color: #00b4d8;
+            background: rgba(0, 180, 220, 0.06);
+        }
+
+        .sidebar nav .section-label {
+            padding: 14px 22px 4px;
+            font-size: 0.65em;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #1e3a52;
+        }
+
+        .main {
+            margin-left: 220px;
+            padding: 48px 56px;
+            max-width: 980px;
+        }
+
+        .page-header {
+            border-bottom: 1px solid rgba(0, 180, 220, 0.15);
+            padding-bottom: 28px;
+            margin-bottom: 42px;
+        }
+
+        .page-header h1 {
+            font-size: 2em;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #e8f4ff;
+            margin-bottom: 6px;
+        }
+
+        .page-header p {
+            font-size: 0.9em;
+            color: #3a5a78;
+            letter-spacing: 0.04em;
+        }
+
+        .page-header a {
+            color: #00b4d8;
+            text-decoration: none;
+            font-size: 0.82em;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
         h2 {
-            color: #FFFF00;
-            background: #0000FF;
-            padding: 10px;
-            margin: 30px 0 15px 0;
-            border: 1px solid #00FFFF;
+            font-size: 0.7em;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #00b4d8;
+            margin: 44px 0 14px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(0, 180, 220, 0.15);
         }
-        
+
         h3 {
-            color: #00FF00;
-            margin-top: 20px;
+            color: #60a0c8;
+            margin: 20px 0 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        p { margin-bottom: 12px; font-size: 0.92em; }
+
+        .endpoint {
+            background: rgba(4, 12, 28, 0.8);
+            border: 1px solid rgba(0, 180, 220, 0.12);
+            border-radius: 2px;
+            padding: 20px 22px;
+            margin: 14px 0;
+        }
+
+        .endpoint-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             margin-bottom: 10px;
         }
-        
-        .endpoint {
-            background: #000080;
-            border: 1px solid #00FFFF;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        
+
         .method {
             display: inline-block;
-            padding: 5px 15px;
-            border: 1px solid #00FFFF;
-            margin-right: 10px;
-            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 2px;
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-family: 'SF Mono', 'Fira Mono', monospace;
         }
-        
-        .method.get { color: #00FF00; }
-        .method.post { color: #FFFF00; }
-        
+
+        .method.get  { background: rgba(22,163,74,.15); color: #56d9a0; border: 1px solid rgba(22,163,74,.3); }
+        .method.post { background: rgba(0,140,200,.15); color: #60c8f0; border: 1px solid rgba(0,140,200,.3); }
+
         .path {
-            color: #FFFFFF;
-            font-size: 1.2em;
+            font-family: 'SF Mono', 'Fira Mono', monospace;
+            font-size: 1em;
+            color: #e8f4ff;
+            font-weight: 600;
         }
-        
+
         pre {
-            background: #000000;
-            border: 1px solid #00FFFF;
-            padding: 15px;
+            background: #020810;
+            border: 1px solid rgba(0, 180, 220, 0.1);
+            border-radius: 2px;
+            padding: 14px 16px;
             overflow-x: auto;
             margin: 10px 0;
-            color: #00FF00;
+            color: #56d9a0;
+            font-family: 'SF Mono', 'Fira Mono', 'Courier New', monospace;
+            font-size: 0.8em;
+            line-height: 1.5;
         }
-        
-        .button {
-            background: #00FFFF;
-            color: #0000AA;
-            border: 2px solid #FFFFFF;
-            padding: 12px 30px;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            font-size: 1.1em;
-            cursor: pointer;
-            margin: 10px 5px;
-            transition: all 0.3s;
+
+        code {
+            font-family: 'SF Mono', 'Fira Mono', monospace;
+            font-size: 0.85em;
+            color: #56d9a0;
+            background: rgba(22,163,74,.1);
+            padding: 1px 5px;
+            border-radius: 2px;
         }
-        
-        .button:hover {
-            background: #FFFF00;
-            color: #0000AA;
-        }
-        
-        .button:active {
-            background: #FFFFFF;
-        }
-        
+
         .controls {
-            text-align: center;
-            margin: 30px 0;
-            padding: 20px;
-            background: #000080;
-            border: 2px solid #00FFFF;
+            background: rgba(4, 12, 28, 0.8);
+            border: 1px solid rgba(0, 180, 220, 0.12);
+            border-radius: 2px;
+            padding: 24px;
+            margin: 14px 0;
         }
-        
-        #ping-result, #test-result {
-            margin-top: 20px;
-            padding: 15px;
-            background: #000000;
-            border: 1px solid #00FF00;
-            min-height: 50px;
+
+        .btn {
+            display: inline-block;
+            padding: 9px 20px;
+            background: transparent;
+            color: #00b4d8;
+            border: 1px solid rgba(0, 180, 220, 0.5);
+            border-radius: 2px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .15s, color .15s;
+            margin: 4px 6px 4px 0;
         }
-        
-        .success { color: #00FF00; }
-        .error { color: #FF0000; }
-        .info { color: #00FFFF; }
-        
+        .btn:hover { background: rgba(0,180,220,.1); color: #e8f4ff; }
+
+        .result-box {
+            margin-top: 16px;
+            padding: 14px 16px;
+            background: #020810;
+            border: 1px solid rgba(0, 180, 220, 0.1);
+            border-radius: 2px;
+            min-height: 48px;
+            font-family: 'SF Mono', 'Fira Mono', monospace;
+            font-size: 0.8em;
+            line-height: 1.5;
+        }
+
+        .success { color: #56d9a0; }
+        .error   { color: #ff6b6b; }
+        .info    { color: #00b4d8; }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 14px 0;
+            font-size: 0.88em;
         }
-        
+
         th, td {
-            border: 1px solid #00FFFF;
-            padding: 10px;
+            border: 1px solid rgba(0, 180, 220, 0.1);
+            padding: 10px 12px;
             text-align: left;
         }
-        
+
         th {
-            background: #000080;
-            color: #FFFF00;
+            background: rgba(0, 30, 60, 0.6);
+            color: #00b4d8;
+            font-size: 0.78em;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 600;
         }
-        
-        td {
-            color: #FFFFFF;
+
+        td { color: #8ab4cc; }
+
+        td code { font-size: 0.9em; }
+
+        a { color: #00b4d8; text-decoration: none; }
+        a:hover { color: #e8f4ff; }
+
+        .footer {
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(0, 180, 220, 0.1);
+            font-size: 0.8em;
+            color: #2a4a68;
+            letter-spacing: 0.06em;
         }
-        
-        a {
-            color: #00FFFF;
-            text-decoration: underline;
-        }
-        
-        a:hover {
-            color: #FFFF00;
-        }
-        
+
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 1.8em;
-            }
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 24px 18px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>╔══════════════════════════════════════╗</h1>
-            <h1>║  USDX API DOCUMENTATION v1.0  ║</h1>
-            <h1>╚══════════════════════════════════════╝</h1>
-            <p>US Federal Data Exchange - Privacy-First Federal Data API</p>
-            <p><a href="/">← Back to Home</a></p>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="name">Poseidon</div>
+        <div class="sub">API Reference</div>
+    </div>
+    <nav>
+        <div class="section-label">Diagnostics</div>
+        <a href="#diagnostics">System Diagnostics</a>
+        <div class="section-label">Auth</div>
+        <a href="#auth">Authentication</a>
+        <a href="#signup">POST /signup</a>
+        <a href="#login">POST /login</a>
+        <div class="section-label">Core</div>
+        <a href="#ping">GET /ping</a>
+        <a href="#get_data">POST /get_data</a>
+        <div class="section-label">Compliance</div>
+        <a href="#foia">FOIA Redaction</a>
+        <a href="#tier1">Tier 1 — Blind</a>
+        <a href="#tier2">Tier 2 — Cloaked</a>
+        <a href="#segregability">Segregability</a>
+        <div class="section-label">Reference</div>
+        <a href="#errors">Error Codes</a>
+        <a href="#technical">Technical Details</a>
+    </nav>
+</div>
+
+<div class="main">
+
+    <div class="page-header">
+        <h1>Poseidon API</h1>
+        <p>Federal Intelligence Data Platform &mdash; FOIA Compliance Division &nbsp;&bull;&nbsp; v1.0</p>
+        <p style="margin-top:10px"><a href="/">&#8592; Back to Console</a></p>
+    </div>
+
+    <h2 id="diagnostics">System Diagnostics</h2>
+    <div class="controls">
+        <button class="btn" onclick="pingServer()">&#9654; Ping Server</button>
+        <button class="btn" onclick="runTests()">&#9654; Run Integration Tests</button>
+        <div id="ping-result" class="result-box" style="display:none"></div>
+        <div id="test-result" class="result-box" style="display:none"></div>
+    </div>
+
+    <h2 id="auth">Authentication</h2>
+    <p>All endpoints except <code>/ping</code> require JWT authentication. Include the token in the Authorization header:</p>
+    <pre>Authorization: Bearer YOUR_JWT_TOKEN</pre>
+
+    <div class="endpoint" id="signup">
+        <div class="endpoint-title">
+            <span class="method post">POST</span>
+            <span class="path">/signup</span>
         </div>
-        
-        <div class="controls">
-            <h2>SYSTEM DIAGNOSTICS</h2>
-            <button class="button" onclick="pingServer()">▶ PING SERVER</button>
-            <button class="button" onclick="runTests()">▶ RUN INTEGRATION TESTS</button>
-            <div id="ping-result"></div>
-            <div id="test-result"></div>
-        </div>
-        
-        <h2>AUTHENTICATION</h2>
-        <p>All endpoints except /ping require JWT authentication. Include token in Authorization header:</p>
-        <pre>Authorization: Bearer YOUR_JWT_TOKEN</pre>
-        
-        <div class="endpoint">
-            <h3><span class="method post">POST</span><span class="path">/signup</span></h3>
-            <p>Create a new user account and receive JWT token.</p>
-            <p><strong>Request Body:</strong></p>
-            <pre>{
-  "email": "user@example.com",
+        <p>Create a new operator account and receive a JWT token.</p>
+        <h3>Request Body</h3>
+        <pre>{
+  "email": "operator@example.com",
   "password": "secure_password"
 }</pre>
-            <p><strong>Response (201):</strong></p>
-            <pre>{
+        <h3>Response (201)</h3>
+        <pre>{
   "message": "User created successfully",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }</pre>
+    </div>
+
+    <div class="endpoint" id="login">
+        <div class="endpoint-title">
+            <span class="method post">POST</span>
+            <span class="path">/login</span>
         </div>
-        
-        <div class="endpoint">
-            <h3><span class="method post">POST</span><span class="path">/login</span></h3>
-            <p>Authenticate existing user and receive JWT token.</p>
-            <p><strong>Request Body:</strong></p>
-            <pre>{
-  "email": "user@example.com",
+        <p>Authenticate an existing operator and receive a JWT token.</p>
+        <h3>Request Body</h3>
+        <pre>{
+  "email": "operator@example.com",
   "password": "secure_password"
 }</pre>
-            <p><strong>Response (200):</strong></p>
-            <pre>{
+        <h3>Response (200)</h3>
+        <pre>{
   "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }</pre>
+    </div>
+
+    <h2 id="core">Core Endpoints</h2>
+
+    <div class="endpoint" id="ping">
+        <div class="endpoint-title">
+            <span class="method get">GET</span>
+            <span class="path">/ping</span>
         </div>
-        
-        <h2>CORE ENDPOINTS</h2>
-        
-        <div class="endpoint">
-            <h3><span class="method get">GET</span><span class="path">/ping</span></h3>
-            <p>Health check endpoint. No authentication required.</p>
-            <p><strong>Response (200):</strong></p>
-            <pre>{
+        <p>Health check. No authentication required.</p>
+        <h3>Response (200)</h3>
+        <pre>{
   "status": "ok",
   "timestamp": "2026-01-27T12:00:00.000000",
-  "service": "US Federal Data Exchange"
+  "service": "Poseidon"
 }</pre>
+    </div>
+
+    <div class="endpoint" id="get_data">
+        <div class="endpoint-title">
+            <span class="method post">POST</span>
+            <span class="path">/get_data</span>
         </div>
-        
-        <div class="endpoint">
-            <h3><span class="method post">POST</span><span class="path">/get_data</span></h3>
-            <p>Request federal data with AI-powered dataset matching and FOIA-compliant two-tier redaction.</p>
-            <p><strong>Authentication:</strong> Required (JWT)</p>
-            <p><strong>Request Body:</strong></p>
-            <pre>{
+        <p>Request federal data with AI-powered dataset matching and FOIA-compliant two-tier redaction via the Acme Redactors cloaking device.</p>
+        <p><strong style="color:#e8f4ff">Authentication:</strong> Required (JWT)</p>
+        <h3>Request Body</h3>
+        <pre>{
   "description": "CIA contractor employment records with clearance levels"
 }</pre>
-            <p><strong>Response (200):</strong></p>
-            <pre>{
+        <h3>Response (200)</h3>
+        <pre>{
   "status": "success",
   "original_data": [
     {
@@ -309,315 +440,294 @@
   "foia_compliance": {
     "statute": "5 U.S.C. § 552 (Freedom of Information Act)",
     "blind_redactions": "[b(Ex.N)] markers — Ex.1 classified info, Ex.3 SSNs/program IDs",
-    "smart_redactions": "Realistic substitutes — Ex.6 names/addresses/DOB/phone, Ex.7(C) third-party names",
+    "smart_redactions": "Acme Redactors cloaking device — Ex.6 names/addresses/DOB/phone, Ex.7(C) third-party names",
     "segregability": "Non-exempt fields preserved per § 552(b): case IDs, event dates, titles, pay grades, dispositions",
     "presumption": "Openness — withheld only where disclosure would harm a protected interest"
   }
 }</pre>
-        </div>
-        
-        <h2>FOIA COMPLIANCE & REDACTION</h2>
-        <p>All data returned through /get_data is processed under the Freedom of Information Act (5 U.S.C. § 552) using a two-tier redaction scheme. The response includes both the original unredacted record and the FOIA-compliant release.</p>
-
-        <h3>Tier 1 — Blind Redaction [b(Ex.N)]</h3>
-        <p>Classified, statutorily protected, or operationally sensitive information is suppressed entirely and replaced with a <strong>[b(Ex.N)]</strong> marker citing the applicable FOIA exemption. No substitute value is provided.</p>
-        <table>
-            <tr>
-                <th>Exemption</th>
-                <th>Field Types</th>
-                <th>Example</th>
-            </tr>
-            <tr>
-                <td>Ex.1</td>
-                <td>Classification markings, security clearance levels, covert facility names and addresses</td>
-                <td>"TOP SECRET // HCS // NOFORN" → "[b(Ex.1)]"<br>"TS/SCI" → "[b(Ex.1)]"<br>"Camp Peary (The Farm)..." → "[b(Ex.1)]"</td>
-            </tr>
-            <tr>
-                <td>Ex.3</td>
-                <td>Social Security Numbers (CIA Act of 1949), intelligence program identifiers, biometric identifiers</td>
-                <td>"412-67-8234" → "[b(Ex.3)]"</td>
-            </tr>
-            <tr>
-                <td>Ex.7(F)</td>
-                <td>Information that could endanger life or physical safety</td>
-                <td>Source identities, field operative locations</td>
-            </tr>
-        </table>
-
-        <h3>Tier 2 — Smart Redaction (realistic substitutes)</h3>
-        <p>Personal privacy data is replaced with a different but realistic equivalent value. Record structure is fully preserved.</p>
-        <table>
-            <tr>
-                <th>Exemption</th>
-                <th>Field Types</th>
-                <th>Example</th>
-            </tr>
-            <tr>
-                <td>Ex.6</td>
-                <td>Individual names (contractors, employees, civilians), supervising officer names, dates of birth, personal addresses, phone numbers, email addresses</td>
-                <td>"Marcus J. Thompson" → "David R. Ellison"<br>"1984-06-12" → "1981-09-23"<br>"(303) 555-0147" → "(303) 555-0823"</td>
-            </tr>
-            <tr>
-                <td>Ex.7(C)</td>
-                <td>Names of third parties in law enforcement or incident records</td>
-                <td>Bite victim, complainant names → realistic substitutes</td>
-            </tr>
-        </table>
-
-        <h3>Segregability — Fields Preserved</h3>
-        <p>Per 5 U.S.C. § 552(b), all reasonably segregable non-exempt portions are released in full:</p>
-        <table>
-            <tr>
-                <th>Field Category</th>
-                <th>Examples</th>
-            </tr>
-            <tr>
-                <td>Administrative identifiers</td>
-                <td>Employee IDs, contract numbers, case numbers</td>
-            </tr>
-            <tr>
-                <td>Dates of events</td>
-                <td>Contract start/end, incident dates</td>
-            </tr>
-            <tr>
-                <td>Position and grade</td>
-                <td>Position titles, pay grades (GS-14, SES), annual salaries</td>
-            </tr>
-            <tr>
-                <td>Outcome/disposition</td>
-                <td>Complaint categories, disposition summaries, citation codes</td>
-            </tr>
-            <tr>
-                <td>Non-sensitive location context</td>
-                <td>General city/state, publicly known facility names (Langley, VA; Fort Meade, MD)</td>
-            </tr>
-        </table>
-        
-        <h2>ERROR CODES</h2>
-        <table>
-            <tr>
-                <th>Code</th>
-                <th>Description</th>
-            </tr>
-            <tr>
-                <td>200</td>
-                <td>Success</td>
-            </tr>
-            <tr>
-                <td>201</td>
-                <td>Created (signup)</td>
-            </tr>
-            <tr>
-                <td>400</td>
-                <td>Bad Request - Missing or invalid parameters</td>
-            </tr>
-            <tr>
-                <td>401</td>
-                <td>Unauthorized - Invalid or missing token</td>
-            </tr>
-            <tr>
-                <td>409</td>
-                <td>Conflict - Email already exists</td>
-            </tr>
-            <tr>
-                <td>500</td>
-                <td>Internal Server Error</td>
-            </tr>
-        </table>
-        
-        <h2>TECHNICAL DETAILS</h2>
-        <p><strong>Protocol:</strong> HTTP/HTTPS</p>
-        <p><strong>Port:</strong> 6732</p>
-        <p><strong>Infrastructure:</strong> Digital Ocean VM + Spaces (S3-compatible storage)</p>
-        <p><strong>AI Model:</strong> OpenRouter — Llama 3.2 3B (free tier) with Claude 3.5 Haiku fallback</p>
-        <p><strong>Authentication:</strong> JWT (30-day expiration)</p>
-        
-        <div class="header" style="margin-top: 50px;">
-            <p>Contact: Mickey Shaughnessy | mickeyshaughnessy@gmail.com</p>
-            <p>The Mithril Company - Colorado LLC</p>
-        </div>
     </div>
-    
-    <script>
-        const API_URL = window.location.origin;
-        
-        async function pingServer() {
-            const resultDiv = document.getElementById('ping-result');
-            resultDiv.innerHTML = '<p class="info">► Pinging server...</p>';
-            
-            const startTime = performance.now();
-            
-            try {
-                const response = await fetch(`${API_URL}/ping`);
-                const endTime = performance.now();
-                const latency = (endTime - startTime).toFixed(2);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    resultDiv.innerHTML = `
-                        <p class="success">✓ SERVER ONLINE</p>
-                        <p class="info">Latency: ${latency}ms</p>
-                        <p class="info">Timestamp: ${data.timestamp}</p>
-                        <p class="info">Service: ${data.service}</p>
-                    `;
-                } else {
-                    resultDiv.innerHTML = `<p class="error">✗ ERROR: ${response.status} ${response.statusText}</p>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<p class="error">✗ CONNECTION FAILED: ${error.message}</p>`;
+
+    <h2 id="foia">FOIA Compliance &amp; Redaction</h2>
+    <p>All data returned through <code>/get_data</code> is processed under the Freedom of Information Act (5 U.S.C. &sect; 552) using a two-tier redaction scheme implemented by the <strong style="color:#e8f4ff">Acme Redactors cloaking device</strong>. The response includes both the original unredacted record and the FOIA-compliant release.</p>
+
+    <h3 id="tier1">Tier 1 &mdash; Blind Redaction <code>[b(Ex.N)]</code></h3>
+    <p>Classified, statutorily protected, or operationally sensitive information is suppressed entirely and replaced with a <code>[b(Ex.N)]</code> marker citing the applicable FOIA exemption.</p>
+    <table>
+        <tr>
+            <th>Exemption</th>
+            <th>Field Types</th>
+            <th>Example</th>
+        </tr>
+        <tr>
+            <td>Ex.1</td>
+            <td>Classification markings, security clearance levels, covert facility names and addresses</td>
+            <td><code>"TOP SECRET // HCS // NOFORN"</code> &rarr; <code>"[b(Ex.1)]"</code><br><code>"TS/SCI"</code> &rarr; <code>"[b(Ex.1)]"</code></td>
+        </tr>
+        <tr>
+            <td>Ex.3</td>
+            <td>Social Security Numbers (CIA Act of 1949), intelligence program identifiers, biometric identifiers</td>
+            <td><code>"412-67-8234"</code> &rarr; <code>"[b(Ex.3)]"</code></td>
+        </tr>
+        <tr>
+            <td>Ex.7(F)</td>
+            <td>Information that could endanger life or physical safety</td>
+            <td>Source identities, field operative locations</td>
+        </tr>
+    </table>
+
+    <h3 id="tier2">Tier 2 &mdash; Cloaked Identities (Acme Redactors)</h3>
+    <p>The Acme Redactors cloaking device camouflages and protects the identities of public servants and US citizens by replacing personal privacy data with different but realistic cover values. Record structure is fully preserved for legitimate oversight.</p>
+    <table>
+        <tr>
+            <th>Exemption</th>
+            <th>Field Types</th>
+            <th>Example</th>
+        </tr>
+        <tr>
+            <td>Ex.6</td>
+            <td>Individual names (contractors, employees, civilians), supervising officer names, dates of birth, personal addresses, phone numbers, email addresses</td>
+            <td><code>"Marcus J. Thompson"</code> &rarr; <code>"David R. Ellison"</code><br><code>"1984-06-12"</code> &rarr; <code>"1981-09-23"</code></td>
+        </tr>
+        <tr>
+            <td>Ex.7(C)</td>
+            <td>Names of third parties in law enforcement or incident records</td>
+            <td>Bite victim, complainant names &rarr; realistic cover identities</td>
+        </tr>
+    </table>
+
+    <h3 id="segregability">Segregability &mdash; Fields Preserved</h3>
+    <p>Per 5 U.S.C. &sect; 552(b), all reasonably segregable non-exempt portions are released in full:</p>
+    <table>
+        <tr>
+            <th>Field Category</th>
+            <th>Examples</th>
+        </tr>
+        <tr>
+            <td>Administrative identifiers</td>
+            <td>Employee IDs, contract numbers, case numbers</td>
+        </tr>
+        <tr>
+            <td>Dates of events</td>
+            <td>Contract start/end, incident dates</td>
+        </tr>
+        <tr>
+            <td>Position and grade</td>
+            <td>Position titles, pay grades (GS-14, SES), annual salaries</td>
+        </tr>
+        <tr>
+            <td>Outcome/disposition</td>
+            <td>Complaint categories, disposition summaries, citation codes</td>
+        </tr>
+        <tr>
+            <td>Non-sensitive location context</td>
+            <td>General city/state, publicly known facility names</td>
+        </tr>
+    </table>
+
+    <h2 id="errors">Error Codes</h2>
+    <table>
+        <tr><th>Code</th><th>Description</th></tr>
+        <tr><td>200</td><td>Success</td></tr>
+        <tr><td>201</td><td>Created (signup)</td></tr>
+        <tr><td>400</td><td>Bad Request &mdash; Missing or invalid parameters</td></tr>
+        <tr><td>401</td><td>Unauthorized &mdash; Invalid or missing token</td></tr>
+        <tr><td>409</td><td>Conflict &mdash; Email already registered</td></tr>
+        <tr><td>500</td><td>Internal Server Error</td></tr>
+    </table>
+
+    <h2 id="technical">Technical Details</h2>
+    <table>
+        <tr><th>Property</th><th>Value</th></tr>
+        <tr><td>Protocol</td><td>HTTP / HTTPS</td></tr>
+        <tr><td>Port</td><td>6732</td></tr>
+        <tr><td>Infrastructure</td><td>Digital Ocean VM + Spaces (S3-compatible)</td></tr>
+        <tr><td>AI Model</td><td>OpenRouter &mdash; Llama 3.2 3B with Claude 3.5 Haiku fallback</td></tr>
+        <tr><td>Authentication</td><td>JWT (30-day expiration)</td></tr>
+        <tr><td>Redaction Engine</td><td>Acme Redactors cloaking device</td></tr>
+    </table>
+
+    <div class="footer">
+        <p>Contact: Mickey Shaughnessy &nbsp;&bull;&nbsp; mickeyshaughnessy@gmail.com &nbsp;&bull;&nbsp; The Mithril Company &mdash; Colorado LLC</p>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = window.location.origin;
+
+    async function pingServer() {
+        const resultDiv = document.getElementById('ping-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<p class="info">&#9654; Pinging server...</p>';
+        const startTime = performance.now();
+        try {
+            const response = await fetch(`${API_URL}/ping`);
+            const endTime = performance.now();
+            const latency = (endTime - startTime).toFixed(2);
+            if (response.ok) {
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <p class="success">&#10003; SERVER ONLINE</p>
+                    <p class="info">Latency: ${latency}ms</p>
+                    <p class="info">Timestamp: ${data.timestamp}</p>
+                    <p class="info">Service: ${data.service}</p>
+                `;
+            } else {
+                resultDiv.innerHTML = `<p class="error">&#10007; ERROR: ${response.status} ${response.statusText}</p>`;
             }
+        } catch (error) {
+            resultDiv.innerHTML = `<p class="error">&#10007; CONNECTION FAILED: ${error.message}</p>`;
         }
-        
-        async function runTests() {
-            const resultDiv = document.getElementById('test-result');
-            resultDiv.innerHTML = '<p class="info">► Running integration tests...</p>';
-            
-            let output = '';
-            let passCount = 0;
-            let failCount = 0;
-            
-            async function test(name, fn) {
-                output += `<p class="info">Testing: ${name}</p>`;
-                try {
-                    await fn();
-                    output += `<p class="success">  ✓ PASS</p>`;
-                    passCount++;
-                } catch (error) {
-                    output += `<p class="error">  ✗ FAIL: ${error.message}</p>`;
-                    failCount++;
-                }
-                resultDiv.innerHTML = output;
+    }
+
+    async function runTests() {
+        const resultDiv = document.getElementById('test-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<p class="info">&#9654; Running integration tests...</p>';
+
+        let output = '';
+        let passCount = 0;
+        let failCount = 0;
+
+        async function test(name, fn) {
+            output += `<p class="info">Testing: ${name}</p>`;
+            try {
+                await fn();
+                output += `<p class="success">  &#10003; PASS</p>`;
+                passCount++;
+            } catch (error) {
+                output += `<p class="error">  &#10007; FAIL: ${error.message}</p>`;
+                failCount++;
             }
-            
-            let testToken = null;
-            const testEmail = `test_${Date.now()}@example.com`;
-            const testPassword = 'TestPass123!';
-            
-            await test('Ping endpoint', async () => {
-                const res = await fetch(`${API_URL}/ping`);
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-            });
-            
-            await test('Signup new user', async () => {
-                const res = await fetch(`${API_URL}/signup`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: testEmail, password: testPassword })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                if (!data.token) throw new Error('No token received');
-                testToken = data.token;
-            });
-            
-            await test('Login existing user', async () => {
-                const res = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: testEmail, password: testPassword })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                if (!data.token) throw new Error('No token received');
-            });
-            
-            await test('Get data — response structure (status, original_data, data, metadata, foia_compliance)', async () => {
-                const res = await fetch(`${API_URL}/get_data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
-                    body: JSON.stringify({ description: 'CIA contractor employment records' })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                if (data.status !== 'success') throw new Error('Missing status:success');
-                if (!data.original_data) throw new Error('Missing original_data field');
-                if (!data.data) throw new Error('Missing data field');
-                if (!data.metadata) throw new Error('Missing metadata field');
-                if (!data.foia_compliance) throw new Error('Missing foia_compliance field');
-                if (!data.foia_compliance.statute) throw new Error('Missing foia_compliance.statute');
-            });
-
-            await test('Reject unauthenticated data request (401)', async () => {
-                const res = await fetch(`${API_URL}/get_data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ description: 'Test data' })
-                });
-                if (res.status !== 401) throw new Error(`Expected 401, got ${res.status}`);
-            });
-
-            await test('FOIA — metadata.privacy_applied is true', async () => {
-                const res = await fetch(`${API_URL}/get_data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
-                    body: JSON.stringify({ description: 'CIA contractor employment records' })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                if (!data.metadata.privacy_applied) throw new Error('privacy_applied is not true');
-            });
-
-            await test('FOIA — Tier 1 blind [b(Ex.N)] markers present in CIA redacted output', async () => {
-                const res = await fetch(`${API_URL}/get_data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
-                    body: JSON.stringify({ description: 'CIA contractor employment records with clearance levels and SSNs' })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                const redactedStr = JSON.stringify(data.data);
-                output += `<pre style="margin:8px 20px;font-size:.85em;max-height:200px;overflow:auto"><strong style="color:#FFFF00">REDACTED SNIPPET:</strong>\n${JSON.stringify(data.data, null, 2).slice(0, 800)}...</pre>`;
-                if (!redactedStr.includes('[b(Ex.')) throw new Error('No [b(Ex.N)] blind redaction markers found in CIA output');
-            });
-
-            await test('FOIA — Tier 1: raw SSN pattern absent from redacted output', async () => {
-                const res = await fetch(`${API_URL}/get_data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
-                    body: JSON.stringify({ description: 'CIA contractor employment records' })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-                const redactedStr = JSON.stringify(data.data);
-                if (/\b\d{3}-\d{2}-\d{4}\b/.test(redactedStr)) throw new Error('Raw SSN pattern found in redacted output');
-            });
-
-            await test('FOIA — Tier 2: original_data contains names not present in redacted data', async () => {
-                const res = await fetch(`${API_URL}/get_data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
-                    body: JSON.stringify({ description: 'CIA contractor employment records' })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const d = await res.json();
-                const origStr = JSON.stringify(d.original_data);
-                const redStr = JSON.stringify(d.data);
-                // At least one name from original should not appear in redacted
-                const nameMatch = origStr.match(/"name":\s*"([^"]+)"/);
-                if (nameMatch && redStr.includes(nameMatch[1])) throw new Error(`Original name "${nameMatch[1]}" found unchanged in redacted output`);
-            });
-
-            await test('FOIA — Lakewood animal control: Ex.6 smart redaction (no original resident names)', async () => {
-                const res = await fetch(`${API_URL}/get_data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
-                    body: JSON.stringify({ description: 'Lakewood animal control service records and violations' })
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const d = await res.json();
-                const origStr = JSON.stringify(d.original_data);
-                const redStr = JSON.stringify(d.data);
-                const nameMatch = origStr.match(/"resident_name":\s*"([^"]+)"/);
-                if (nameMatch && redStr.includes(nameMatch[1])) throw new Error(`Original resident name "${nameMatch[1]}" found unchanged in redacted output`);
-            });
-            
-            output += `<p class="info">─────────────────────────</p>`;
-            output += `<p class="success">PASSED: ${passCount}</p>`;
-            output += `<p class="error">FAILED: ${failCount}</p>`;
-            output += `<p class="${failCount === 0 ? 'success' : 'error'}">TOTAL: ${passCount + failCount}</p>`;
-            
             resultDiv.innerHTML = output;
         }
-    </script>
+
+        let testToken = null;
+        const testEmail = `test_${Date.now()}@example.com`;
+        const testPassword = 'TestPass123!';
+
+        await test('Ping endpoint', async () => {
+            const res = await fetch(`${API_URL}/ping`);
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+        });
+
+        await test('Signup new operator', async () => {
+            const res = await fetch(`${API_URL}/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: testEmail, password: testPassword })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            if (!data.token) throw new Error('No token received');
+            testToken = data.token;
+        });
+
+        await test('Login existing operator', async () => {
+            const res = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: testEmail, password: testPassword })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            if (!data.token) throw new Error('No token received');
+        });
+
+        await test('Get data — response structure (status, original_data, data, metadata, foia_compliance)', async () => {
+            const res = await fetch(`${API_URL}/get_data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                body: JSON.stringify({ description: 'CIA contractor employment records' })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            if (data.status !== 'success') throw new Error('Missing status:success');
+            if (!data.original_data) throw new Error('Missing original_data field');
+            if (!data.data) throw new Error('Missing data field');
+            if (!data.metadata) throw new Error('Missing metadata field');
+            if (!data.foia_compliance) throw new Error('Missing foia_compliance field');
+            if (!data.foia_compliance.statute) throw new Error('Missing foia_compliance.statute');
+        });
+
+        await test('Reject unauthenticated data request (401)', async () => {
+            const res = await fetch(`${API_URL}/get_data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: 'Test data' })
+            });
+            if (res.status !== 401) throw new Error(`Expected 401, got ${res.status}`);
+        });
+
+        await test('FOIA — metadata.privacy_applied is true', async () => {
+            const res = await fetch(`${API_URL}/get_data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                body: JSON.stringify({ description: 'CIA contractor employment records' })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            if (!data.metadata.privacy_applied) throw new Error('privacy_applied is not true');
+        });
+
+        await test('FOIA — Tier 1 blind [b(Ex.N)] markers present in CIA redacted output', async () => {
+            const res = await fetch(`${API_URL}/get_data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                body: JSON.stringify({ description: 'CIA contractor employment records with clearance levels and SSNs' })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            const redactedStr = JSON.stringify(data.data);
+            if (!redactedStr.includes('[b(Ex.')) throw new Error('No [b(Ex.N)] blind redaction markers found in CIA output');
+        });
+
+        await test('FOIA — Tier 1: raw SSN pattern absent from redacted output', async () => {
+            const res = await fetch(`${API_URL}/get_data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                body: JSON.stringify({ description: 'CIA contractor employment records' })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            const redactedStr = JSON.stringify(data.data);
+            if (/\b\d{3}-\d{2}-\d{4}\b/.test(redactedStr)) throw new Error('Raw SSN pattern found in redacted output');
+        });
+
+        await test('FOIA — Tier 2: original_data names not present in redacted data', async () => {
+            const res = await fetch(`${API_URL}/get_data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                body: JSON.stringify({ description: 'CIA contractor employment records' })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const d = await res.json();
+            const origStr = JSON.stringify(d.original_data);
+            const redStr = JSON.stringify(d.data);
+            const nameMatch = origStr.match(/"name":\s*"([^"]+)"/);
+            if (nameMatch && redStr.includes(nameMatch[1])) throw new Error(`Original name "${nameMatch[1]}" found unchanged in redacted output`);
+        });
+
+        await test('FOIA — Lakewood animal control: Ex.6 smart redaction (no original resident names)', async () => {
+            const res = await fetch(`${API_URL}/get_data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${testToken}` },
+                body: JSON.stringify({ description: 'Lakewood animal control service records and violations' })
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const d = await res.json();
+            const origStr = JSON.stringify(d.original_data);
+            const redStr = JSON.stringify(d.data);
+            const nameMatch = origStr.match(/"resident_name":\s*"([^"]+)"/);
+            if (nameMatch && redStr.includes(nameMatch[1])) throw new Error(`Original resident name "${nameMatch[1]}" found unchanged in redacted output`);
+        });
+
+        output += `<p class="info" style="margin-top:12px">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</p>`;
+        output += `<p class="success">PASSED: ${passCount}</p>`;
+        output += `<p class="error">FAILED: ${failCount}</p>`;
+        output += `<p class="${failCount === 0 ? 'success' : 'error'}">TOTAL: ${passCount + failCount}</p>`;
+        resultDiv.innerHTML = output;
+    }
+</script>
 </body>
 </html>
