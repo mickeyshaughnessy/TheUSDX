@@ -173,7 +173,6 @@ def login():
     }), 200
 
 @app.route('/get_data', methods=['POST'])
-@token_required
 def get_data():
     start_time = time.time()
     data = request.get_json()

@@ -303,7 +303,7 @@
 
     <div class="page-header">
         <h1>Poseidon API</h1>
-        <p>Federal Intelligence Data Platform &mdash; FOIA Compliance Division &nbsp;&bull;&nbsp; v1.0</p>
+        <p>Federal Data Exchange &mdash; Privacy &amp; Transparency Platform &nbsp;&bull;&nbsp; v1.0</p>
         <p style="margin-top:10px"><a href="/">&#8592; Back to Console</a></p>
     </div>
 
@@ -316,7 +316,7 @@
     </div>
 
     <h2 id="auth">Authentication</h2>
-    <p>All endpoints except <code>/ping</code> require JWT authentication. Include the token in the Authorization header:</p>
+    <p><code>/get_data</code> is publicly accessible — no token required for open use. Optionally include a JWT token to associate requests with your account:</p>
     <pre>Authorization: Bearer YOUR_JWT_TOKEN</pre>
 
     <div class="endpoint" id="signup">
@@ -377,7 +377,7 @@
             <span class="path">/get_data</span>
         </div>
         <p>Request federal data with AI-powered dataset matching and FOIA-compliant two-tier redaction via the Acme Redactors cloaking device.</p>
-        <p><strong style="color:#e8f4ff">Authentication:</strong> Required (JWT)</p>
+        <p><strong style="color:#e8f4ff">Authentication:</strong> Optional (JWT)</p>
         <h3>Request Body</h3>
         <pre>{
   "description": "CIA contractor employment records with clearance levels"

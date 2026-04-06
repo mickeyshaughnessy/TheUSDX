@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poseidon — Federal Intelligence Data Platform</title>
+    <title>Poseidon — Federal Data Exchange</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -266,9 +266,9 @@
 
     <div class="wordmark">
         <h1>Poseidon</h1>
-        <span class="badge">Clearance Required</span>
+        <span class="badge">FOIA Compliant</span>
     </div>
-    <div class="tagline">Federal Intelligence Data Platform &mdash; FOIA Compliance Division</div>
+    <div class="tagline">Federal Data Exchange &mdash; Privacy &amp; Transparency Platform</div>
 
     <p>A FOIA-compliant interface for individual-level government records.
     Submit natural-language queries — our AI matches the right dataset and automatically
@@ -304,7 +304,7 @@
     segregable non-exempt content per &sect; 552(b), returning a release-ready JSON document
     alongside the original for auditing.</p>
 
-    <h2>Capabilities</h2>
+    <h2>Features</h2>
     <div class="features">
         <div class="feature">
             <h3>AI Dataset Matching</h3>
@@ -312,26 +312,26 @@
         </div>
         <div class="feature">
             <h3>Cloaking Device</h3>
-            PII replaced with realistic cover identities, not blacked out.
+            PII replaced with realistic substitutes, not blacked out.
         </div>
         <div class="feature">
-            <h3>Secure Infrastructure</h3>
+            <h3>Cloud Infrastructure</h3>
             Digital Ocean Spaces with S3-compatible object storage.
         </div>
         <div class="feature">
-            <h3>Authenticated Access</h3>
-            JWT authentication and HTTPS enforcement.
+            <h3>Open Access</h3>
+            Try the demo freely; register for API key access.
         </div>
     </div>
 
-    <h2>Intelligence Console</h2>
+    <h2>Try It</h2>
 
     <div id="demo-section">
 
         <div class="panel">
-            <h3>Dataset Selection</h3>
+            <h3>Demo Queries</h3>
             <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
-                Select a dataset to load a sample query, then authenticate to execute.
+                Choose a dataset to load a sample query and run it.
                 Each dataset demonstrates a distinct FOIA exemption profile.
             </p>
             <select id="demo-select" onchange="handleDemoClick(this.value)">
@@ -361,31 +361,31 @@
             </select>
         </div>
 
-        <div id="auth-form" class="panel">
-            <h3>Authenticate</h3>
-            <p id="auth-prompt" class="status-msg warn" style="display:none">
-                Authentication required to execute selected query
-            </p>
-            <div class="form-grid" style="margin-top:12px">
-                <input id="demo-email" type="email" placeholder="operator@domain.gov">
-                <input id="demo-password" type="password" placeholder="Access code">
-                <div class="btn-row">
-                    <button onclick="doSignup()" class="btn">Create Account</button>
-                    <button onclick="doLogin()" class="btn btn-secondary">Authenticate</button>
-                </div>
-            </div>
-            <p id="auth-msg" class="status-msg error"></p>
-        </div>
-
-        <div id="query-form" class="panel" style="display:none">
+        <div class="panel">
             <h3>Query Records</h3>
             <p style="font-size:.85em;color:#3a5a78;margin-bottom:10px">
-                Select a dataset above or enter an intelligence query directly:
+                Select a dataset above or enter your own query:
             </p>
             <textarea id="demo-query" rows="3"
                 placeholder="e.g. CIA contractor employment records with clearance levels and assignment locations"></textarea>
-            <button onclick="doQuery()" class="btn" style="margin-top:10px">Execute &amp; Redact</button>
+            <button onclick="doQuery()" class="btn" style="margin-top:10px">Fetch &amp; Redact</button>
             <p id="query-status" class="status-msg info"></p>
+        </div>
+
+        <div id="auth-form" class="panel">
+            <h3>Sign Up / Log In</h3>
+            <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
+                Create an account for API key access and saved history.
+            </p>
+            <div class="form-grid">
+                <input id="demo-email" type="email" placeholder="your@email.com">
+                <input id="demo-password" type="password" placeholder="Password">
+                <div class="btn-row">
+                    <button onclick="doSignup()" class="btn">Sign Up</button>
+                    <button onclick="doLogin()" class="btn btn-secondary">Log In</button>
+                </div>
+            </div>
+            <p id="auth-msg" class="status-msg error"></p>
         </div>
 
         <div id="result-area" style="display:none;margin-top:12px">
@@ -446,7 +446,6 @@
 <script>
     const API = window.location.origin;
     let _token = localStorage.getItem('poseidon_token') || null;
-    let _pendingDemo = null;
 
     const DEMO_QUERIES = {
         cia:    'Show employment records for CIA human intelligence contractors including clearance levels and assignment locations',
@@ -463,38 +462,17 @@
         animal: 'Lakewood, CO animal control service records and violations including resident names and addresses'
     };
 
-    if (_token) {
-        document.getElementById('auth-form').style.display = 'none';
-        document.getElementById('query-form').style.display = 'block';
-    }
-
     function handleDemoClick(demoType) {
         if (!demoType) return;
-        if (_token) {
-            document.getElementById('demo-query').value = DEMO_QUERIES[demoType];
-            document.getElementById('query-form').scrollIntoView({ behavior: 'smooth' });
-        } else {
-            _pendingDemo = demoType;
-            document.getElementById('auth-prompt').style.display = 'block';
-            document.getElementById('auth-form').scrollIntoView({ behavior: 'smooth' });
-        }
-    }
-
-    function onAuthSuccess() {
-        document.getElementById('auth-form').style.display = 'none';
-        document.getElementById('query-form').style.display = 'block';
-        if (_pendingDemo && DEMO_QUERIES[_pendingDemo]) {
-            document.getElementById('demo-query').value = DEMO_QUERIES[_pendingDemo];
-            _pendingDemo = null;
-        }
+        document.getElementById('demo-query').value = DEMO_QUERIES[demoType];
     }
 
     async function doSignup() {
         const email = document.getElementById('demo-email').value.trim();
         const password = document.getElementById('demo-password').value;
         const msg = document.getElementById('auth-msg');
-        if (!email || !password) { msg.textContent = 'Email and access code required.'; return; }
-        msg.textContent = 'Creating account...';
+        if (!email || !password) { msg.textContent = 'Email and password required.'; return; }
+        msg.textContent = 'Signing up...';
         try {
             const res = await fetch(`${API}/signup`, {
                 method: 'POST',
@@ -505,8 +483,8 @@
             if (!res.ok) { msg.textContent = d.error || 'Signup failed.'; return; }
             _token = d.token;
             localStorage.setItem('poseidon_token', _token);
-            msg.textContent = '';
-            onAuthSuccess();
+            msg.className = 'status-msg info';
+            msg.textContent = 'Signed in successfully.';
         } catch (e) { msg.textContent = 'Connection error.'; }
     }
 
@@ -514,8 +492,8 @@
         const email = document.getElementById('demo-email').value.trim();
         const password = document.getElementById('demo-password').value;
         const msg = document.getElementById('auth-msg');
-        if (!email || !password) { msg.textContent = 'Email and access code required.'; return; }
-        msg.textContent = 'Authenticating...';
+        if (!email || !password) { msg.textContent = 'Email and password required.'; return; }
+        msg.textContent = 'Logging in...';
         try {
             const res = await fetch(`${API}/login`, {
                 method: 'POST',
@@ -523,11 +501,11 @@
                 body: JSON.stringify({ email, password })
             });
             const d = await res.json();
-            if (!res.ok) { msg.textContent = d.error || 'Authentication failed.'; return; }
+            if (!res.ok) { msg.textContent = d.error || 'Login failed.'; return; }
             _token = d.token;
             localStorage.setItem('poseidon_token', _token);
-            msg.textContent = '';
-            onAuthSuccess();
+            msg.className = 'status-msg info';
+            msg.textContent = 'Logged in successfully.';
         } catch (e) { msg.textContent = 'Connection error.'; }
     }
 
@@ -579,25 +557,16 @@
         const description = document.getElementById('demo-query').value.trim();
         const status = document.getElementById('query-status');
         if (!description) { status.textContent = 'Please enter a query.'; return; }
-        status.textContent = 'Executing query and applying cloaking device\u2026 (may take 10\u201330s)';
+        status.textContent = 'Fetching and redacting data\u2026 (may take 10\u201330s)';
         document.getElementById('result-area').style.display = 'none';
         try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (_token) headers['Authorization'] = `Bearer ${_token}`;
             const res = await fetch(`${API}/get_data`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${_token}`
-                },
+                headers,
                 body: JSON.stringify({ description })
             });
-            if (res.status === 401) {
-                _token = null;
-                localStorage.removeItem('poseidon_token');
-                document.getElementById('auth-form').style.display = 'block';
-                document.getElementById('query-form').style.display = 'none';
-                status.textContent = 'Session expired. Please re-authenticate.';
-                return;
-            }
             const d = await res.json();
             status.textContent = '';
             document.getElementById('result-area').style.display = 'block';
