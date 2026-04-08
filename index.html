@@ -551,6 +551,31 @@
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    function colorizePlainText(original, redacted) {
+        const origLines = original.split('\n');
+        const redLines = redacted.split('\n');
+        const out = [];
+        for (let i = 0; i < redLines.length; i++) {
+            const origTokens = (origLines[i] || '').split(/(\s+)/);
+            const redTokens = redLines[i].split(/(\s+)/);
+            let line = '';
+            for (let j = 0; j < redTokens.length; j++) {
+                const tok = redTokens[j];
+                if (/^\s+$/.test(tok)) { line += tok; continue; }
+                const e = esc(tok);
+                if (/^\[b\(Ex\.[^\]]+\)\]$/.test(tok)) {
+                    line += `<span class="c-blind">${e}</span>`;
+                } else if (tok !== origTokens[j]) {
+                    line += `<span class="c-smart">${e}</span>`;
+                } else {
+                    line += e;
+                }
+            }
+            out.push(line);
+        }
+        return out.join('\n');
+    }
+
     function colorizeRedacted(redacted, original) {
         const smartVals = new Set();
         function findChanged(orig, red) {
@@ -609,7 +634,7 @@
             document.getElementById('result-area').style.display = 'block';
             if (d.is_text) {
                 document.getElementById('result-original').textContent = d.original_data;
-                document.getElementById('result-json').textContent = d.data;
+                document.getElementById('result-json').innerHTML = colorizePlainText(d.original_data, d.data);
             } else {
                 document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
                 document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
