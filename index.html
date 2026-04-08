@@ -397,7 +397,7 @@
                 Paste any JSON record and Acme Redactors will apply FOIA-compliant redaction.
             </p>
             <textarea id="paste-record" rows="10"
-                placeholder='{"name": "Jane Smith", "ssn": "123-45-6789", "address": "123 Main St", "case_id": "FED-2024-001"}'></textarea>
+                placeholder="Paste any text — JSON, CSV, a memo, a form, free text. Names, SSNs, addresses and other PII will be redacted."></textarea>
             <button onclick="doPaste()" class="btn" style="margin-top:10px">Redact Record</button>
             <p id="paste-status" class="status-msg info"></p>
         </div>
@@ -595,22 +595,25 @@
         const raw = document.getElementById('paste-record').value.trim();
         const status = document.getElementById('paste-status');
         if (!raw) { status.textContent = 'Please paste a record.'; return; }
-        let parsed;
-        try { parsed = JSON.parse(raw); } catch(e) { status.textContent = 'Invalid JSON: ' + e.message; return; }
         status.textContent = 'Applying redaction\u2026 (may take 10\u201330s)';
         document.getElementById('result-area').style.display = 'none';
         try {
             const res = await fetch(`${API}/redact`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ record: parsed })
+                body: JSON.stringify({ record: raw })
             });
             const d = await res.json();
             if (!res.ok) { status.textContent = d.error || 'Redaction failed.'; return; }
             status.textContent = '';
             document.getElementById('result-area').style.display = 'block';
-            document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
-            document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
+            if (d.is_text) {
+                document.getElementById('result-original').textContent = d.original_data;
+                document.getElementById('result-json').textContent = d.data;
+            } else {
+                document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
+                document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
+            }
             const m = d.metadata || {};
             document.getElementById('result-meta').textContent =
                 `Processing: ${m.processing_time_seconds ?? '?'}s | Cached: ${m.cached ? 'Yes' : 'No'}`;

@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 import config
-from handlers import collect_data, redact_data
+from handlers import collect_data, redact_data, redact_text
 
 # In-memory TTL cache
 _cache: dict = {}
@@ -231,17 +231,27 @@ def redact():
     if record is None:
         return jsonify({'error': 'record required'}), 400
     try:
+        # Try to parse as JSON; fall back to treating as plain text
         if isinstance(record, str):
-            import json as _json
-            record = _json.loads(record)
-    except Exception:
-        return jsonify({'error': 'record must be valid JSON'}), 400
-    try:
-        redacted = redact_data(record)
+            try:
+                import json as _json
+                record = _json.loads(record)
+                is_text = False
+            except Exception:
+                is_text = True
+        else:
+            is_text = False
+
+        if is_text:
+            redacted = redact_text(record)
+        else:
+            redacted = redact_data(record)
+
         return jsonify({
             'status': 'success',
             'original_data': record,
             'data': redacted,
+            'is_text': is_text,
             'metadata': {
                 'processing_time_seconds': round(time.time() - start_time, 2),
                 'privacy_applied': True,

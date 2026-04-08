@@ -233,6 +233,25 @@ def _redact_large_dict(data):
     return _redact_chunk(result)
 
 
+_REDACTION_TEXT_SYSTEM = (
+    "You are a FOIA compliance officer processing a document for public release "
+    "under 5 U.S.C. § 552. Apply the same two-tier redaction scheme to the plain text below.\n\n"
+    "TIER 1 — BLIND REDACTION: Replace sensitive values with [b(Ex.N)] markers "
+    "(Ex.1 classified info, Ex.3 SSNs/program IDs, Ex.7(F) life/safety).\n\n"
+    "TIER 2 — SMART REDACTION: Replace personal privacy data (names, addresses, DOB, "
+    "phone numbers, emails) with different but realistic substitute values of the same type.\n\n"
+    "PRESERVE all non-exempt content: IDs, dates, titles, pay grades, outcome text.\n\n"
+    "Return ONLY the redacted text with no commentary. Preserve all original formatting, "
+    "whitespace, and line breaks."
+)
+
+
+def redact_text(text):
+    """Redact plain text (non-JSON) using the FOIA two-tier scheme."""
+    prompt = "TEXT TO REDACT:\n\n" + text
+    return call_openrouter(prompt, _REDACTION_TEXT_SYSTEM)
+
+
 def redact_data(data):
     """
     AI-powered redactor that applies differential privacy and removes sensitive PII.
