@@ -177,12 +177,14 @@ def get_data():
     start_time = time.time()
     data = request.get_json()
     description = data.get('description')
-    
+    aggressive = bool(data.get('aggressive', False))
+
     if not description:
         return jsonify({'error': 'Description required'}), 400
 
-    # Cache expensive LLM redaction by query hash (1 hour TTL)
-    query_hash = hashlib.sha256(description.encode()).hexdigest()
+    # Cache keyed by query + aggressive flag
+    cache_input = description + ('|aggressive' if aggressive else '')
+    query_hash = hashlib.sha256(cache_input.encode()).hexdigest()
     cache_key = f'result:{query_hash}'
     cached_result = _cache_get(cache_key)
     if cached_result is not None:
@@ -193,7 +195,7 @@ def get_data():
 
     try:
         collected_data = collect_data(description)
-        redacted_data = redact_data(collected_data)
+        redacted_data = redact_data(collected_data, aggressive=aggressive)
         
         processing_time = time.time() - start_time
 
@@ -242,10 +244,11 @@ def redact():
         else:
             is_text = False
 
+        aggressive = bool(data.get('aggressive', True))  # default True for paste
         if is_text:
-            redacted = redact_text(record)
+            redacted = redact_text(record, aggressive=aggressive)
         else:
-            redacted = redact_data(record)
+            redacted = redact_data(record, aggressive=aggressive)
 
         return jsonify({
             'status': 'success',

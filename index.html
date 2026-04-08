@@ -210,6 +210,13 @@
             padding: 0 3px;
             font-weight: 600;
         }
+        .c-aggr {
+            color: #f0c040;
+            background: rgba(200, 160, 20, 0.18);
+            border-radius: 2px;
+            padding: 0 3px;
+            font-weight: 600;
+        }
 
         .result-meta { font-size: .78em; color: #3a5a78; margin-top: 8px; letter-spacing: 0.05em; }
 
@@ -235,6 +242,7 @@
         }
         .tag-blind  { background: rgba(200,40,40,.2); color: #ff8080; }
         .tag-smart  { background: rgba(22,163,74,.18); color: #56d9a0; }
+        .tag-aggr   { background: rgba(200,160,20,.18); color: #f0c040; }
         .tag-open   { background: rgba(0,100,180,.2); color: #60b4e0; }
 
         .contact-block {
@@ -358,6 +366,10 @@
                 Choose a dataset to load a sample query and run it.
                 Each dataset demonstrates a distinct FOIA exemption profile.
             </p>
+            <div style="background:rgba(200,160,20,0.1);border:1px solid rgba(200,160,20,0.35);border-radius:2px;padding:8px 12px;margin-bottom:10px;font-size:.8em;color:#c8a840;letter-spacing:0.04em">
+                &#9888; <strong>All datasets below are AI-generated synthetic records created for demonstration purposes only.</strong>
+                They are not real government data, do not represent real individuals, and are not derived from any actual public records release.
+            </div>
             <select id="demo-select" onchange="handleDemoClick(this.value)">
                 <option value="">— Select a dataset —</option>
                 <optgroup label="Intelligence &amp; Military">
@@ -386,7 +398,13 @@
             <div style="margin-top:12px">
                 <textarea id="demo-query" rows="3"
                     placeholder="e.g. CIA contractor employment records with clearance levels and assignment locations"></textarea>
-                <button onclick="doQuery()" class="btn" style="margin-top:10px">Fetch &amp; Redact</button>
+                <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
+                    <button onclick="doQuery()" class="btn">Fetch &amp; Redact</button>
+                    <label style="display:flex;align-items:center;gap:6px;font-size:.82em;color:#4a7fa5;cursor:pointer;user-select:none">
+                        <input type="checkbox" id="aggressive-toggle" style="accent-color:#f0c040;width:14px;height:14px">
+                        Aggressive cloaking
+                    </label>
+                </div>
                 <p id="query-status" class="status-msg info"></p>
             </div>
         </div>
@@ -394,10 +412,16 @@
         <div id="mode-paste" class="panel" style="display:none;border-radius:0 2px 2px 2px">
             <h3>Paste a Record</h3>
             <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
-                Paste any JSON record and Acme Redactors will apply FOIA-compliant redaction.
+                Paste any text or JSON. <strong style="color:#9ab4cc">Aggressive cloaking is always applied:</strong>
+                names, nicknames &amp; aliases, dates of birth, addresses, phone numbers, email addresses,
+                locations, event dates &amp; times, employers, organizations, schools, military units,
+                family members &amp; associates, vehicle descriptions, physical descriptions, immigration status,
+                language &amp; nationality details, financial specifics, and any other field that could logically
+                be cross-referenced to re-identify the individual.
+                Classified and statutory values receive blind <code>[b(Ex.N)]</code> markers.
             </p>
             <textarea id="paste-record" rows="10"
-                placeholder="Paste any text — JSON, CSV, a memo, a form, free text. Names, SSNs, addresses and other PII will be redacted."></textarea>
+                placeholder="Paste any text — JSON, CSV, a memo, a form, free text. All re-identifying details will be aggressively cloaked."></textarea>
             <button onclick="doPaste()" class="btn" style="margin-top:10px">Redact Record</button>
             <p id="paste-status" class="status-msg info"></p>
         </div>
@@ -436,23 +460,27 @@
                 <div class="legend-grid">
                     <div class="legend-item">
                         <span class="tag tag-blind">[b(Ex.N)]</span>
-                        <span><strong style="color:#9ab4cc">Blind redaction</strong> &mdash; value suppressed entirely.
-                        Ex.1: classified national security info (markings, clearance levels, covert facilities).
-                        Ex.3: statutorily protected (SSNs under CIA Act; intelligence program identifiers).
+                        <span><strong style="color:#9ab4cc">FOIA blind redaction</strong> &mdash; value suppressed entirely.
+                        Ex.1: classified info (markings, clearance levels, covert facilities).
+                        Ex.3: statutorily protected (SSNs, program identifiers).
                         Ex.7(F): information that could endanger life or safety.</span>
                     </div>
                     <div class="legend-item">
                         <span class="tag tag-smart">David Ellison</span>
-                        <span><strong style="color:#9ab4cc">Cloaked identity</strong> &mdash; realistic cover value injected by Acme Redactors.
-                        Ex.6: personal privacy (names, addresses, DOB, phone numbers replaced with
-                        different plausible equivalents).
+                        <span><strong style="color:#9ab4cc">Standard cloaking</strong> &mdash; realistic substitute injected.
+                        Ex.6: names, addresses, DOB, phone, email replaced with different plausible equivalents.
                         Ex.7(C): third-party names in law enforcement records.</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="tag tag-aggr">Portland</span>
+                        <span><strong style="color:#9ab4cc">Aggressive cloaking</strong> &mdash; additional fields substituted to prevent re-identification.
+                        Locations, event dates/times, nicknames, employers, organizations, relationships,
+                        physical descriptions, and any detail cross-referenceable against public records.</span>
                     </div>
                     <div class="legend-item">
                         <span class="tag tag-open">CIA-HC-2019-04371</span>
                         <span><strong style="color:#9ab4cc">Released</strong> &mdash; non-exempt, segregable fields preserved:
-                        case/employee IDs, event dates, position titles, pay grades,
-                        salary amounts, complaint categories, disposition summaries.</span>
+                        case/employee IDs, position titles, pay grades, salary amounts, disposition summaries.</span>
                     </div>
                 </div>
             </div>
@@ -552,43 +580,47 @@
     }
 
     function colorizePlainText(original, redacted) {
-        // Split into alternating [whitespace, word, whitespace, word, ...] tokens
-        const origToks = original.split(/(\s+)/);
-        const redToks  = redacted.split(/(\s+)/);
+        // Tokenize redacted treating [~...~] and [b(...)] as atomic units
+        const redTokens = redacted.match(/\[~[\s\S]*?~\]|\[b\(Ex\.[^\]]+\)\]|\s+|\S+/g) || [];
+        const origTokens = original.match(/\s+|\S+/g) || [];
 
-        // Extract just the word tokens for LCS diffing
-        const origWords = origToks.filter(t => !/^\s*$/.test(t));
-        const redWords  = redToks.filter(t =>  !/^\s*$/.test(t));
+        const redWords  = redTokens.filter(t => !/^\s*$/.test(t));
+        const origWords = origTokens.filter(t => !/^\s*$/.test(t));
 
-        // Build LCS table
-        const m = origWords.length, n = redWords.length;
+        // Normalize [~value~] → inner value for LCS comparison
+        function norm(tok) { const m = tok.match(/^\[~([\s\S]*?)~\]$/); return m ? m[1] : tok; }
+        const normRed  = redWords.map(norm);
+        const normOrig = origWords.map(norm);
+
+        // LCS
+        const m = normOrig.length, n = normRed.length;
         const dp = Array.from({length: m + 1}, () => new Uint32Array(n + 1));
         for (let i = 1; i <= m; i++)
             for (let j = 1; j <= n; j++)
-                dp[i][j] = origWords[i-1] === redWords[j-1]
+                dp[i][j] = normOrig[i-1] === normRed[j-1]
                     ? dp[i-1][j-1] + 1
                     : Math.max(dp[i-1][j], dp[i][j-1]);
 
-        // Backtrack to find which redacted word indices are unchanged (in LCS)
         const unchanged = new Set();
         let i = m, j = n;
         while (i > 0 && j > 0) {
-            if (origWords[i-1] === redWords[j-1]) { unchanged.add(j-1); i--; j--; }
+            if (normOrig[i-1] === normRed[j-1]) { unchanged.add(j-1); i--; j--; }
             else if (dp[i-1][j] >= dp[i][j-1]) i--;
             else j--;
         }
 
-        // Reconstruct output, annotating changed word tokens
         let wordIdx = 0, out = '';
-        for (const tok of redToks) {
+        for (const tok of redTokens) {
             if (/^\s*$/.test(tok)) { out += tok; continue; }
-            const e = esc(tok);
+            const aggrM = tok.match(/^\[~([\s\S]*?)~\]$/);
             if (/^\[b\(Ex\.[^\]]+\)\]$/.test(tok)) {
-                out += `<span class="c-blind">${e}</span>`;
+                out += `<span class="c-blind">${esc(tok)}</span>`;
+            } else if (aggrM) {
+                out += `<span class="c-aggr">${esc(aggrM[1])}</span>`;
             } else if (!unchanged.has(wordIdx)) {
-                out += `<span class="c-smart">${e}</span>`;
+                out += `<span class="c-smart">${esc(tok)}</span>`;
             } else {
-                out += e;
+                out += esc(tok);
             }
             wordIdx++;
         }
@@ -597,6 +629,7 @@
 
     function colorizeRedacted(redacted, original) {
         const smartVals = new Set();
+        const aggrVals  = new Set();
         function findChanged(orig, red) {
             if (red == null) return;
             if (Array.isArray(red)) {
@@ -604,7 +637,8 @@
             } else if (typeof red === 'object') {
                 for (const k of Object.keys(red)) findChanged(orig?.[k], red[k]);
             } else if (typeof red === 'string' && orig !== red && !red.startsWith('[b(Ex.') && red.length > 3) {
-                smartVals.add(red);
+                if (/^\[~[\s\S]*?~\]$/.test(red)) aggrVals.add(red);
+                else smartVals.add(red);
             }
         }
         findChanged(original, redacted);
@@ -613,10 +647,11 @@
             if (val === null) return 'null';
             if (typeof val === 'boolean' || typeof val === 'number') return String(val);
             if (typeof val === 'string') {
-                const q = JSON.stringify(val);
-                if (val.startsWith('[b(Ex.')) return '\x01' + q + '\x02';
-                if (smartVals.has(val))        return '\x03' + q + '\x02';
-                return q;
+                const aggrM = val.match(/^\[~([\s\S]*?)~\]$/);
+                if (val.startsWith('[b(Ex.')) return '\x01' + JSON.stringify(val) + '\x02';
+                if (aggrM)               return '\x04' + JSON.stringify(aggrM[1]) + '\x02';
+                if (smartVals.has(val))  return '\x03' + JSON.stringify(val) + '\x02';
+                return JSON.stringify(val);
             }
             const pad  = '  '.repeat(depth);
             const pad1 = '  '.repeat(depth + 1);
@@ -631,6 +666,7 @@
 
         let str = esc(mark(redacted, 0));
         str = str.replace(/\x01(.*?)\x02/gs, '<span class="c-blind">$1</span>');
+        str = str.replace(/\x04(.*?)\x02/gs, '<span class="c-aggr">$1</span>');
         str = str.replace(/\x03(.*?)\x02/gs, '<span class="c-smart">$1</span>');
         return str;
     }
@@ -667,6 +703,7 @@
 
     async function doQuery() {
         const description = document.getElementById('demo-query').value.trim();
+        const aggressive = document.getElementById('aggressive-toggle').checked;
         const status = document.getElementById('query-status');
         if (!description) { status.textContent = 'Please enter a query.'; return; }
         status.textContent = 'Fetching and redacting data\u2026 (may take 10\u201330s)';
@@ -677,7 +714,7 @@
             const res = await fetch(`${API}/get_data`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ description })
+                body: JSON.stringify({ description, aggressive })
             });
             const d = await res.json();
             status.textContent = '';
