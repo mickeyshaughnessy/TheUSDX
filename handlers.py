@@ -1,4 +1,5 @@
 import json
+import re
 import requests
 import boto3
 
@@ -278,6 +279,58 @@ _REDACTION_RULES_AGGRESSIVE = (
 )
 
 
+def _parse_llm_json(text):
+    """
+    Robustly extract a JSON object or array from an LLM response.
+    Handles markdown fences, leading/trailing commentary, and unquoted [~value~] markers.
+    """
+    # Strip markdown code fences
+    text = re.sub(r'```(?:json)?\s*', '', text).strip().rstrip('`').strip()
+
+    def try_parse(s):
+        try:
+            return json.loads(s)
+        except json.JSONDecodeError:
+            pass
+        # Fix unquoted [~value~] markers: "key": [~val~]  →  "key": "[~val~]"
+        fixed = re.sub(r'(?<=[:,\[{])\s*(\[~[^\]]*?~\])(?=\s*[,}\]\n])', r' "\1"', s)
+        if fixed != s:
+            try:
+                return json.loads(fixed)
+            except json.JSONDecodeError:
+                pass
+        return None
+
+    # Try the whole string first
+    result = try_parse(text)
+    if result is not None:
+        return result
+
+    # Find outermost { ... } (object)
+    brace_start = text.find('{')
+    if brace_start != -1:
+        brace_end = text.rfind('}') + 1
+        if brace_end > brace_start:
+            result = try_parse(text[brace_start:brace_end])
+            if result is not None:
+                return result
+
+    # Find outermost [ ... ] — skip [~ markers by requiring the char after [ to not be ~
+    bracket_start = -1
+    for i, ch in enumerate(text):
+        if ch == '[' and (i + 1 >= len(text) or text[i + 1] != '~'):
+            bracket_start = i
+            break
+    if bracket_start != -1:
+        bracket_end = text.rfind(']') + 1
+        if bracket_end > bracket_start:
+            result = try_parse(text[bracket_start:bracket_end])
+            if result is not None:
+                return result
+
+    raise json.JSONDecodeError("Could not extract valid JSON from LLM response", text, 0)
+
+
 def _redact_chunk(chunk, aggressive=False):
     """Redact a single JSON-serializable chunk using the FOIA two-tier scheme."""
     chunk_str = json.dumps(chunk, indent=2)
@@ -288,18 +341,7 @@ def _redact_chunk(chunk, aggressive=False):
         prompt = _REDACTION_RULES + chunk_str
         system = _REDACTION_SYSTEM
     redacted_str = call_openrouter(prompt, system)
-    try:
-        return json.loads(redacted_str)
-    except json.JSONDecodeError:
-        start = redacted_str.find('{')
-        end = redacted_str.rfind('}') + 1
-        if start != -1 and end > start:
-            return json.loads(redacted_str[start:end])
-        start = redacted_str.find('[')
-        end = redacted_str.rfind(']') + 1
-        if start != -1 and end > start:
-            return json.loads(redacted_str[start:end])
-        raise
+    return _parse_llm_json(redacted_str)
 
 
 def _redact_large_dict(data, aggressive=False):
