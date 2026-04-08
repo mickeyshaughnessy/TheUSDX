@@ -253,6 +253,25 @@
 
         code { font-family: 'SF Mono', 'Fira Mono', monospace; font-size: 0.88em; color: #56d9a0; }
 
+        .tab-btn {
+            padding: 8px 20px;
+            background: rgba(6, 18, 38, 0.6);
+            border: 1px solid rgba(0, 180, 220, 0.12);
+            border-bottom: none;
+            color: #3a5a78;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 2px 2px 0 0;
+            transition: color .15s, background .15s;
+        }
+        .tab-btn + .tab-btn { margin-left: 4px; }
+        .tab-btn:hover { color: #9ab4cc; }
+        .tab-active { background: rgba(6, 18, 38, 0.8); color: #00b4d8; border-color: rgba(0, 180, 220, 0.25); }
+
         @media (max-width: 768px) {
             .container { padding: 28px 20px; }
             h1 { font-size: 1.9em; }
@@ -328,7 +347,12 @@
 
     <div id="demo-section">
 
-        <div class="panel">
+        <div style="display:flex;gap:0;margin-bottom:-1px;position:relative;z-index:1">
+            <button id="tab-query" onclick="switchTab('query')" class="tab-btn tab-active">Query Datasets</button>
+            <button id="tab-paste" onclick="switchTab('paste')" class="tab-btn">Paste &amp; Redact</button>
+        </div>
+
+        <div id="mode-query" class="panel" style="border-radius:0 2px 2px 2px">
             <h3>Demo Queries</h3>
             <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
                 Choose a dataset to load a sample query and run it.
@@ -359,17 +383,23 @@
                     <option value="animal">Lakewood, CO Animal Control Records</option>
                 </optgroup>
             </select>
+            <div style="margin-top:12px">
+                <textarea id="demo-query" rows="3"
+                    placeholder="e.g. CIA contractor employment records with clearance levels and assignment locations"></textarea>
+                <button onclick="doQuery()" class="btn" style="margin-top:10px">Fetch &amp; Redact</button>
+                <p id="query-status" class="status-msg info"></p>
+            </div>
         </div>
 
-        <div class="panel">
-            <h3>Query Records</h3>
-            <p style="font-size:.85em;color:#3a5a78;margin-bottom:10px">
-                Select a dataset above or enter your own query:
+        <div id="mode-paste" class="panel" style="display:none;border-radius:0 2px 2px 2px">
+            <h3>Paste a Record</h3>
+            <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
+                Paste any JSON record and Acme Redactors will apply FOIA-compliant redaction.
             </p>
-            <textarea id="demo-query" rows="3"
-                placeholder="e.g. CIA contractor employment records with clearance levels and assignment locations"></textarea>
-            <button onclick="doQuery()" class="btn" style="margin-top:10px">Fetch &amp; Redact</button>
-            <p id="query-status" class="status-msg info"></p>
+            <textarea id="paste-record" rows="10"
+                placeholder='{"name": "Jane Smith", "ssn": "123-45-6789", "address": "123 Main St", "case_id": "FED-2024-001"}'></textarea>
+            <button onclick="doPaste()" class="btn" style="margin-top:10px">Redact Record</button>
+            <p id="paste-status" class="status-msg info"></p>
         </div>
 
         <div id="auth-form" class="panel">
@@ -462,6 +492,14 @@
         animal: 'Lakewood, CO animal control service records and violations including resident names and addresses'
     };
 
+    function switchTab(tab) {
+        const isQuery = tab === 'query';
+        document.getElementById('mode-query').style.display = isQuery ? 'block' : 'none';
+        document.getElementById('mode-paste').style.display = isQuery ? 'none' : 'block';
+        document.getElementById('tab-query').className = 'tab-btn' + (isQuery ? ' tab-active' : '');
+        document.getElementById('tab-paste').className = 'tab-btn' + (!isQuery ? ' tab-active' : '');
+    }
+
     function handleDemoClick(demoType) {
         if (!demoType) return;
         document.getElementById('demo-query').value = DEMO_QUERIES[demoType];
@@ -553,6 +591,33 @@
         return str;
     }
 
+    async function doPaste() {
+        const raw = document.getElementById('paste-record').value.trim();
+        const status = document.getElementById('paste-status');
+        if (!raw) { status.textContent = 'Please paste a record.'; return; }
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch(e) { status.textContent = 'Invalid JSON: ' + e.message; return; }
+        status.textContent = 'Applying redaction\u2026 (may take 10\u201330s)';
+        document.getElementById('result-area').style.display = 'none';
+        try {
+            const res = await fetch(`${API}/redact`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ record: parsed })
+            });
+            const d = await res.json();
+            if (!res.ok) { status.textContent = d.error || 'Redaction failed.'; return; }
+            status.textContent = '';
+            document.getElementById('result-area').style.display = 'block';
+            document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
+            document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
+            const m = d.metadata || {};
+            document.getElementById('result-meta').textContent =
+                `Processing: ${m.processing_time_seconds ?? '?'}s | Cached: ${m.cached ? 'Yes' : 'No'}`;
+            document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+        } catch (e) { status.textContent = 'Error: ' + e.message; }
+    }
+
     async function doQuery() {
         const description = document.getElementById('demo-query').value.trim();
         const status = document.getElementById('query-status');
@@ -572,6 +637,7 @@
             document.getElementById('result-area').style.display = 'block';
             document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
             document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
+            document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
             const m = d.metadata || {};
             const f = d.foia_compliance || {};
             document.getElementById('result-meta').textContent =

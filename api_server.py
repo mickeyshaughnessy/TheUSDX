@@ -223,6 +223,40 @@ def get_data():
             'details': str(e)
         }), 500
 
+@app.route('/redact', methods=['POST'])
+def redact():
+    start_time = time.time()
+    data = request.get_json()
+    record = data.get('record')
+    if record is None:
+        return jsonify({'error': 'record required'}), 400
+    try:
+        if isinstance(record, str):
+            import json as _json
+            record = _json.loads(record)
+    except Exception:
+        return jsonify({'error': 'record must be valid JSON'}), 400
+    try:
+        redacted = redact_data(record)
+        return jsonify({
+            'status': 'success',
+            'original_data': record,
+            'data': redacted,
+            'metadata': {
+                'processing_time_seconds': round(time.time() - start_time, 2),
+                'privacy_applied': True,
+                'cached': False
+            },
+            'foia_compliance': {
+                'statute': '5 U.S.C. § 552 (Freedom of Information Act)',
+                'blind_redactions': '[b(Ex.N)] markers — Ex.1 classified info, Ex.3 SSNs/program IDs, Ex.7(F) life/safety',
+                'smart_redactions': 'Realistic substitutes — Ex.6 personal privacy (names, addresses, DOB, phone), Ex.7(C) third-party names',
+                'segregability': 'Non-exempt fields preserved per § 552(b)'
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({'error': 'Redaction failed', 'details': str(e)}), 500
+
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
