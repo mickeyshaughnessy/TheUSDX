@@ -552,28 +552,47 @@
     }
 
     function colorizePlainText(original, redacted) {
-        const origLines = original.split('\n');
-        const redLines = redacted.split('\n');
-        const out = [];
-        for (let i = 0; i < redLines.length; i++) {
-            const origTokens = (origLines[i] || '').split(/(\s+)/);
-            const redTokens = redLines[i].split(/(\s+)/);
-            let line = '';
-            for (let j = 0; j < redTokens.length; j++) {
-                const tok = redTokens[j];
-                if (/^\s+$/.test(tok)) { line += tok; continue; }
-                const e = esc(tok);
-                if (/^\[b\(Ex\.[^\]]+\)\]$/.test(tok)) {
-                    line += `<span class="c-blind">${e}</span>`;
-                } else if (tok !== origTokens[j]) {
-                    line += `<span class="c-smart">${e}</span>`;
-                } else {
-                    line += e;
-                }
-            }
-            out.push(line);
+        // Split into alternating [whitespace, word, whitespace, word, ...] tokens
+        const origToks = original.split(/(\s+)/);
+        const redToks  = redacted.split(/(\s+)/);
+
+        // Extract just the word tokens for LCS diffing
+        const origWords = origToks.filter(t => !/^\s*$/.test(t));
+        const redWords  = redToks.filter(t =>  !/^\s*$/.test(t));
+
+        // Build LCS table
+        const m = origWords.length, n = redWords.length;
+        const dp = Array.from({length: m + 1}, () => new Uint32Array(n + 1));
+        for (let i = 1; i <= m; i++)
+            for (let j = 1; j <= n; j++)
+                dp[i][j] = origWords[i-1] === redWords[j-1]
+                    ? dp[i-1][j-1] + 1
+                    : Math.max(dp[i-1][j], dp[i][j-1]);
+
+        // Backtrack to find which redacted word indices are unchanged (in LCS)
+        const unchanged = new Set();
+        let i = m, j = n;
+        while (i > 0 && j > 0) {
+            if (origWords[i-1] === redWords[j-1]) { unchanged.add(j-1); i--; j--; }
+            else if (dp[i-1][j] >= dp[i][j-1]) i--;
+            else j--;
         }
-        return out.join('\n');
+
+        // Reconstruct output, annotating changed word tokens
+        let wordIdx = 0, out = '';
+        for (const tok of redToks) {
+            if (/^\s*$/.test(tok)) { out += tok; continue; }
+            const e = esc(tok);
+            if (/^\[b\(Ex\.[^\]]+\)\]$/.test(tok)) {
+                out += `<span class="c-blind">${e}</span>`;
+            } else if (!unchanged.has(wordIdx)) {
+                out += `<span class="c-smart">${e}</span>`;
+            } else {
+                out += e;
+            }
+            wordIdx++;
+        }
+        return out;
     }
 
     function colorizeRedacted(redacted, original) {
