@@ -84,9 +84,42 @@
             .container { padding: 36px 28px; }
             h1 { font-size: 1.6em; }
         }
+
+        .site-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 44px;
+            background: rgba(4, 12, 28, 0.97);
+            border-bottom: 1px solid rgba(0, 180, 220, 0.15);
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            gap: 4px;
+            z-index: 100;
+        }
+        .site-nav a {
+            font-size: 0.72em;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #4a7fa5;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 2px;
+            transition: color .15s, background .15s;
+        }
+        .site-nav a:hover, .site-nav a.active {
+            color: #00b4d8;
+            background: rgba(0, 180, 220, 0.08);
+        }
     </style>
 </head>
-<body>
+<body style="padding-top: 64px;">
+<nav class="site-nav">
+    <a href="/">Home</a>
+    <a href="/api_docs.html">API</a>
+    <a href="/deck.html" class="active">Deck</a>
+</nav>
 <div class="container">
 
     <div class="wordmark">The Mithril Company</div>
