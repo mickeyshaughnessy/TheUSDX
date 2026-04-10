@@ -278,6 +278,10 @@ def index():
 def api_docs():
     return send_from_directory('.', 'api_docs.html')
 
+@app.route('/deck.html')
+def deck():
+    return send_from_directory('.', 'deck.html')
+
 def main():
     import os
     
