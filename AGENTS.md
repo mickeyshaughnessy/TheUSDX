@@ -11,7 +11,7 @@ git push origin main
 ./deploy.sh
 ```
 
-Do not stop after editing files locally. Always push to GitHub and run `./deploy.sh` to sync and restart the server at `root@143.110.131.237`. The service is `usdx.service` managed by systemd.
+Do not stop after editing files locally. Always push to GitHub and run `./deploy.sh` to sync and restart the server at `root@143.110.131.237` (https://themithrilcompany.com). The service is `usdx.service` managed by systemd.
 
 ## Project Overview
 

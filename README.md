@@ -2,6 +2,8 @@
 
 A secure, privacy-first platform for accessing US federal data with AI-powered differential privacy and automatic redaction of sensitive personal information.
 
+**Live at: https://themithrilcompany.com**
+
 ## Overview
 
 The USDX platform allows users to request federal data using natural language descriptions. AI-powered handlers collect relevant data from Digital Ocean Spaces and automatically apply differential privacy techniques and redact sensitive PII (names, locations, faces, etc.) before returning the data.
@@ -80,7 +82,7 @@ The server will start on `http://localhost:6732`
 - **GET /**: Landing page with project info
 - **GET /api_docs.html**: Complete API documentation with interactive testing
 
-See the full API documentation at `http://localhost:6732/api_docs.html` when running.
+See the full API documentation at https://themithrilcompany.com/api_docs.html (production) or `http://localhost:6732/api_docs.html` when running locally.
 
 ## Usage Example
 
@@ -149,8 +151,10 @@ git commit -m "Update feature"
 git push
 
 # Deploy to VM
-ssh YOUR_VM "cd ~/TheUSDX && git pull && sudo systemctl restart usdx"
+./deploy.sh
 ```
+
+The deploy script SSHes to `root@143.110.131.237` (themithrilcompany.com), pulls latest main, and restarts `usdx.service`.
 
 ### Digital Ocean Spaces Structure
 
