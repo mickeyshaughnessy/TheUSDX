@@ -19,6 +19,56 @@ _cache_ts: dict = {}
 _TTL_USER = 120       # seconds
 _TTL_RESULT = 3600    # cache redacted results for 1 hour
 
+# Per-query privacy pricing. "standard" is the FOIA-baseline tier included
+# with every query; "reduced" and "aggressive" are paid add-ons that move
+# the redaction dial down (less privacy, more raw identifiers released) or
+# up (more privacy, more fields cloaked). Reduced never waives statutorily
+# mandated Tier 1 exemptions -- see handlers.py.
+BASE_QUERY_PRICE_USD = 0.25
+PRIVACY_TIERS = {
+    'reduced': {
+        'label': 'Reduced Privacy',
+        'price_usd': 4.00,
+        'description': (
+            'Only statutorily-mandated blind exemptions are withheld (SSNs, classification '
+            'markings, biometric/ID numbers). Personal identifiers -- names, addresses, phone '
+            'numbers, dates of birth -- are released in full. Intended for verified requesters '
+            'with a legitimate need for identified records.'
+        ),
+    },
+    'standard': {
+        'label': 'Standard Privacy',
+        'price_usd': 0.00,
+        'description': (
+            'Two-tier FOIA redaction: statutory blind exemptions plus smart cloaking of '
+            'personal privacy fields (names, addresses, DOB, phone, email) with realistic '
+            'substitutes. Included with every query.'
+        ),
+    },
+    'aggressive': {
+        'label': 'Enhanced Privacy',
+        'price_usd': 1.50,
+        'description': (
+            'Standard redaction plus aggressive cloaking of indirect identifiers -- locations, '
+            'dates, employers, relationships, physical descriptions, and any other field that '
+            'could be cross-referenced to re-identify an individual.'
+        ),
+    },
+}
+
+
+def _price_for(privacy_level: str) -> dict:
+    tier = PRIVACY_TIERS[privacy_level]
+    return {
+        'privacy_level': privacy_level,
+        'tier_label': tier['label'],
+        'base_price_usd': BASE_QUERY_PRICE_USD,
+        'privacy_addon_usd': tier['price_usd'],
+        'total_price_usd': round(BASE_QUERY_PRICE_USD + tier['price_usd'], 2),
+        'description': tier['description'],
+        'billing_note': 'Pricing shown for demonstration only; no payment is collected.',
+    }
+
 
 def _cache_get(key: str):
     if key in _cache and time.time() - _cache_ts.get(key, 0) < (
@@ -111,7 +161,7 @@ def ping():
     return jsonify({
         'status': 'ok',
         'timestamp': datetime.utcnow().isoformat(),
-        'service': 'Poseidon'
+        'service': 'Acme Redactors'
     }), 200
 
 @app.route('/signup', methods=['POST'])
@@ -177,13 +227,15 @@ def get_data():
     start_time = time.time()
     data = request.get_json()
     description = data.get('description')
-    aggressive = bool(data.get('aggressive', False))
+    privacy_level = data.get('privacy_level', 'standard')
 
     if not description:
         return jsonify({'error': 'Description required'}), 400
+    if privacy_level not in PRIVACY_TIERS:
+        return jsonify({'error': f'Invalid privacy_level. Choose one of: {", ".join(PRIVACY_TIERS)}'}), 400
 
-    # Cache keyed by query + aggressive flag
-    cache_input = description + ('|aggressive' if aggressive else '')
+    # Cache keyed by query + privacy_level
+    cache_input = f'{description}|{privacy_level}'
     query_hash = hashlib.sha256(cache_input.encode()).hexdigest()
     cache_key = f'result:{query_hash}'
     cached_result = _cache_get(cache_key)
@@ -195,8 +247,8 @@ def get_data():
 
     try:
         collected_data = collect_data(description)
-        redacted_data = redact_data(collected_data, aggressive=aggressive)
-        
+        redacted_data = redact_data(collected_data, privacy_level=privacy_level)
+
         processing_time = time.time() - start_time
 
         result = {
@@ -209,6 +261,7 @@ def get_data():
                 'privacy_applied': True,
                 'cached': False
             },
+            'pricing': _price_for(privacy_level),
             'foia_compliance': {
                 'statute': '5 U.S.C. § 552 (Freedom of Information Act)',
                 'blind_redactions': '[b(Ex.N)] markers — Ex.1 classified info, Ex.3 statutorily protected (SSNs, program identifiers), Ex.7(F) life/safety',
@@ -232,6 +285,11 @@ def redact():
     record = data.get('record')
     if record is None:
         return jsonify({'error': 'record required'}), 400
+
+    privacy_level = data.get('privacy_level', 'aggressive')  # default aggressive for paste
+    if privacy_level not in PRIVACY_TIERS:
+        return jsonify({'error': f'Invalid privacy_level. Choose one of: {", ".join(PRIVACY_TIERS)}'}), 400
+
     try:
         # Try to parse as JSON; fall back to treating as plain text
         if isinstance(record, str):
@@ -244,11 +302,10 @@ def redact():
         else:
             is_text = False
 
-        aggressive = bool(data.get('aggressive', True))  # default True for paste
         if is_text:
-            redacted = redact_text(record, aggressive=aggressive)
+            redacted = redact_text(record, privacy_level=privacy_level)
         else:
-            redacted = redact_data(record, aggressive=aggressive)
+            redacted = redact_data(record, privacy_level=privacy_level)
 
         return jsonify({
             'status': 'success',
@@ -260,6 +317,7 @@ def redact():
                 'privacy_applied': True,
                 'cached': False
             },
+            'pricing': _price_for(privacy_level),
             'foia_compliance': {
                 'statute': '5 U.S.C. § 552 (Freedom of Information Act)',
                 'blind_redactions': '[b(Ex.N)] markers — Ex.1 classified info, Ex.3 SSNs/program IDs, Ex.7(F) life/safety',

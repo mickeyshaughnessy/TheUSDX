@@ -1,17 +1,18 @@
-# US Federal Data Exchange (USDX)
+# Acme Redactors
 
-A secure, privacy-first platform for accessing US federal data with AI-powered differential privacy and automatic redaction of sensitive personal information.
+A public records management platform for accessing US government records, with AI-powered differential privacy and automatic redaction of sensitive personal information. Privacy is configurable per query — pay to add extra cloaking, or pay to reduce redaction for verified access to identified records.
 
 **Live at: https://themithrilcompany.com**
 
 ## Overview
 
-The USDX platform allows users to request federal data using natural language descriptions. AI-powered handlers collect relevant data from Digital Ocean Spaces and automatically apply differential privacy techniques and redact sensitive PII (names, locations, faces, etc.) before returning the data.
+Acme Redactors lets users request public records using natural language descriptions. AI-powered handlers collect relevant data from Digital Ocean Spaces and automatically apply differential privacy techniques and redact sensitive PII (names, locations, faces, etc.) before returning the data. Every query includes standard FOIA-compliant redaction at no charge; two paid tiers let requesters move the privacy dial in either direction on a per-query basis. See [Pricing](#pricing--privacy-per-query) below.
 
 ## Features
 
-- **AI-Powered Data Collection**: Natural language queries to find relevant federal datasets
-- **Automatic Privacy Protection**: Differential privacy and PII redaction
+- **AI-Powered Data Collection**: Natural language queries to find relevant public records datasets
+- **Automatic Privacy Protection**: Differential privacy and PII redaction via the Acme Redactors cloaking device
+- **Privacy, Priced Per Query**: Pay to add or subtract redaction on any individual query
 - **Secure Authentication**: JWT-based authentication with user data in cloud storage
 - **Cloud Infrastructure**: Digital Ocean VM + Spaces for all storage (no local database)
 - **HTTPS/HTTP Support**: Runs on port 6732 with SSL support
@@ -75,7 +76,8 @@ The server will start on `http://localhost:6732`
 ### Core Endpoints
 
 - **GET /ping**: Health check (no auth required)
-- **POST /get_data**: Request federal data with privacy protection (auth required)
+- **POST /get_data**: Request public records with privacy protection (optional auth); accepts `privacy_level`
+- **POST /redact**: Redact a pasted record (JSON or text) at a chosen privacy tier
 
 ### Web Interface
 
@@ -97,11 +99,12 @@ curl -X POST http://localhost:6732/login \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "SecurePass123!"}'
 
-# Get data (use token from login response)
+# Get data (use token from login response). privacy_level is optional:
+# "reduced" | "standard" (default) | "aggressive" — see Pricing below.
 curl -X POST http://localhost:6732/get_data \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"description": "Population data for Colorado from 2020-2023"}'
+  -d '{"description": "Population data for Colorado from 2020-2023", "privacy_level": "standard"}'
 ```
 
 ## Testing
@@ -121,12 +124,29 @@ Open `http://localhost:6732/api_docs.html` and use the interactive test runner.
 
 ## Privacy & Redaction
 
-All data returned through `/get_data` is automatically processed:
+All data returned through `/get_data` and `/redact` is automatically processed by the Acme
+Redactors cloaking device:
 
 - **Names**: Replaced with realistic alternatives ("Marcus Thompson" → "Robert Johnson")
 - **Addresses**: Substituted with different but plausible addresses
-- **SSN / credentials**: Masked with `***`
+- **SSN / credentials**: Masked with `[b(Ex.N)]` blind-redaction markers
 - **Phone, email, DOB**: Replaced with realistic equivalents
+
+### Pricing — Privacy, Per Query
+
+Standard redaction (above) is included with every query. Two paid add-ons move the privacy
+dial per query via the `privacy_level` request field. Statutory exemptions (SSNs,
+classification markings, biometric identifiers) are withheld at every tier — they are never
+for sale.
+
+| `privacy_level` | Effect | Add-on price |
+|---|---|---|
+| `reduced` | Subtracts privacy — only statutory exemptions withheld; personal identifiers released in full | +$4.00 |
+| `standard` (default) | Statutory exemptions + smart cloaking of personal privacy fields | Included |
+| `aggressive` | Adds privacy — extends cloaking to indirect identifiers (locations, dates, employers, relationships) | +$1.50 |
+
+Base query price is $0.25. This is a demonstration pricing model returned in the API
+response (`pricing` field) — no payment is actually collected.
 
 ## Production Deployment
 

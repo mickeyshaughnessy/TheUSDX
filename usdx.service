@@ -1,5 +1,5 @@
 [Unit]
-Description=US Federal Data Exchange API
+Description=Acme Redactors — Public Records Management Platform API
 After=network.target
 
 [Service]

@@ -1,4 +1,4 @@
-# Agent Guidelines — TheUSDX / Poseidon
+# Agent Guidelines — TheUSDX / Acme Redactors
 
 ## After Every Change: Commit, Push, and Deploy
 
@@ -15,12 +15,24 @@ Do not stop after editing files locally. Always push to GitHub and run `./deploy
 
 ## Project Overview
 
-Poseidon is a FOIA-compliant federal data exchange demo. Core files:
+Acme Redactors is a FOIA-compliant public records management platform demo. Core files:
 
 - `api_server.py` — Flask server, `/get_data` and `/redact` endpoints
-- `handlers.py` — LLM redaction logic (two-tier: blind `[b(Ex.N)]` + smart cloaking)
-- `index.html` — Single-page demo UI with Query Datasets and Paste & Redact tabs
+- `handlers.py` — LLM redaction logic (three tiers: `reduced`/`standard`/`aggressive`, selected via `privacy_level`)
+- `index.html` — Single-page demo UI with Query Datasets and Paste & Redact tabs, plus a per-query privacy-level pricing selector
 - `deploy.sh` — SSH deploy script (pulls latest main on server, restarts service)
+
+## Privacy Tiers (Paid, Per Query)
+
+`privacy_level` on `/get_data` and `/redact` selects the redaction tier (see `PRIVACY_TIERS`
+in `api_server.py` for pricing, `_SYSTEM_BY_LEVEL`/`_RULES_BY_LEVEL` in `handlers.py` for
+prompts):
+
+- `reduced` — pays to *subtract* discretionary privacy: only mandatory Tier 1 statutory
+  exemptions are withheld; personal identifiers are released in full. Statutory exemptions
+  are never waivable, even at this tier.
+- `standard` — free/included tier. Tier 1 + Tier 2 smart cloaking.
+- `aggressive` — pays to *add* privacy: Tier 1 + Tier 2 + aggressive cloaking of indirect identifiers.
 
 ## Redaction Color Convention
 

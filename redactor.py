@@ -418,7 +418,7 @@ CUSTOM PATTERNS TO REDACT:
                 "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
                 "HTTP-Referer": "http://143.110.131.237:6732",
-                "X-Title": "Poseidon"
+                "X-Title": "Acme Redactors"
             },
             json={
                 "model": model,

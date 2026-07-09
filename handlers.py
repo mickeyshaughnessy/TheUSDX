@@ -31,7 +31,7 @@ def call_openrouter(prompt, system_message="You are a helpful assistant.", use_f
             "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
             "HTTP-Referer": "http://143.110.131.237:6732",
-            "X-Title": "Poseidon"
+            "X-Title": "Acme Redactors"
         },
         json={
             "model": model,
@@ -125,7 +125,61 @@ Return a JSON list of dataset IDs that best match the request. Format: {{"datase
 #                            info that cannot be released in any form
 # Tier 2 SMART  <substitute> — personal privacy info replaced with a different
 #                              but realistic equivalent value
+#
+# Privacy levels (paid, per query — see PRIVACY_TIERS in api_server.py):
+#   reduced    — Tier 1 only. Discretionary Ex.6 personal-privacy cloaking is
+#                waived; statutory/classified exemptions are never waivable.
+#   standard   — Tier 1 + Tier 2 smart cloaking (included with every query).
+#   aggressive — Tier 1 + Tier 2 smart cloaking + aggressive [~value~] cloaking
+#                of indirect identifiers.
 # ---------------------------------------------------------------------------
+
+_REDACTION_SYSTEM_REDUCED = (
+    "You are a FOIA compliance officer processing federal agency records for public release "
+    "under 5 U.S.C. § 552 (Freedom of Information Act), using the REDUCED PRIVACY tier "
+    "(a paid tier for verified requesters). Apply ONLY the Tier 1 blind redactions listed "
+    "below — these are statutorily mandated exemptions that cannot be waived at any tier. "
+    "Do NOT mask or substitute personal privacy fields (names, dates of birth, addresses, "
+    "phone numbers, email addresses, etc.) — release them in their original form. "
+    "Return ONLY the redacted JSON — no commentary, no explanations.\n\n"
+
+    "TIER 1 — BLIND REDACTION (mandatory, not waivable): Replace the field value with a "
+    "[b(Ex.N)] marker that cites the applicable FOIA exemption number. Use for classified, "
+    "operationally sensitive, or statutorily protected information that cannot be released "
+    "in any form regardless of requester tier.\n\n"
+
+    "SEGREGABILITY — 5 U.S.C. § 552(b): Release all other fields — including personal "
+    "identifiers — in full. Return only valid JSON."
+)
+
+_REDACTION_RULES_REDUCED = (
+    "TIER 1 — BLIND REDACT (replace value with [b(Ex.N)] marker — mandatory, not waivable):\n"
+    "  [b(Ex.1)]  Classification markings — e.g. TOP SECRET, HCS, NOFORN\n"
+    "  [b(Ex.1)]  Security clearance levels — e.g. TS/SCI, Top Secret, Secret\n"
+    "  [b(Ex.1)]  Covert or classified facility names and street addresses\n"
+    "             (Camp Peary / The Farm, Harvey Point, undisclosed OCONUS stations)\n"
+    "  [b(Ex.3)]  Social Security Numbers (SSN)\n"
+    "  [b(Ex.3)]  Intelligence program identifiers, operation codenames, source identifiers\n"
+    "  [b(Ex.3)]  Biometric identifiers\n"
+    "  [b(Ex.3)]  Driver's license numbers, VINs, license plates (DPPA — 18 U.S.C. § 2721)\n"
+    "  [b(Ex.1)]  Military deployment destinations, unit assignment locations, and mission names\n"
+    "  [b(Ex.1)]  Foreign intelligence target names, nationalities, and target affiliations\n"
+    "  [b(Ex.1)]  SIGINT collection facility names and selector values\n"
+    "  [b(Ex.7(F))]  Prison housing unit assignments, security classification levels, gang affiliations\n"
+    "  [b(Ex.7(F))]  Medical conditions of incarcerated persons\n\n"
+
+    "PRESERVE — release these in their original, unmodified form (discretionary Ex.6 "
+    "cloaking is waived at this tier):\n"
+    "  Individual names, supervising officer names\n"
+    "  Dates of birth\n"
+    "  Personal and residential street addresses\n"
+    "  Personal phone numbers and email addresses\n"
+    "  Names of third parties in law enforcement or incident records\n"
+    "  Case numbers, employee IDs, contract numbers, dates of events, position titles,\n"
+    "  pay grades, salary amounts, and all other non-exempt content\n\n"
+
+    "DATA TO REDACT:\n"
+)
 
 _REDACTION_SYSTEM = (
     "You are a FOIA compliance officer processing federal agency records for public release "
@@ -331,20 +385,28 @@ def _parse_llm_json(text):
     raise json.JSONDecodeError("Could not extract valid JSON from LLM response", text, 0)
 
 
-def _redact_chunk(chunk, aggressive=False):
+_SYSTEM_BY_LEVEL = {
+    'reduced': _REDACTION_SYSTEM_REDUCED,
+    'standard': _REDACTION_SYSTEM,
+    'aggressive': _REDACTION_SYSTEM_AGGRESSIVE,
+}
+_RULES_BY_LEVEL = {
+    'reduced': _REDACTION_RULES_REDUCED,
+    'standard': _REDACTION_RULES,
+    'aggressive': _REDACTION_RULES_AGGRESSIVE,
+}
+
+
+def _redact_chunk(chunk, privacy_level='standard'):
     """Redact a single JSON-serializable chunk using the FOIA two-tier scheme."""
     chunk_str = json.dumps(chunk, indent=2)
-    if aggressive:
-        prompt = _REDACTION_RULES_AGGRESSIVE + chunk_str
-        system = _REDACTION_SYSTEM_AGGRESSIVE
-    else:
-        prompt = _REDACTION_RULES + chunk_str
-        system = _REDACTION_SYSTEM
+    prompt = _RULES_BY_LEVEL[privacy_level] + chunk_str
+    system = _SYSTEM_BY_LEVEL[privacy_level]
     redacted_str = call_openrouter(prompt, system)
     return _parse_llm_json(redacted_str)
 
 
-def _redact_large_dict(data, aggressive=False):
+def _redact_large_dict(data, privacy_level='standard'):
     """Chunk a large dict by splitting nested lists, then redact."""
     result = {}
     for key, value in data.items():
@@ -352,7 +414,7 @@ def _redact_large_dict(data, aggressive=False):
             chunk_size = 3
             redacted_list = []
             for i in range(0, len(value), chunk_size):
-                chunk_result = _redact_chunk({key: value[i:i + chunk_size]}, aggressive=aggressive)
+                chunk_result = _redact_chunk({key: value[i:i + chunk_size]}, privacy_level=privacy_level)
                 if isinstance(chunk_result, dict):
                     redacted_list.extend(chunk_result.get(key, []))
                 elif isinstance(chunk_result, list):
@@ -361,9 +423,20 @@ def _redact_large_dict(data, aggressive=False):
         else:
             result[key] = value
     if json.dumps(result).strip() == '{}':
-        return _redact_chunk(data, aggressive=aggressive)
-    return _redact_chunk(result, aggressive=aggressive)
+        return _redact_chunk(data, privacy_level=privacy_level)
+    return _redact_chunk(result, privacy_level=privacy_level)
 
+
+_REDACTION_TEXT_SYSTEM_REDUCED = (
+    "You are a FOIA compliance officer processing a document for public release "
+    "under 5 U.S.C. § 552, using the REDUCED PRIVACY tier (paid tier for verified requesters). "
+    "Apply ONLY Tier 1 blind redaction — statutorily mandated exemptions that can never be "
+    "waived (classified info, SSNs/program IDs, Ex.7(F) life/safety). Do NOT mask or substitute "
+    "personal privacy fields (names, addresses, DOB, phone numbers, emails) — release them in "
+    "their original form.\n\n"
+    "Return ONLY the redacted text with no commentary. Preserve all original formatting, "
+    "whitespace, and line breaks."
+)
 
 _REDACTION_TEXT_SYSTEM = (
     "You are a FOIA compliance officer processing a document for public release "
@@ -408,14 +481,21 @@ _REDACTION_TEXT_SYSTEM_AGGRESSIVE = (
 )
 
 
-def redact_text(text, aggressive=False):
+_TEXT_SYSTEM_BY_LEVEL = {
+    'reduced': _REDACTION_TEXT_SYSTEM_REDUCED,
+    'standard': _REDACTION_TEXT_SYSTEM,
+    'aggressive': _REDACTION_TEXT_SYSTEM_AGGRESSIVE,
+}
+
+
+def redact_text(text, privacy_level='standard'):
     """Redact plain text (non-JSON) using the FOIA two-tier scheme."""
     prompt = "TEXT TO REDACT:\n\n" + text
-    system = _REDACTION_TEXT_SYSTEM_AGGRESSIVE if aggressive else _REDACTION_TEXT_SYSTEM
+    system = _TEXT_SYSTEM_BY_LEVEL[privacy_level]
     return call_openrouter(prompt, system)
 
 
-def redact_data(data, aggressive=False):
+def redact_data(data, privacy_level='standard'):
     """
     AI-powered redactor that applies differential privacy and removes sensitive PII.
     Chunks large inputs to stay within LLM token limits (~2000 tokens per chunk).
@@ -428,20 +508,20 @@ def redact_data(data, aggressive=False):
                 for item in data:
                     item_str = json.dumps(item)
                     if isinstance(item, dict) and len(item_str) > 6000:
-                        redacted_item = _redact_large_dict(item, aggressive=aggressive)
+                        redacted_item = _redact_large_dict(item, privacy_level=privacy_level)
                     else:
-                        redacted_item = _redact_chunk(item, aggressive=aggressive)
+                        redacted_item = _redact_chunk(item, privacy_level=privacy_level)
                     if isinstance(redacted_item, list):
                         redacted_chunks.extend(redacted_item)
                     else:
                         redacted_chunks.append(redacted_item)
                 return redacted_chunks
-            return _redact_chunk(data, aggressive=aggressive)
+            return _redact_chunk(data, privacy_level=privacy_level)
 
         data_str = json.dumps(data)
         if len(data_str) > 6000:
-            return _redact_large_dict(data, aggressive=aggressive)
-        return _redact_chunk(data, aggressive=aggressive)
+            return _redact_large_dict(data, privacy_level=privacy_level)
+        return _redact_chunk(data, privacy_level=privacy_level)
 
     except Exception as e:
         print(f"Redaction error: {e}")
@@ -455,7 +535,7 @@ def _get_sample_data(description):
     """Generate sample federal data for demo purposes"""
     return {
         'query': description,
-        'source': 'Poseidon (Sample)',
+        'source': 'Acme Redactors (Sample)',
         'records': [
             {
                 'id': 'FED-001',

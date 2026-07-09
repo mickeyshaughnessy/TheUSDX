@@ -1,5 +1,5 @@
 """
-Seed federal datasets into DO Spaces for TheUSDX.
+Seed public records datasets into DO Spaces for Acme Redactors.
 
 Run once (or after adding datasets) to populate usdx/data/ and usdx/metadata/.
 After seeding, collect_data() in handlers.py will match real datasets.

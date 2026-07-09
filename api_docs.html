@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poseidon — API Documentation</title>
+    <title>Acme Redactors — API Documentation</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -309,7 +309,7 @@
 
 <div class="sidebar" style="top: 44px;">
     <div class="sidebar-logo">
-        <a href="/" style="text-decoration:none;color:inherit"><div class="name">Poseidon</div></a>
+        <a href="/" style="text-decoration:none;color:inherit"><div class="name">Acme Redactors</div></a>
         <div class="sub">API Reference</div>
     </div>
     <nav>
@@ -322,6 +322,9 @@
         <div class="section-label">Core</div>
         <a href="#ping">GET /ping</a>
         <a href="#get_data">POST /get_data</a>
+        <a href="#redact">POST /redact</a>
+        <div class="section-label">Pricing</div>
+        <a href="#pricing">Privacy, Per Query</a>
         <div class="section-label">Compliance</div>
         <a href="#foia">FOIA Redaction</a>
         <a href="#tier1">Tier 1 — Blind</a>
@@ -336,8 +339,8 @@
 <div class="main">
 
     <div class="page-header">
-        <h1>Poseidon API</h1>
-        <p>Federal Data Exchange &mdash; Privacy &amp; Transparency Platform &nbsp;&bull;&nbsp; v1.0</p>
+        <h1>Acme Redactors API</h1>
+        <p>Public Records Management Platform &nbsp;&bull;&nbsp; v1.0</p>
         <p style="margin-top:10px"><a href="/">&#8592; Back to Console</a></p>
     </div>
 
@@ -401,7 +404,7 @@
         <pre>{
   "status": "ok",
   "timestamp": "2026-01-27T12:00:00.000000",
-  "service": "Poseidon"
+  "service": "Acme Redactors"
 }</pre>
     </div>
 
@@ -410,12 +413,14 @@
             <span class="method post">POST</span>
             <span class="path">/get_data</span>
         </div>
-        <p>Request federal data with AI-powered dataset matching and FOIA-compliant two-tier redaction via the Acme Redactors cloaking device.</p>
+        <p>Request public records with AI-powered dataset matching and FOIA-compliant redaction via the Acme Redactors cloaking device. Privacy is configurable per query &mdash; see <a href="#pricing">Pricing</a>.</p>
         <p><strong style="color:#e8f4ff">Authentication:</strong> Optional (JWT)</p>
         <h3>Request Body</h3>
         <pre>{
-  "description": "CIA contractor employment records with clearance levels"
+  "description": "CIA contractor employment records with clearance levels",
+  "privacy_level": "standard"
 }</pre>
+        <p><code>privacy_level</code> is optional, one of <code>reduced</code> | <code>standard</code> (default) | <code>aggressive</code>. See <a href="#pricing">Pricing</a> for what each tier does and costs.</p>
         <h3>Response (200)</h3>
         <pre>{
   "status": "success",
@@ -471,6 +476,15 @@
     "privacy_applied": true,
     "cached": false
   },
+  "pricing": {
+    "privacy_level": "standard",
+    "tier_label": "Standard Privacy",
+    "base_price_usd": 0.25,
+    "privacy_addon_usd": 0.00,
+    "total_price_usd": 0.25,
+    "description": "Two-tier FOIA redaction: statutory blind exemptions plus smart cloaking of personal privacy fields...",
+    "billing_note": "Pricing shown for demonstration only; no payment is collected."
+  },
   "foia_compliance": {
     "statute": "5 U.S.C. § 552 (Freedom of Information Act)",
     "blind_redactions": "[b(Ex.N)] markers — Ex.1 classified info, Ex.3 SSNs/program IDs",
@@ -480,6 +494,57 @@
   }
 }</pre>
     </div>
+
+    <div class="endpoint" id="redact">
+        <div class="endpoint-title">
+            <span class="method post">POST</span>
+            <span class="path">/redact</span>
+        </div>
+        <p>Redact an arbitrary pasted record (JSON or plain text) at a chosen privacy tier, without going through dataset matching.</p>
+        <p><strong style="color:#e8f4ff">Authentication:</strong> None required</p>
+        <h3>Request Body</h3>
+        <pre>{
+  "record": "Jane Doe, SSN 412-67-8234, lives at 12 Main St...",
+  "privacy_level": "aggressive"
+}</pre>
+        <p><code>privacy_level</code> is optional, one of <code>reduced</code> | <code>standard</code> | <code>aggressive</code> (default). <code>record</code> may be a JSON object/array, a JSON-encoded string, or plain text.</p>
+        <h3>Response (200)</h3>
+        <pre>{
+  "status": "success",
+  "original_data": "...",
+  "data": "...",
+  "is_text": true,
+  "metadata": { "processing_time_seconds": 3.11, "privacy_applied": true, "cached": false },
+  "pricing": { "privacy_level": "aggressive", "tier_label": "Enhanced Privacy", "total_price_usd": 1.75, "..." : "..." },
+  "foia_compliance": { "...": "..." }
+}</pre>
+    </div>
+
+    <h2 id="pricing">Pricing &mdash; Privacy, Per Query</h2>
+    <p>Standard redaction is included with every query. Two paid add-ons let you move the privacy dial in either direction, per query, via the <code>privacy_level</code> field on <code>/get_data</code> and <code>/redact</code>. Statutory FOIA exemptions (SSNs, classification markings, biometric identifiers, etc.) are withheld at every tier &mdash; they are never for sale.</p>
+    <table>
+        <tr>
+            <th>privacy_level</th>
+            <th>Effect</th>
+            <th>Add-on Price</th>
+        </tr>
+        <tr>
+            <td><code>reduced</code></td>
+            <td>Subtracts discretionary privacy. Only statutory Tier 1 exemptions withheld; personal identifiers (names, addresses, phone, email, DOB) are released in full.</td>
+            <td>+$4.00</td>
+        </tr>
+        <tr>
+            <td><code>standard</code> (default for <code>/get_data</code>)</td>
+            <td>Statutory Tier 1 exemptions plus Tier 2 smart cloaking of personal privacy fields with realistic substitutes.</td>
+            <td>Included</td>
+        </tr>
+        <tr>
+            <td><code>aggressive</code> (default for <code>/redact</code>)</td>
+            <td>Adds privacy. Standard redaction plus aggressive cloaking of indirect identifiers &mdash; locations, dates, employers, relationships, physical descriptions.</td>
+            <td>+$1.50</td>
+        </tr>
+    </table>
+    <p style="font-size:.85em;color:#3a5a78">Base query price: $0.25. Pricing shown for demonstration purposes only &mdash; this API does not collect payment.</p>
 
     <h2 id="foia">FOIA Compliance &amp; Redaction</h2>
     <p>All data returned through <code>/get_data</code> is processed under the Freedom of Information Act (5 U.S.C. &sect; 552) using a two-tier redaction scheme implemented by the <strong style="color:#e8f4ff">Acme Redactors cloaking device</strong>. The response includes both the original unredacted record and the FOIA-compliant release.</p>
@@ -581,7 +646,7 @@
     </table>
 
     <div class="footer">
-        <p>Contact: Mickey Shaughnessy &nbsp;&bull;&nbsp; mickeyshaughnessy@gmail.com &nbsp;&bull;&nbsp; The Mithril Company &mdash; Colorado LLC</p>
+        <p>Contact: Michael Shaughnessy &nbsp;&bull;&nbsp; mickeyshaughnessy@gmail.com &nbsp;&bull;&nbsp; The Mithril Company &mdash; Colorado LLC</p>
     </div>
 
 </div>
