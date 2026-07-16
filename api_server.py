@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import hashlib
 from datetime import datetime, timedelta
@@ -7,7 +8,7 @@ from functools import wraps
 import bcrypt
 import jwt
 import boto3
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 
 import config
@@ -340,9 +341,22 @@ def api_docs():
 def deck():
     return send_from_directory('.', 'deck.html')
 
+@app.route('/eagle.html')
+@app.route('/eagle_drill.html')
+def eagle_drill():
+    name = 'eagle_drill.html' if os.path.exists('eagle_drill.html') else 'eagle.html'
+    return send_from_directory('.', name)
+
+@app.route('/plasma.html')
+def plasma():
+    # Prefer local copy; fall back to PlasmaSim deploy path on prod
+    if os.path.exists('plasma.html'):
+        return send_from_directory('.', 'plasma.html')
+    if os.path.exists('/var/www/PlasmaSim/plasma.html'):
+        return send_from_directory('/var/www/PlasmaSim', 'plasma.html')
+    abort(404)
+
 def main():
-    import os
-    
     ssl_cert = config.SSL_CERT_PATH
     ssl_key = config.SSL_KEY_PATH
     
