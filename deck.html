@@ -123,6 +123,22 @@
             border-radius: 2px;
             box-shadow: 0 0 40px rgba(0, 100, 180, 0.2);
         }
+
+        .deck-video {
+            width: 100%;
+            margin: 8px 0 0;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 180, 220, 0.3);
+            box-shadow: 0 0 40px rgba(0, 100, 180, 0.2);
+            background: #040c1c;
+        }
+        .deck-video video {
+            display: block;
+            width: 100%;
+            height: auto;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body style="padding-top: 64px;">
@@ -154,6 +170,13 @@
     <p>
         Related work and demos: <a href="https://greendial.org">GreenDial</a>, a <a href="./plasma.html">2D plasma simulator</a>, and an <a href="./eagle_drill.html">eagle drilling simulator</a>.
     </p>
+
+    <div class="deck-video">
+        <video autoplay muted loop playsinline preload="metadata"
+               aria-label="The Mithril Company">
+            <source src="/assets/deck-video.mp4" type="video/mp4">
+        </video>
+    </div>
 
     <hr class="divider">
 
