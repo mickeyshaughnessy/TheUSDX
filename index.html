@@ -362,6 +362,43 @@
             color: #00b4d8;
             background: rgba(0, 180, 220, 0.08);
         }
+
+        .hero-video {
+            position: relative;
+            width: 100%;
+            margin: 0 0 28px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 180, 220, 0.3);
+            box-shadow: 0 0 40px rgba(0, 100, 180, 0.2);
+            background: #040c1c;
+            aspect-ratio: 832 / 464;
+        }
+        .hero-video video {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            vertical-align: middle;
+        }
+        .hero-video-caption {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            padding: 18px 20px 14px;
+            background: linear-gradient(transparent, rgba(4, 12, 28, 0.92));
+            font-size: 0.82em;
+            letter-spacing: 0.06em;
+            color: #9ab4cc;
+            line-height: 1.45;
+        }
+        .hero-video-caption strong {
+            display: block;
+            color: #e8f4ff;
+            font-size: 1.05em;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body style="padding-top: 64px;">
@@ -371,6 +408,18 @@
     <a href="/deck.html">Deck</a>
 </nav>
 <div class="container">
+
+    <div class="hero-video">
+        <video autoplay muted loop playsinline preload="auto"
+               aria-label="Welcome to Acme Redactors — FOIA-compliant public records with AI cloaking">
+            <source src="/assets/welcome.mp4" type="video/mp4">
+        </video>
+        <div class="hero-video-caption">
+            <strong>Welcome to Acme Redactors</strong>
+            Query public records in plain English. AI matches the dataset and cloaks
+            identities before results reach you — privacy dialed per query.
+        </div>
+    </div>
 
     <div class="wordmark">
         <h1>Acme Redactors</h1>

@@ -341,6 +341,10 @@ def api_docs():
 def deck():
     return send_from_directory('.', 'deck.html')
 
+@app.route('/assets/<path:filename>')
+def assets(filename):
+    return send_from_directory('assets', filename)
+
 @app.route('/eagle.html')
 @app.route('/eagle_drill.html')
 def eagle_drill():
