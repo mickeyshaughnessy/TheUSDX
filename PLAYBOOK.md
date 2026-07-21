@@ -339,5 +339,6 @@ ssh VM "sudo systemctl restart usdx"
 ## Contact
 
 **Mickey Shaughnessy**  
-mickeyshaughnessy@gmail.com  
+https://x.com/MichaelSha10041  
+
 The Mithril Company

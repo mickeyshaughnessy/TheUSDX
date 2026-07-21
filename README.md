@@ -211,7 +211,8 @@ TheUSDX/
 ## Contact
 
 **Project Lead**: Mickey Shaughnessy  
-**Email**: mickeyshaughnessy@gmail.com  
+**X**: https://x.com/MichaelSha10041  
+
 **Organization**: The Mithril Company (Colorado LLC)
 
 ## License
