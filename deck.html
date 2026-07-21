@@ -121,6 +121,7 @@
             border: 1px solid rgba(0, 180, 220, 0.3);
             box-shadow: 0 0 40px rgba(0, 100, 180, 0.2);
             background: #040c1c;
+            cursor: pointer;
         }
         .deck-video video {
             display: block;
@@ -156,7 +157,8 @@
         Related work and demos: <a href="https://greendial.org">GreenDial</a> and an <a href="./eagle_drill.html">eagle drilling simulator</a>.
     </p>
 
-    <div class="deck-video">
+    <div class="deck-video" title="Click to replay" role="button" tabindex="0"
+         aria-label="Replay company video">
         <video autoplay muted playsinline preload="metadata"
                aria-label="The Mithril Company">
             <source src="/assets/deck-video.mp4" type="video/mp4">
@@ -172,5 +174,23 @@
     </div>
 
 </div>
+<script>
+(function () {
+    const wrap = document.querySelector('.deck-video');
+    const video = wrap && wrap.querySelector('video');
+    if (!wrap || !video) return;
+    function replay() {
+        video.currentTime = 0;
+        video.play();
+    }
+    wrap.addEventListener('click', replay);
+    wrap.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            replay();
+        }
+    });
+})();
+</script>
 </body>
 </html>

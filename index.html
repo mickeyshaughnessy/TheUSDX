@@ -373,6 +373,7 @@
             box-shadow: 0 0 40px rgba(0, 100, 180, 0.2);
             background: #040c1c;
             aspect-ratio: 832 / 464;
+            cursor: pointer;
         }
         .hero-video video {
             display: block;
@@ -409,7 +410,8 @@
 </nav>
 <div class="container">
 
-    <div class="hero-video">
+    <div class="hero-video" title="Click to replay" role="button" tabindex="0"
+         aria-label="Replay welcome video">
         <video autoplay muted playsinline preload="auto"
                aria-label="Welcome to Acme Redactors — FOIA-compliant public records with AI cloaking">
             <source src="/assets/welcome.mp4" type="video/mp4">
@@ -695,6 +697,23 @@
 </div>
 
 <script>
+    (function () {
+        const wrap = document.querySelector('.hero-video');
+        const video = wrap && wrap.querySelector('video');
+        if (!wrap || !video) return;
+        function replay() {
+            video.currentTime = 0;
+            video.play();
+        }
+        wrap.addEventListener('click', replay);
+        wrap.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                replay();
+            }
+        });
+    })();
+
     const API = window.location.origin;
     let _token = localStorage.getItem('acme_redactors_token') || null;
 
