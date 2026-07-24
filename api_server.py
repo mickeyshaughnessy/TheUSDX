@@ -360,6 +360,15 @@ def plasma():
         return send_from_directory('/var/www/PlasmaSim', 'plasma.html')
     abort(404)
 
+@app.route('/techtree.html')
+def techtree():
+    # Prefer local copy; fall back to TechTree deploy path on prod
+    if os.path.exists('techtree.html'):
+        return send_from_directory('.', 'techtree.html')
+    if os.path.exists('/var/www/TechTree/techtree.html'):
+        return send_from_directory('/var/www/TechTree', 'techtree.html')
+    abort(404)
+
 def main():
     ssl_cert = config.SSL_CERT_PATH
     ssl_key = config.SSL_KEY_PATH
