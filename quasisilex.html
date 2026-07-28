@@ -1,0 +1,2694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>QuasiSILEX3 — Laser Isotope Enrichment Sim</title>
+<link rel="stylesheet" href="quasisilex.css">
+</head>
+<body>
+<div id="app">
+  <header id="header">
+    <h1 data-tip="QuasiSILEX3 — laser SILEX enrichment plant sim. Raw UF₆-eq feed enters left; enriched LEU accumulates as product.">◈ QUASISILEX3</h1>
+    <div class="hstats">
+      <span data-tip="Liquid cash on hand. Energy and feed purchases drain it; LEU/tails sales refill it.">$ <b id="h-cash">250000</b></span>
+      <span data-tip="Product ²³⁵U assay. Natural is ~0.72%. Sell when this climbs toward LEU (~3–5%).">ASSAY <b id="h-assay">0.72</b>%</span>
+      <span data-tip="Separative work rate — how fast the cascade is creating enrichment value.">SWU/h <b id="h-swu">0.0</b></span>
+      <span data-tip="Enriched product inventory waiting to sell.">PROD <b id="h-prod">0.00</b> kg</span>
+      <span data-tip="Spot market price per SWU. Higher = better LEU valuations.">MKT <b id="h-mkt">$118</b></span>
+    </div>
+    <div class="hacts">
+      <button class="btn active tip-below" id="btn-run" onclick="toggleRun()" data-tip="Pause or resume the plant clock and physics.">⏸ PAUSE</button>
+      <button class="btn tip-below" id="btn-sound" onclick="toggleSound()" data-tip="Start ambient plant audio mix (needs a click — browser autoplay rules).">🔇 MIX OFF</button>
+    </div>
+  </header>
+
+  <div id="body">
+    <!-- ════════ LEFT: system diagram + condensed controls ════════ -->
+    <aside id="left">
+      <div id="left-scroll">
+
+        <div class="box" id="sys-box">
+          <div class="box-title">
+            <span><span class="dot" style="background:#40c860"></span>SYSTEM FLOW</span>
+            <span id="plant-status" data-tip="Overall cascade state: STANDBY / RUNNING / ENRICHING.">STANDBY</span>
+          </div>
+          <div class="sys-legend">
+            <span data-tip="Unenriched natural uranium feed (~0.72% ²³⁵U) moving through the plant."><i style="background:#a88840"></i>RAW FEED</span>
+            <span data-tip="Laser-excited / enriched stream routed toward product."><i style="background:#c848c8"></i>ENRICHED</span>
+            <span data-tip="Depleted tails after skimmer cut."><i style="background:#608050"></i>TAILS</span>
+          </div>
+          <div class="sys-flow" id="sys-flow">
+            <div class="sys-tanks">
+              <div class="tank feed tip-below" data-tip="Unenriched raw stock (yellowcake / UF₆-eq). Buy more when the bar runs low." onclick="setView('feed')">
+                <div class="t-lab">RAW FEED</div>
+                <div class="t-val" id="tank-feed">120 kg</div>
+                <div class="t-bar"><i id="tank-feed-bar"></i></div>
+              </div>
+              <div class="tank prod tip-below" data-tip="Refined LEU product tank — assay rises as the cascade works. Sell from Finance or here." onclick="setView('finance')">
+                <div class="t-lab">PRODUCT</div>
+                <div class="t-val" id="tank-prod">0.00 kg</div>
+                <div class="t-bar"><i id="tank-prod-bar"></i></div>
+              </div>
+              <div class="tank tails tip-below" data-tip="Depleted tails inventory. Low assay; small credit when sold." onclick="setView('finance')">
+                <div class="t-lab">TAILS</div>
+                <div class="t-val" id="tank-tails">0.0 kg</div>
+                <div class="t-bar"><i id="tank-tails-bar"></i></div>
+              </div>
+            </div>
+            <div class="sys-spine" id="sys-spine"><!-- nodes filled by JS --></div>
+            <div class="sys-split">
+              <div class="sys-out prod tip-below" data-tip="Product stream: high-²³⁵ fraction after skimmer. Assay and mass accumulate here." onclick="setView('gates')">
+                → PROD <b id="out-prod">0.72% · 0 kg</b>
+              </div>
+              <div class="sys-out tails tip-below" data-tip="Tails stream: depleted ²³⁸-rich reject after skimmer." onclick="setView('gates')">
+                → TAILS <b id="out-tails">0.72% · 0 kg</b>
+              </div>
+            </div>
+            <div class="sys-status">
+              <span id="sys-live" class="idle">● STANDBY</span>
+              <span data-tip="Separation factor α · laser selectivity · SWU rate">α <b id="sys-alpha">1.00</b> · η <b id="sys-eta">0%</b> · <b id="sys-swu">0</b> SWU/h</span>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn active" id="btn-plant" onclick="togglePlant()" data-tip="Start/stop the cascade. When ON, feed flows through mill → jet → gates.">▶ PLANT ON</button>
+            <button class="btn" id="btn-auto" onclick="toggleAuto()" data-tip="Auto-lock IR laser to 628.3 cm⁻¹ (²³⁵UF₆ Q-branch).">AUTO TUNE</button>
+            <button class="btn" onclick="buyFeed()" data-tip="Purchase 40 kg raw feed cylinder at current bid.">BUY FEED</button>
+            <button class="btn" onclick="sellProduct()" data-tip="Sell enriched LEU inventory (price scales with assay).">SELL LEU</button>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="box-title"><span><span class="dot" style="background:#e8c040"></span>DASHBOARD</span><span id="day-label" data-tip="In-game day counter (~90s real time per day).">DAY 1</span></div>
+          <div class="kpi-row">
+            <div class="kpi" data-tip="Cash on hand. Keep above feed &amp; power costs."><div class="k-lab">Cash</div><div class="k-val" id="k-cash">$250k</div></div>
+            <div class="kpi" data-tip="Today's net vs day start (sales − energy − feed)."><div class="k-lab">P&amp;L</div><div class="k-val" id="k-pnl">$0</div></div>
+            <div class="kpi" data-tip="Separation factor α — product/tails enrichment ratio proxy."><div class="k-lab">α</div><div class="k-val" id="k-alpha">1.00</div></div>
+            <div class="kpi" data-tip="Plant electrical load (lasers, gates, sensors, mill…)."><div class="k-lab">kW</div><div class="k-val" id="t-kw">0</div></div>
+          </div>
+          <div class="kpi-row" style="margin-top:4px">
+            <div class="kpi" data-tip="Feed ²³⁵U fraction (natural ≈ 0.720%)."><div class="k-lab">x<sub>f</sub>%</div><div class="k-val" id="t-xf">0.720</div></div>
+            <div class="kpi" data-tip="Product assay % — your enrichment scoreboard."><div class="k-lab">x<sub>p</sub>%</div><div class="k-val" id="t-xp">0.720</div></div>
+            <div class="kpi" data-tip="Tails assay % — should fall as α rises."><div class="k-lab">x<sub>t</sub>%</div><div class="k-val" id="t-xt">0.720</div></div>
+            <div class="kpi" data-tip="RL reward = separation − energy. Train the gate policy in ML Ctrl."><div class="k-lab">R̃</div><div class="k-val" id="t-rl">0.00</div></div>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="box-title"><span><span class="dot" style="background:#c848c8"></span>PROCESS · AUDIO</span></div>
+          <div class="ctrl-grid">
+            <div>
+              <lbl data-tip="Plant capacity fraction. Higher = faster feed use &amp; production, more power.">Thru <span class="val" id="v-thru">42 %</span></lbl>
+              <input type="range" id="r-thru" min="5" max="100" value="42" data-tip="Throughput % of rated cascade capacity.">
+            </div>
+            <div>
+              <lbl data-tip="Carrier gas : UF₆ ratio. Higher dilution reduces collisional quenching of selectivity.">Dilute <span class="val" id="v-dil">100:1</span></lbl>
+              <input type="range" id="r-dil" min="20" max="200" value="100" data-tip="G:UF₆ carrier dilution.">
+            </div>
+            <div>
+              <lbl data-tip="Nozzle stagnation temperature. Colder jet → narrower isotope lines → better selectivity.">Jet T <span class="val" id="v-temp">80 K</span></lbl>
+              <input type="range" id="r-temp" min="40" max="200" value="80" data-tip="Jet temperature (K). Aim colder for SILEX.">
+            </div>
+            <div>
+              <lbl data-tip="Ambient music pad level (separate from plant drones).">Music <span class="val" id="v-music">50 %</span></lbl>
+              <input type="range" id="r-music" min="0" max="100" value="50" data-tip="Music mix level.">
+            </div>
+            <div>
+              <lbl data-tip="Master output volume for all plant audio.">Vol <span class="val" id="v-vol">55 %</span></lbl>
+              <input type="range" id="r-vol" min="0" max="100" value="55" data-tip="Master volume.">
+            </div>
+            <div>
+              <lbl data-tip="Array boost from gate microarray routing quality.">Array <span class="val" id="t-arr">×1.00</span></lbl>
+              <lbl style="margin-top:8px" data-tip="Active CV tracks on fluid segments.">Tracks <span class="val" id="t-trk">0</span></lbl>
+            </div>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="box-title"><span><span class="dot" style="background:#e87830"></span>OPS LOG</span></div>
+          <div class="log" id="ops-log" data-tip="Chronological plant events, sales, and alerts."></div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ════════ RIGHT: detailed stage views ════════ -->
+    <main id="right">
+      <div id="view-tabs">
+        <button class="vtab active tip-below" data-v="finance" data-tip="Cashflow, inventory, SWU charts">Finance</button>
+        <button class="vtab tip-below" data-v="feed" data-tip="Raw unenriched feed cylinders">Raw Feed</button>
+        <button class="vtab tip-below" data-v="mill" data-tip="Pulverize solids for fluorination">Mill</button>
+        <button class="vtab tip-below" data-v="fluoro" data-tip="U + F₂ → UF₆ gas">Fluorinate</button>
+        <button class="vtab tip-below" data-v="laser" data-tip="16 µm selective excitation of ²³⁵UF₆">Laser IR</button>
+        <button class="vtab tip-below" data-v="maser" data-tip="Spin polarization assist">Maser Spin</button>
+        <button class="vtab tip-below" data-v="ion" data-tip="Optional charge / E-field steering">Ionize</button>
+        <button class="vtab tip-below" data-v="vision" data-tip="Laser/maser sense + track targets">Sense/Track</button>
+        <button class="vtab tip-below" data-v="gates" data-tip="B/E gate microarray + skimmer">Gate Array</button>
+        <button class="vtab tip-below" data-v="ml" data-tip="RL policy: separation − energy">ML Ctrl</button>
+        <button class="vtab tip-below" data-v="market" data-tip="SWU spot &amp; LEU prices">Market</button>
+        <button class="vtab tip-below" data-v="overview" data-tip="Full cascade at a glance">Overview</button>
+      </div>
+
+      <div id="view-blurb">
+        <strong>FINANCE</strong>
+        <span id="blurb-body">Track cash, energy burn, and inventory. Sell LEU when assay is high; buy feed before stock runs dry.</span>
+        <div class="io" id="blurb-io"><b>IN</b> sales · energy costs &nbsp;|&nbsp; <b>OUT</b> cash P&amp;L · SWU valuation</div>
+      </div>
+
+      <div id="view-controls"></div>
+
+      <div id="stage-canvas-wrap">
+        <canvas id="stage-canvas"></canvas>
+        <div id="stage-caption">SILEX · condensation-repression isotope separation · UF₆ ν₃ @ 16 µm</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// QUASISILEX3 — Laser SILEX isotopic fuel enrichment sim
+// Physics grounded in public SILEX condensation-repression
+// ═══════════════════════════════════════════════════════
+
+const STAGES = [
+  { id:'feed',   name:'FEED',    color:'#a88840' },
+  { id:'mill',   name:'MILL',    color:'#888870' },
+  { id:'fluoro', name:'F₂/UF₆',  color:'#40a0c8' },
+  { id:'laser',  name:'LASER',   color:'#c848c8' },
+  { id:'maser',  name:'MASER',   color:'#c84080' },
+  { id:'ion',    name:'IONIZE',  color:'#4080c8' },
+  { id:'vision', name:'SENSE',   color:'#40c8c8' },
+  { id:'gates',  name:'ARRAY',   color:'#40c860' },
+  { id:'ml',     name:'ML',      color:'#e8c040' },
+];
+
+// Cascade microarray geometry (GBDT-like stages × transverse lanes)
+const N_STAGES = 6;
+const N_LANES = 8;
+const N_FEAT = 8; // RL feature dimension per gate
+
+const S = {
+  view: 'finance',
+  running: true,
+  plantOn: true,
+  autoTune: false,
+  day: 1,
+  time: 0,
+  dtAcc: 0,
+
+  // Economy
+  cash: 250000,
+  dayStartCash: 250000,
+  feedStock: 120,       // kg UF6-equivalent solids/gas
+  productKg: 0,
+  tailsKg: 0,
+  feedAssay: 0.0072,    // natural
+  productAssay: 0.0072,
+  tailsAssay: 0.0072,
+  feedPrice: 85,        // $/kg UF6-eq
+  productPrice: 2400,   // $/kg LEU ~4%
+  tailsPrice: 12,       // $/kg
+  swuPrice: 118,        // $/SWU market
+  powerCost: 0.09,      // $/kWh
+  energyToday: 0,
+  revenueToday: 0,
+  costToday: 0,
+  swuToday: 0,
+  priceHist: [],
+  cashHist: [],
+  assayHist: [],
+
+  // Global process
+  thru: 42,             // % capacity
+  dilution: 100,        // G:UF6
+  jetTemp: 80,          // K
+
+  // Mill
+  millRpm: 1800,
+  millMesh: 45,         // µm target
+  millWear: 0,
+
+  // Fluorination
+  f2Flow: 60,           // %
+  reactorT: 450,        // °C
+  conversion: 0.92,
+
+  // Laser IR (SILEX core)
+  laserOn: true,
+  laserPower: 72,       // % of rated
+  wavenumber: 628.3,    // cm⁻¹  — 235UF6 Q-branch center
+  repRate: 24,          // kHz
+  pulseEnergy: 55,      // mJ class proxy
+  detune: 0,            // cm⁻¹ from ideal 628.3
+
+  // Maser spin / polarization
+  maserOn: true,
+  maserFreq: 1420,      // MHz proxy
+  polField: 0.35,       // T
+  polEfficiency: 0.55,
+
+  // Ionization / charging
+  ionOn: false,
+  ionVoltage: 1.2,      // kV
+  chargeDensity: 0.4,
+
+  // Computer vision + fluid segment tracking
+  cvOn: true,
+  cvGain: 0.7,
+  trackLock: 0.0,
+  targets: [],
+  segments: [],         // identified fluid parcels in the cascade
+  nextSegId: 1,
+  nextTrackId: 1,
+  tracks: {},           // trackId → {id, hits, estU235, priority, x, y, life}
+  targetQueue: [],      // prioritized track IDs for gate aiming
+
+  // Advanced sensing (laser + maser excited readout)
+  laserSenseOn: true,
+  maserSenseOn: true,
+  laserSensePwr: 55,    // % excitation / probe power
+  maserSensePwr: 40,    // % spin-probe power
+  senseNoise: 0.12,     // base fractional assay noise
+  laserSenseLock: 0,
+  maserSenseLock: 0,
+  senseHits: 0,         // sensor detections this second
+
+  // Cascading magnetic / electric gate microarray
+  // Stages alternate B (magnetic) and E (electric) — residual boosting cascade
+  nStages: N_STAGES,
+  nLanes: N_LANES,
+  gateB: 0.8,           // global B scale (T)
+  gateE: 12,            // global E scale (kV/m)
+  skimmerPos: 0.55,     // product collection radius fraction
+  jetArray: N_LANES,    // lanes = transverse channels
+  gateProgram: [0.2,0.4,0.55,0.7,0.75,0.65,0.45,0.3],
+  gates: [],            // filled by initMicroarray()
+  arrayBoost: 1.0,      // measured cascade separation multiplier
+  arrayProductFrac: 0.5,// recent product-stream mean true U235 / feed
+  arrayTailsFrac: 0.5,
+  gateSwitchEvents: 0,  // switches flipped (energy cost)
+  gateEnergyKW: 0,
+  senseEnergyKW: 0,
+
+  // ML / reinforcement learning gate controller
+  rlOn: true,
+  rlTrain: true,
+  rlLr: 0.06,
+  rlEpsilon: 0.18,
+  rlEnergyW: 0.30,      // weight of energy cost in reward
+  rlReward: 0,
+  rlRewardSmooth: 0,
+  rlEpisode: 0,
+  rlBaseline: 0,
+  rlWeights: null,      // [stage][lane][feature]
+  rlLastPhi: null,
+  rlLastAct: null,
+  rlHist: [],
+  rlSepHist: [],
+  rlEnergyHist: [],
+  rlLoss: 0,
+  manualGates: false,   // if true, freeze RL and use manual B/E only
+
+  // Derived
+  alpha: 1.0,
+  cut: 0.0,
+  selectivity: 0,
+  powerKW: 0,
+  swuRate: 0,
+  particles: [],
+  jetParticles: [],
+  marketShock: 0,
+  lastSale: 0,
+};
+
+// ── Microarray + RL init ──
+function initMicroarray() {
+  S.gates = [];
+  for (let s = 0; s < S.nStages; s++) {
+    const kind = s % 2 === 0 ? 'B' : 'E';
+    S.gates.push({
+      stage: s,
+      kind,
+      // switch state 0/1 and continuous duty (RL acts on duty, switch is quantized)
+      duty: new Array(S.nLanes).fill(0).map((_, i) => 0.35 + 0.3 * (i / (S.nLanes - 1))),
+      switches: new Array(S.nLanes).fill(0),
+      prevSwitches: new Array(S.nLanes).fill(0),
+      residualGain: 0.55 * Math.pow(0.72, s), // GBDT-like shrinking residuals
+      fieldLines: 0,
+    });
+    for (let i = 0; i < S.nLanes; i++) {
+      S.gates[s].switches[i] = S.gates[s].duty[i] > 0.5 ? 1 : 0;
+      S.gates[s].prevSwitches[i] = S.gates[s].switches[i];
+    }
+  }
+  // Linear policy weights: action = σ(w · φ); small random init
+  S.rlWeights = [];
+  for (let s = 0; s < S.nStages; s++) {
+    S.rlWeights[s] = [];
+    for (let i = 0; i < S.nLanes; i++) {
+      S.rlWeights[s][i] = [];
+      for (let f = 0; f < N_FEAT; f++) {
+        S.rlWeights[s][i][f] = (Math.random() - 0.5) * 0.15;
+      }
+      // bias toward outer lanes for product collection early on
+      S.rlWeights[s][i][0] = 0.2 + 0.15 * (i / (S.nLanes - 1));
+    }
+  }
+  S.segments = [];
+  S.tracks = {};
+  S.targetQueue = [];
+  S.nextSegId = 1;
+  S.nextTrackId = 1;
+}
+initMicroarray();
+
+// ── DOM refs ──
+const canvas = document.getElementById('stage-canvas');
+const ctx = canvas.getContext('2d');
+const vcEl = document.getElementById('view-controls');
+const capEl = document.getElementById('stage-caption');
+const logEl = document.getElementById('ops-log');
+
+function resize() {
+  const wrap = document.getElementById('stage-canvas-wrap');
+  if (!wrap || !canvas || !ctx) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Fall back if layout not ready (0-size would blank the stage forever)
+  let w = wrap.clientWidth, h = wrap.clientHeight;
+  if (w < 2 || h < 2) {
+    const r = wrap.getBoundingClientRect();
+    w = Math.max(2, Math.floor(r.width) || canvas.parentElement?.clientWidth || 640);
+    h = Math.max(2, Math.floor(r.height) || 360);
+  }
+  const bw = Math.floor(w * dpr), bh = Math.floor(h * dpr);
+  if (canvas.width !== bw || canvas.height !== bh) {
+    canvas.width = bw;
+    canvas.height = bh;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+// Layout may not have flex sizes on first paint
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', resize);
+} else {
+  resize();
+}
+requestAnimationFrame(() => { resize(); });
+
+// ── Logging ──
+function log(msg, cls='info') {
+  const t = Math.floor(S.time);
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = `[T+${t}s] ${msg}`;
+  logEl.prepend(line);
+  while (logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
+}
+
+// ── System flow diagram (left spine) ──
+const STAGE_TIPS = {
+  feed:   'Raw unenriched stock enters here. Natural assay ≈ 0.72% ²³⁵U. Click to manage cylinders.',
+  mill:   'Pulverizes solids to target mesh so fluorination sees high surface area.',
+  fluoro: 'Reacts U-oxides with F₂ to make UF₆ gas, then dilutes with carrier for the jet.',
+  laser:  '16 µm IR selectively excites ²³⁵UF₆ (ν₃). Excited molecules resist clustering → SILEX core.',
+  maser:  'Spin/polarization field gives monomers an extra radial bias toward the product rim.',
+  ion:    'Optional charge assist — E-field steers laser-excited parcels after ionization.',
+  vision: 'Laser + maser probes ID fluid segments, lock tracks, and build a target queue for gates.',
+  gates:  'Cascading B/E switch microarray routes high-²³⁵ filaments outward; skimmer cuts product vs tails.',
+  ml:     'RL controller learns gate duties. Reward = measured separation − sensor/switch energy.',
+};
+
+function buildSystemDiagram() {
+  const el = document.getElementById('sys-spine');
+  if (!el) return;
+  const icons = { feed:'F', mill:'M', fluoro:'U', laser:'λ', maser:'μ', ion:'±', vision:'◎', gates:'⊞', ml:'AI' };
+  el.innerHTML = STAGES.map((s, i) => {
+    const enriched = i >= 3; // laser onward = enriched path styling
+    const link = i < STAGES.length - 1
+      ? `<div class="sys-link ${enriched ? 'enriched' : ''}"><span class="dot-flow"></span><span class="dot-flow d2"></span></div>`
+      : '';
+    return `
+      <div class="sys-node tip-below" data-id="${s.id}" data-tip="${STAGE_TIPS[s.id] || s.name}"
+           onclick="setView('${s.id}')">
+        <span class="n-icon" style="background:${s.color}">${icons[s.id] || '·'}</span>
+        <span class="n-name" style="color:${s.color}">${s.name}</span>
+        <span class="n-meter"><i id="pb-${s.id}" style="background:${s.color}"></i></span>
+      </div>${link}`;
+  }).join('');
+}
+buildSystemDiagram();
+
+// ── View tabs ──
+const CAPTIONS = {
+  finance: 'CASHFLOW · energy · SWU · inventory',
+  feed:    'RAW FEED · unenriched stock · assay',
+  mill:    'MILL · PSD → surface area for F₂',
+  fluoro:  'FLUORINATION · U + F₂ → UF₆(g)',
+  laser:   'LASER IR · 16 µm ν₃ · condensation repression',
+  maser:   'MASER · polarization · radial kick',
+  ion:     'IONIZE · charge assist · E steering',
+  vision:  'SENSE · segment ID · tracks · targets',
+  gates:   'GATES · B/E microarray · skimmer θ',
+  ml:      'ML · r = separation − energy',
+  market:  'MARKET · SWU spot · LEU · tails',
+  overview:'CASCADE · raw → enriched product',
+};
+
+const BLURBS = {
+  finance: {
+    title: 'FINANCE',
+    body: 'This console is your scoreboard. Cash funds feed and power; LEU sales (assay-priced) and tails credits refill it. Watch cash history and SWU rate — enrichment only pays if product assay climbs while energy stay controlled.',
+    io: '<b>IN</b> LEU/tails revenue · market SWU &nbsp;|&nbsp; <b>OUT</b> feed buys · kWh cost · net P&amp;L',
+  },
+  feed: {
+    title: 'RAW FEED',
+    body: 'Unenriched uranium (natural ~0.72% ²³⁵U or lower tails re-feed) is the plant input. Cylinders empty as the cascade runs. Buy stock before starvation idles every downstream stage.',
+    io: '<b>IN</b> cash @ feed bid &nbsp;|&nbsp; <b>OUT</b> UF₆-eq mass into mill · sets baseline assay x<sub>f</sub>',
+  },
+  mill: {
+    title: 'MILL / PULVERIZE',
+    body: 'Grind solids toward the target mesh. Too coarse → poor fluorination conversion; too fine or high RPM burns power and wears the mill. Match mesh ~40 µm for best conversion.',
+    io: '<b>IN</b> raw solids · RPM · mesh setpoint &nbsp;|&nbsp; <b>OUT</b> fine powder surface area → fluoro yield',
+  },
+  fluoro: {
+    title: 'FLUORINATION',
+    body: 'Chemistry converts oxides to UF₆ gas with F₂, then dilutes heavily with carrier (Ar/N₂/He). Dilution protects laser selectivity by cutting collisional energy transfer before the Laval nozzle.',
+    io: '<b>IN</b> milled U · F₂ flow · reactor T · dilution &nbsp;|&nbsp; <b>OUT</b> dilute UF₆/G mix ready for jet',
+  },
+  laser: {
+    title: 'LASER IR (SILEX CORE)',
+    body: 'Tune to 628.3 cm⁻¹ so ²³⁵UF₆ absorbs at ν₃ while ²³⁸UF₆ does not. Excited monomers resist van der Waals clustering in the cold jet and migrate off-axis — the physical basis of product enrichment.',
+    io: '<b>IN</b> dilute jet · ν · power · rep rate · jet T &nbsp;|&nbsp; <b>OUT</b> selectivity η · excited monomer fraction',
+  },
+  maser: {
+    title: 'MASER SPIN',
+    body: 'A polarization / spin-assist field (game layer on SILEX) biases monomer trajectories. Stronger aligned B near the design frequency multiplies separation factor slightly without replacing the laser.',
+    io: '<b>IN</b> maser f · B-field · pol. η &nbsp;|&nbsp; <b>OUT</b> α multiplier · easier outer-lane routing',
+  },
+  ion: {
+    title: 'IONIZE / CHARGE',
+    body: 'Optional post-excitation charging. When ON, E-fields give laser-tagged parcels extra steering — useful near the gate array, but it costs power and only helps if laser selectivity is already decent.',
+    io: '<b>IN</b> bias kV · charge density · laser tags &nbsp;|&nbsp; <b>OUT</b> E×B product steering boost',
+  },
+  vision: {
+    title: 'SENSE / TRACK',
+    body: 'Laser and maser probes measure fluid segments, CV associates them into tracks, and a priority queue ranks high-²³⁵ filaments for the gate controller. Better sensing → better RL features → higher array boost.',
+    io: '<b>IN</b> probe power · noise · CV gain &nbsp;|&nbsp; <b>OUT</b> tracks · target queue · sense kW cost',
+  },
+  gates: {
+    title: 'GATE MICROARRAY',
+    body: 'Cascading magnetic (B) and electric (E) lane switches act like residual boosters: each stage weakly routes enriched segments outward. The skimmer cut θ decides product rim vs tails axis. Prefer RL GATES over pure manual.',
+    io: '<b>IN</b> segments · B/E scales · skimmer · RL duties &nbsp;|&nbsp; <b>OUT</b> product &amp; tails streams · array boost',
+  },
+  ml: {
+    title: 'ML CONTROLLER',
+    body: 'A linear policy maps lane features (density, residual assay, L/M tags, priority) to switch duties. REINFORCE updates weights when reward is high. Balance exploration ε against energy weight w_E so it does not thrash switches.',
+    io: '<b>IN</b> sensor features · lr · ε · w_E &nbsp;|&nbsp; <b>OUT</b> gate duties · reward R̃ · policy heatmap',
+  },
+  market: {
+    title: 'MARKET',
+    body: 'SWU spot and LEU $/kg wander with demand shocks. Product sale price scales with assay — enrichment quality multiplies revenue. Hedge bumps spot when you need a temporary mark-up.',
+    io: '<b>IN</b> global demand shocks · your assay &nbsp;|&nbsp; <b>OUT</b> SWU/LEU/tails prices for sales',
+  },
+  overview: {
+    title: 'CASCADE OVERVIEW',
+    body: 'End-to-end picture: raw feed travels mill → F₂ → laser jet → sense → gate array → product/tails tanks. Magenta segments are laser-excited; watch array boost and α rise together when laser, sense, and RL are healthy.',
+    io: '<b>IN</b> full plant state &nbsp;|&nbsp; <b>OUT</b> live α · η · SWU/h · inventory assays',
+  },
+};
+
+function setView(v) {
+  S.view = v;
+  document.querySelectorAll('.vtab').forEach(t => t.classList.toggle('active', t.dataset.v === v));
+  document.querySelectorAll('.sys-node').forEach(n => n.classList.toggle('active-view', n.dataset.id === v));
+  capEl.textContent = CAPTIONS[v] || '';
+  const b = BLURBS[v] || BLURBS.overview;
+  const bt = document.querySelector('#view-blurb strong');
+  const bb = document.getElementById('blurb-body');
+  const bi = document.getElementById('blurb-io');
+  if (bt) bt.textContent = b.title;
+  if (bb) bb.textContent = b.body;
+  if (bi) bi.innerHTML = b.io;
+  renderViewControls();
+  if (typeof AUD !== 'undefined' && AUD.click) AUD.click();
+}
+document.querySelectorAll('.vtab').forEach(t => t.addEventListener('click', () => setView(t.dataset.v)));
+
+function wireRange(id, key, fmt, extra) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const apply = () => {
+    S[key] = parseFloat(el.value);
+    const v = document.getElementById('v-' + id.slice(2));
+    if (v) v.textContent = fmt(S[key]);
+    // extras may reference AUD — skip safely until audio is ready
+    if (extra) {
+      try { extra(S[key]); } catch (_) { /* not ready yet */ }
+    }
+  };
+  el.addEventListener('input', apply);
+  apply();
+}
+
+// Global sliders (left panel) — audio extras wired after AUD exists (see bindAudioSliders)
+wireRange('r-thru',  'thru',     v => v.toFixed(0) + ' %');
+wireRange('r-dil',   'dilution', v => v.toFixed(0) + ':1');
+wireRange('r-temp',  'jetTemp',  v => v.toFixed(0) + ' K');
+wireRange('r-music', 'musicPct', v => v.toFixed(0) + ' %');
+wireRange('r-vol',   'volPct',   v => v.toFixed(0) + ' %');
+S.musicPct = 50; S.volPct = 55;
+
+function vcHTML(groups) {
+  return groups.map(g => {
+    const tip = g.tip ? ` data-tip="${g.tip.replace(/"/g, '&quot;')}"` : '';
+    if (g.type === 'btn') {
+      return `<div class="vc-group btn-wrap"${tip}><button class="btn ${g.active?'active':''} ${g.danger?'danger':''}" id="${g.id}" onclick="${g.onclick}"${tip}>${g.label}</button></div>`;
+    }
+    return `<div class="vc-group"${tip}>
+      <lbl>${g.label} <span class="val" id="v-${g.key}">${g.fmt(S[g.key])}</span></lbl>
+      <input type="range" id="r-${g.key}" min="${g.min}" max="${g.max}" step="${g.step||1}" value="${S[g.key]}"${tip}>
+    </div>`;
+  }).join('');
+}
+
+function bindVC(groups) {
+  groups.forEach(g => {
+    if (g.type === 'btn') return;
+    const el = document.getElementById('r-' + g.key);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      S[g.key] = parseFloat(el.value);
+      const v = document.getElementById('v-' + g.key);
+      if (v) v.textContent = g.fmt(S[g.key]);
+      if (g.key === 'wavenumber') S.detune = S.wavenumber - 628.3;
+      if (g.key === 'nStages' || g.key === 'nLanes') ensureGateGeometry();
+    });
+  });
+}
+
+function renderViewControls() {
+  const v = S.view;
+  let groups = [];
+  if (v === 'finance') {
+    groups = [
+      { type:'btn', id:'btn-buyf', label:'BUY FEED', onclick:'buyFeed()', tip:'Buy 40 kg raw feed cylinder.' },
+      { type:'btn', id:'btn-sellp', label:'SELL LEU', onclick:'sellProduct()', tip:'Sell product; price scales with assay.' },
+      { type:'btn', id:'btn-sellt', label:'SELL TAILS', onclick:'sellTails()', tip:'Sell depleted tails credit.' },
+    ];
+  } else if (v === 'feed') {
+    groups = [
+      { key:'feedAssayPct', label:'Assay', min:0.2, max:0.72, step:0.01, fmt: x=>x.toFixed(2)+'%', tip:'Feed ²³⁵U %. Natural = 0.72%.' },
+      { type:'btn', id:'btn-buyf2', label:'ORDER +40 kg', onclick:'buyFeed()', tip:'Purchase another feed cylinder.' },
+    ];
+    S.feedAssayPct = +(S.feedAssay * 100).toFixed(2);
+  } else if (v === 'mill') {
+    groups = [
+      { key:'millRpm', label:'RPM', min:400, max:3600, step:50, fmt: x=>x.toFixed(0), tip:'Mill speed. Higher = finer but more wear/power.' },
+      { key:'millMesh', label:'Mesh µm', min:10, max:120, fmt: x=>x.toFixed(0), tip:'Target particle size. ~40 µm is optimal.' },
+    ];
+  } else if (v === 'fluoro') {
+    groups = [
+      { key:'f2Flow', label:'F₂ %', min:10, max:100, fmt: x=>x.toFixed(0)+'%', tip:'Fluorine feed fraction.' },
+      { key:'reactorT', label:'T °C', min:200, max:600, fmt: x=>x.toFixed(0), tip:'Reactor temperature. Sweet spot ~450 °C.' },
+    ];
+  } else if (v === 'laser') {
+    groups = [
+      { type:'btn', id:'btn-laser', label: S.laserOn?'LASER ON':'LASER OFF', onclick:'toggleLaser()', active:S.laserOn, danger:!S.laserOn, tip:'Arm/safe the 16 µm IR path.' },
+      { key:'laserPower', label:'Power', min:0, max:100, fmt: x=>x.toFixed(0)+'%', tip:'Laser power %. Drives selectivity and kW.' },
+      { key:'wavenumber', label:'ν cm⁻¹', min:626, max:630, step:0.05, fmt: x=>x.toFixed(2), tip:'Tune to 628.3 for ²³⁵UF₆ Q-branch.' },
+      { key:'repRate', label:'kHz', min:1, max:60, fmt: x=>x.toFixed(0), tip:'Pulse rep rate — irradiate the full flow.' },
+    ];
+  } else if (v === 'maser') {
+    groups = [
+      { type:'btn', id:'btn-maser', label: S.maserOn?'MASER ON':'OFF', onclick:'toggleMaser()', active:S.maserOn, tip:'Toggle polarization field.' },
+      { key:'polField', label:'B T', min:0, max:1.5, step:0.01, fmt: x=>x.toFixed(2), tip:'Polarizing field strength.' },
+      { key:'polEfficiency', label:'Pol %', min:0, max:1, step:0.01, fmt: x=>(x*100).toFixed(0)+'%', tip:'Polarization efficiency.' },
+    ];
+  } else if (v === 'ion') {
+    groups = [
+      { type:'btn', id:'btn-ion', label: S.ionOn?'ION ON':'OFF', onclick:'toggleIon()', active:S.ionOn, tip:'Toggle charge assist.' },
+      { key:'ionVoltage', label:'kV', min:0, max:5, step:0.05, fmt: x=>x.toFixed(2), tip:'Electrode bias.' },
+      { key:'chargeDensity', label:'Charge', min:0, max:1, step:0.01, fmt: x=>(x*100).toFixed(0)+'%', tip:'Charge density on parcels.' },
+    ];
+  } else if (v === 'vision') {
+    groups = [
+      { type:'btn', id:'btn-cv', label: S.cvOn?'CV ON':'CV OFF', onclick:'toggleCV()', active:S.cvOn, tip:'Computer-vision track lock.' },
+      { type:'btn', id:'btn-lsense', label: S.laserSenseOn?'L-SENSE':'L-OFF', onclick:'toggleLaserSense()', active:S.laserSenseOn, tip:'Laser-excited segment probe.' },
+      { type:'btn', id:'btn-msense', label: S.maserSenseOn?'M-SENSE':'M-OFF', onclick:'toggleMaserSense()', active:S.maserSenseOn, tip:'Maser spin-tag probe.' },
+      { key:'cvGain', label:'Track', min:0, max:1, step:0.01, fmt: x=>(x*100).toFixed(0)+'%', tip:'Track association gain.' },
+      { key:'laserSensePwr', label:'L-Pwr', min:0, max:100, fmt: x=>x.toFixed(0)+'%', tip:'Laser sense probe power.' },
+    ];
+  } else if (v === 'gates') {
+    groups = [
+      { type:'btn', id:'btn-manual', label: S.manualGates?'MANUAL':'RL GATES', onclick:'toggleManualGates()', active:S.manualGates, tip:'Manual B/E vs RL gate duties.' },
+      { key:'gateB', label:'B T', min:0, max:2, step:0.01, fmt: x=>x.toFixed(2), tip:'Magnetic gate field scale.' },
+      { key:'gateE', label:'E kV/m', min:0, max:40, step:0.5, fmt: x=>x.toFixed(1), tip:'Electric gate field scale.' },
+      { key:'skimmerPos', label:'Skim θ', min:0.1, max:0.9, step:0.01, fmt: x=>x.toFixed(2), tip:'Skimmer cut — product rim fraction.' },
+    ];
+  } else if (v === 'ml') {
+    groups = [
+      { type:'btn', id:'btn-rl', label: S.rlOn?'RL ON':'RL OFF', onclick:'toggleRL()', active:S.rlOn, tip:'Enable RL gate policy.' },
+      { type:'btn', id:'btn-rltrain', label: S.rlTrain?'TRAIN':'FREEZE', onclick:'toggleRLTrain()', active:S.rlTrain, tip:'Allow weight updates vs exploit-only.' },
+      { type:'btn', id:'btn-rlreset', label:'RESET', onclick:'resetRL()', tip:'Reinit policy + microarray.' },
+      { key:'rlLr', label:'lr', min:0.01, max:0.25, step:0.01, fmt: x=>x.toFixed(2), tip:'Policy learning rate.' },
+      { key:'rlEpsilon', label:'ε', min:0, max:0.5, step:0.01, fmt: x=>(x*100).toFixed(0)+'%', tip:'Exploration noise.' },
+      { key:'rlEnergyW', label:'w_E', min:0, max:1, step:0.01, fmt: x=>x.toFixed(2), tip:'Energy penalty weight in reward.' },
+    ];
+  } else if (v === 'market') {
+    groups = [
+      { type:'btn', id:'btn-hedge', label:'HEDGE +5%', onclick:'hedgeMarket()', tip:'Mark SWU spot +5% (hedge).' },
+      { type:'btn', id:'btn-sellp2', label:'SELL LEU', onclick:'sellProduct()', tip:'Sell product at market.' },
+    ];
+  } else {
+    groups = [
+      { type:'btn', id:'btn-plant2', label: S.plantOn?'PLANT ON':'PLANT OFF', onclick:'togglePlant()', active:S.plantOn, tip:'Start/stop cascade.' },
+      { type:'btn', id:'btn-auto2', label: S.autoTune?'AUTO ν':'MANUAL ν', onclick:'toggleAuto()', active:S.autoTune, tip:'Auto-lock laser to 628.3 cm⁻¹.' },
+    ];
+  }
+  vcEl.innerHTML = vcHTML(groups);
+  bindVC(groups);
+  if (v === 'feed') {
+    const el = document.getElementById('r-feedAssayPct');
+    if (el) el.addEventListener('input', () => {
+      S.feedAssayPct = parseFloat(el.value);
+      S.feedAssay = S.feedAssayPct / 100;
+      const lab = document.getElementById('v-feedAssayPct');
+      if (lab) lab.textContent = S.feedAssayPct.toFixed(2) + '%';
+    });
+  }
+}
+
+// ── Toggles ──
+function toggleRun() {
+  S.running = !S.running;
+  const b = document.getElementById('btn-run');
+  b.textContent = S.running ? '⏸ PAUSE' : '▶ RUN';
+  b.classList.toggle('active', S.running);
+  AUD.click();
+}
+function togglePlant() {
+  S.plantOn = !S.plantOn;
+  document.getElementById('btn-plant').textContent = S.plantOn ? '▶ PLANT ON' : '■ PLANT OFF';
+  document.getElementById('btn-plant').classList.toggle('active', S.plantOn);
+  document.getElementById('plant-status').textContent = S.plantOn ? 'RUNNING' : 'STANDBY';
+  log(S.plantOn ? 'Plant cascade online' : 'Plant cascade offline', S.plantOn ? 'ok' : 'warn');
+  AUD.click();
+  if (S.view === 'overview') renderViewControls();
+}
+function toggleAuto() {
+  S.autoTune = !S.autoTune;
+  document.getElementById('btn-auto').classList.toggle('active', S.autoTune);
+  document.getElementById('btn-auto').textContent = S.autoTune ? 'AUTO TUNE' : 'AUTO OFF';
+  log(S.autoTune ? 'Auto-tune engaged — locking ν₃ Q-branch' : 'Auto-tune disengaged', 'info');
+  AUD.click();
+}
+function toggleLaser() {
+  S.laserOn = !S.laserOn;
+  log(S.laserOn ? 'IR laser arming @ 16 µm path' : 'IR laser safe', S.laserOn ? 'ok' : 'warn');
+  AUD.click();
+  renderViewControls();
+}
+function toggleMaser() {
+  S.maserOn = !S.maserOn;
+  log(S.maserOn ? 'Maser polarization field ON' : 'Maser OFF', 'info');
+  AUD.click();
+  renderViewControls();
+}
+function toggleIon() {
+  S.ionOn = !S.ionOn;
+  log(S.ionOn ? 'Ion/charge assist ON' : 'Ion assist OFF', 'info');
+  AUD.click();
+  renderViewControls();
+}
+function toggleCV() {
+  S.cvOn = !S.cvOn;
+  log(S.cvOn ? 'CV tracking lock enabled' : 'CV tracking offline', 'info');
+  AUD.click();
+  renderViewControls();
+}
+function toggleLaserSense() {
+  S.laserSenseOn = !S.laserSenseOn;
+  log(S.laserSenseOn ? 'Laser-excited segment probe ON' : 'Laser sense OFF', S.laserSenseOn ? 'ok' : 'warn');
+  AUD.click();
+  renderViewControls();
+}
+function toggleMaserSense() {
+  S.maserSenseOn = !S.maserSenseOn;
+  log(S.maserSenseOn ? 'Maser spin-tag probe ON' : 'Maser sense OFF', S.maserSenseOn ? 'ok' : 'warn');
+  AUD.click();
+  renderViewControls();
+}
+function toggleManualGates() {
+  S.manualGates = !S.manualGates;
+  log(S.manualGates ? 'Manual B/E scale — RL gate duties frozen' : 'RL gate microarray control resumed', 'info');
+  AUD.click();
+  renderViewControls();
+}
+function toggleRL() {
+  S.rlOn = !S.rlOn;
+  log(S.rlOn ? 'RL gate controller ONLINE' : 'RL controller OFF — open-loop duties', S.rlOn ? 'ok' : 'warn');
+  AUD.click();
+  renderViewControls();
+}
+function toggleRLTrain() {
+  S.rlTrain = !S.rlTrain;
+  log(S.rlTrain ? 'RL policy gradient training ON' : 'RL weights frozen (exploit only)', 'info');
+  AUD.click();
+  renderViewControls();
+}
+function resetRL() {
+  initMicroarray();
+  S.rlEpisode = 0;
+  S.rlBaseline = 0;
+  S.rlRewardSmooth = 0;
+  S.rlHist = [];
+  S.rlSepHist = [];
+  S.rlEnergyHist = [];
+  log('RL policy + gate microarray reinitialized', 'warn');
+  AUD.chime();
+  renderViewControls();
+}
+async function toggleSound() {
+  await AUD.toggle();
+  const b = document.getElementById('btn-sound');
+  if (b) {
+    b.textContent = AUD.on ? '🔊 MIX ON' : '🔇 MIX OFF';
+    b.classList.toggle('active', AUD.on);
+  }
+  log(AUD.on ? 'Audio mix ON' : 'Audio mix OFF', AUD.on ? 'ok' : 'warn');
+}
+
+// ── Commerce ──
+function buyFeed() {
+  const kg = 40;
+  const cost = kg * S.feedPrice;
+  if (S.cash < cost) { log('Insufficient cash for feed cylinder', 'err'); AUD.buzz(); return; }
+  S.cash -= cost;
+  S.costToday += cost;
+  S.feedStock += kg;
+  log(`Purchased ${kg} kg feed @ $${S.feedPrice}/kg (−$${cost.toFixed(0)})`, 'ok');
+  AUD.click();
+}
+function sellProduct() {
+  if (S.productKg < 0.5) { log('Not enough product inventory to sell', 'warn'); AUD.buzz(); return; }
+  const kg = Math.min(S.productKg, 5 + Math.random() * 5);
+  // price scales with assay (LEU premium)
+  const assayFactor = Math.max(0.3, (S.productAssay * 100) / 4.0);
+  const price = S.productPrice * assayFactor * (0.95 + Math.random() * 0.1);
+  const rev = kg * price;
+  S.productKg -= kg;
+  S.cash += rev;
+  S.revenueToday += rev;
+  S.lastSale = rev;
+  log(`Sold ${kg.toFixed(2)} kg LEU @ $${price.toFixed(0)}/kg (+$${rev.toFixed(0)}) assay ${(S.productAssay*100).toFixed(2)}%`, 'ok');
+  AUD.chime();
+}
+function sellTails() {
+  if (S.tailsKg < 1) { log('No tails inventory', 'warn'); AUD.buzz(); return; }
+  const kg = Math.min(S.tailsKg, 20);
+  const rev = kg * S.tailsPrice;
+  S.tailsKg -= kg;
+  S.cash += rev;
+  S.revenueToday += rev;
+  log(`Sold ${kg.toFixed(1)} kg tails credit (+$${rev.toFixed(0)})`, 'info');
+  AUD.click();
+}
+function hedgeMarket() {
+  S.swuPrice *= 1.05;
+  S.marketShock += 0.05;
+  log('Entered SWU hedge — spot marked +5%', 'warn');
+  AUD.click();
+  renderViewControls();
+}
+
+// ═══════════════════════════════════════════════════════
+// PHYSICS — SILEX-inspired stage model
+// ═══════════════════════════════════════════════════════
+function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function computeSelectivity() {
+  // Ideal Q-branch center for 235UF6 ≈ 628.3 cm⁻¹
+  // Isotope shift ≈ 0.6 cm⁻¹; thermal residual width depends on jet temp
+  const ideal = 628.3;
+  S.detune = S.wavenumber - ideal;
+  const linewidth = 0.05 + (S.jetTemp - 40) * 0.004; // colder → narrower
+  // Lorentzian-ish selectivity
+  const det = Math.abs(S.detune);
+  let sel = 1 / (1 + Math.pow(det / linewidth, 2));
+  // dilution helps reduce collisional energy transfer
+  const dilFactor = clamp((S.dilution - 20) / 80, 0.3, 1.2);
+  // rep rate: need tens of kHz for full irradiation of flow
+  const repFactor = clamp(S.repRate / 30, 0.15, 1.15);
+  // power
+  const pFactor = clamp(S.laserPower / 100, 0, 1);
+  if (!S.laserOn || !S.plantOn) return 0;
+  sel *= dilFactor * repFactor * (0.35 + 0.65 * pFactor);
+  // CV + laser/maser sensing improve effective excitation placement
+  if (S.cvOn) sel *= 1 + 0.12 * S.trackLock * S.cvGain;
+  if (S.laserSenseOn) sel *= 1 + 0.08 * S.laserSenseLock * (S.laserSensePwr / 100);
+  if (S.maserSenseOn) sel *= 1 + 0.05 * S.maserSenseLock * (S.maserSensePwr / 100);
+  return clamp(sel, 0, 1);
+}
+
+function computeAlpha() {
+  // Separation factor α: literature public range ~2–20 under good conditions
+  // Base from selectivity + condensation contrast + learned gate microarray
+  const sel = S.selectivity;
+  const cool = clamp((120 - S.jetTemp) / 80, 0, 1.2);
+  const maserBoost = S.maserOn ? (1 + 0.35 * S.polEfficiency * clamp(S.polField / 0.8, 0, 1.2)
+    * (1 - Math.abs(S.maserFreq - 1420) / 1200)) : 1;
+  const ionBoost = S.ionOn ? (1 + 0.15 * S.chargeDensity * clamp(S.ionVoltage / 2, 0, 1.5)) : 1;
+  // Cascade microarray boost (measured from segment routing — GBDT residual stages)
+  const skimOpt = 1 - Math.abs(S.skimmerPos - 0.55) * 0.8;
+  const fieldScale = clamp(S.gateB / 1.2, 0, 1) * 0.5 + clamp(S.gateE / 25, 0, 1) * 0.5;
+  const arrayBoost = 1 + 0.55 * (S.arrayBoost - 1) * fieldScale * skimOpt
+    + 0.12 * fieldScale * skimOpt; // residual open-loop field assist
+  // Mill quality affects conversion uniformity upstream
+  const millQ = clamp(1 - Math.abs(S.millMesh - 40) / 80, 0.5, 1)
+    * clamp(S.millRpm / 2000, 0.4, 1.1);
+  const fOpt = clamp(1 - Math.abs(S.reactorT - 450) / 300, 0.4, 1)
+    * clamp(S.f2Flow / 70, 0.3, 1.1);
+  S.conversion = clamp(0.55 * fOpt * millQ + 0.3, 0.3, 0.98);
+
+  let alpha = 1 + sel * cool * 12 * maserBoost * ionBoost * arrayBoost;
+  alpha = 1 + (alpha - 1) * S.conversion;
+  return clamp(alpha, 1, 22);
+}
+
+function computeCut() {
+  // Product cut from skimmer + fraction of segments routed to product lanes
+  const base = 0.08 + S.skimmerPos * 0.35;
+  const laneCh = clamp(S.nLanes / 10, 0.5, 1.25);
+  const route = clamp(0.55 + 0.35 * (S.arrayProductFrac - S.arrayTailsFrac), 0.4, 1.15);
+  return clamp(base * laneCh * route * (0.7 + 0.3 * S.selectivity), 0.02, 0.55);
+}
+
+// ── Math helpers for RL ──
+function sigmoid(x) { return 1 / (1 + Math.exp(-clamp(x, -20, 20))); }
+function dot(a, b) {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+  return s;
+}
+
+function ensureGateGeometry() {
+  // Rebuild if user changed cascade depth / lane count
+  const ns = Math.floor(clamp(S.nStages, 2, 8));
+  const nl = Math.floor(clamp(S.nLanes, 4, 12));
+  if (S.gates.length !== ns || (S.gates[0] && S.gates[0].duty.length !== nl) || !S.rlWeights) {
+    S.nStages = ns;
+    S.nLanes = nl;
+    S.jetArray = nl;
+    const oldW = S.rlWeights;
+    initMicroarray();
+    // try to carry over overlapping weights
+    if (oldW) {
+      for (let s = 0; s < Math.min(ns, oldW.length); s++) {
+        for (let i = 0; i < Math.min(nl, oldW[s].length); i++) {
+          for (let f = 0; f < N_FEAT; f++) S.rlWeights[s][i][f] = oldW[s][i][f];
+        }
+      }
+    }
+  }
+}
+
+// Feature vector φ for gate (stage s, lane i) — what the RL policy sees
+function gateFeatures(s, i, laneStats) {
+  const g = S.gates[s];
+  const ls = laneStats[i] || { dens: 0, est: S.feedAssay, excited: 0, maser: 0, priority: 0 };
+  // residual enrichment signal after previous stages (GBDT-style)
+  const residual = clamp((ls.est - S.feedAssay) / Math.max(S.feedAssay, 1e-4), -2, 4);
+  const stageProg = s / Math.max(S.nStages - 1, 1);
+  return [
+    1.0,                                              // bias
+    ls.dens,                                          // local segment density
+    residual,                                         // estimated residual U235 contrast
+    ls.excited,                                       // laser-excited fraction in lane
+    ls.maser,                                         // maser-tagged fraction
+    ls.priority,                                      // CV target priority
+    stageProg,                                        // cascade depth position
+    g.kind === 'B' ? S.gateB / 2 : S.gateE / 40,     // field scale available
+  ];
+}
+
+function laneStatistics() {
+  // Aggregate fluid segments into per-lane sensor features
+  const stats = [];
+  for (let i = 0; i < S.nLanes; i++) {
+    stats.push({ dens: 0, est: S.feedAssay, excited: 0, maser: 0, priority: 0, n: 0, sumEst: 0 });
+  }
+  S.segments.forEach(seg => {
+    const i = clamp(Math.floor(seg.y * S.nLanes), 0, S.nLanes - 1);
+    const st = stats[i];
+    st.n++;
+    st.sumEst += seg.estU235;
+    st.excited += seg.laserExcited ? 1 : 0;
+    st.maser += seg.maserTagged ? 1 : 0;
+    const tr = S.tracks[seg.trackId];
+    if (tr) st.priority = Math.max(st.priority, tr.priority);
+  });
+  const maxN = Math.max(1, ...stats.map(s => s.n));
+  stats.forEach(st => {
+    st.dens = st.n / maxN;
+    st.est = st.n ? st.sumEst / st.n : S.feedAssay;
+    st.excited = st.n ? st.excited / st.n : 0;
+    st.maser = st.n ? st.maser / st.n : 0;
+  });
+  return stats;
+}
+
+function spawnFluidSegment() {
+  // True isotope: natural mix with slight filament variance; laser-excited mostly 235
+  const base = S.feedAssay;
+  const filament = base * (0.7 + Math.random() * 0.9); // local enrichment filaments
+  const trueU = clamp(filament + (Math.random() - 0.5) * 0.002, 0.001, 0.05);
+  const excited = S.laserOn && Math.random() < S.selectivity * (0.5 + trueU / base);
+  const clustered = !excited && Math.random() < 0.65;
+  const y0 = 0.5 + (Math.random() - 0.5) * 0.55;
+  const seg = {
+    id: S.nextSegId++,
+    trackId: 0,
+    x: 0.02 + Math.random() * 0.04,
+    y: clamp(y0, 0.05, 0.95),
+    vx: 0.012 + Math.random() * 0.006,
+    vy: (Math.random() - 0.5) * 0.002,
+    trueU235: trueU,
+    estU235: trueU,
+    laserExcited: excited,
+    maserTagged: false,
+    clustered,
+    stageSeen: -1,
+    product: null,
+    life: 1,
+    senseConf: 0,
+  };
+  S.segments.push(seg);
+  return seg;
+}
+
+function senseSegments(dt) {
+  // Laser / maser excited sensing + fluid segment identification
+  let hits = 0;
+  const laserOn = S.laserSenseOn && S.plantOn;
+  const maserOn = S.maserSenseOn && S.plantOn;
+  const lLockT = laserOn ? clamp(0.4 + 0.55 * (S.laserSensePwr / 100) * (0.5 + S.selectivity), 0, 1) : 0;
+  const mLockT = maserOn ? clamp(0.35 + 0.5 * (S.maserSensePwr / 100) * (S.maserOn ? S.polEfficiency : 0.25), 0, 1) : 0;
+  S.laserSenseLock = lerp(S.laserSenseLock, lLockT, 0.08);
+  S.maserSenseLock = lerp(S.maserSenseLock, mLockT, 0.08);
+
+  S.segments.forEach(seg => {
+    // Base noisy assay estimate
+    let noise = S.senseNoise;
+    let conf = 0.25;
+    if (laserOn && seg.laserExcited) {
+      // laser-excited readout: selective fluorescence/IR absorption proxy
+      noise *= 0.25 + 0.35 * (1 - S.laserSenseLock);
+      conf += 0.45 * S.laserSenseLock * (S.laserSensePwr / 100);
+      hits++;
+    }
+    if (maserOn) {
+      // maser spin-tag improves track continuity & velocity estimate
+      if (Math.random() < 0.15 * (S.maserSensePwr / 100) * S.maserSenseLock) {
+        seg.maserTagged = true;
+        hits++;
+      }
+      if (seg.maserTagged) {
+        noise *= 0.55;
+        conf += 0.25 * S.maserSenseLock;
+      }
+    }
+    if (S.cvOn) conf += 0.15 * S.trackLock * S.cvGain;
+    conf = clamp(conf, 0.1, 0.98);
+    seg.senseConf = lerp(seg.senseConf, conf, 0.2);
+    const n = (Math.random() - 0.5) * 2 * noise * seg.trueU235;
+    const meas = clamp(seg.trueU235 + n, 0.0005, 0.1);
+    seg.estU235 = lerp(seg.estU235, meas, 0.15 + 0.5 * conf);
+
+    // Track association: nearest active track or new ID
+    if (S.cvOn && seg.trackId === 0 && Math.random() < 0.3 * S.cvGain) {
+      let best = null, bestD = 0.08;
+      for (const id of Object.keys(S.tracks)) {
+        const tr = S.tracks[id];
+        if (tr.life < 0.1) continue;
+        const d = Math.hypot(tr.x - seg.x, tr.y - seg.y);
+        if (d < bestD) { bestD = d; best = tr; }
+      }
+      if (best) {
+        seg.trackId = best.id;
+        best.hits++;
+        best.x = seg.x; best.y = seg.y;
+        best.estU235 = lerp(best.estU235, seg.estU235, 0.3);
+        best.life = 1;
+        best.excited = seg.laserExcited;
+        best.maser = seg.maserTagged;
+      } else if (Object.keys(S.tracks).length < 40) {
+        const id = S.nextTrackId++;
+        seg.trackId = id;
+        S.tracks[id] = {
+          id, x: seg.x, y: seg.y, estU235: seg.estU235,
+          hits: 1, life: 1, priority: 0,
+          excited: seg.laserExcited, maser: seg.maserTagged,
+        };
+      }
+    } else if (seg.trackId && S.tracks[seg.trackId]) {
+      const tr = S.tracks[seg.trackId];
+      tr.x = seg.x; tr.y = seg.y;
+      tr.estU235 = lerp(tr.estU235, seg.estU235, 0.25);
+      tr.life = 1;
+      tr.excited = seg.laserExcited;
+      tr.maser = seg.maserTagged;
+      tr.hits++;
+    }
+  });
+
+  // Priority = estimated enrichment × confidence × excitation (target high-235 filaments)
+  Object.values(S.tracks).forEach(tr => {
+    tr.life -= dt * 0.2;
+    tr.priority = clamp(
+      (tr.estU235 / Math.max(S.feedAssay, 1e-4)) * (tr.excited ? 1.4 : 0.7) * (tr.maser ? 1.15 : 1)
+        * clamp(tr.hits / 8, 0.3, 1.5),
+      0, 3
+    );
+  });
+  // Drop dead tracks
+  for (const id of Object.keys(S.tracks)) {
+    if (S.tracks[id].life <= 0) delete S.tracks[id];
+  }
+  // Target queue: top-priority tracks for gate aiming
+  S.targetQueue = Object.values(S.tracks)
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 12)
+    .map(t => t.id);
+
+  S.senseHits = lerp(S.senseHits, hits / Math.max(dt, 0.016), 0.2);
+  // legacy CV targets for simple viz compatibility
+  if (S.cvOn && S.targets.length < 16) {
+    const top = Object.values(S.tracks).slice(0, 3);
+    top.forEach(tr => {
+      S.targets.push({
+        x: tr.x, y: tr.y, life: 1,
+        excited: tr.excited, trackId: tr.id, est: tr.estU235, priority: tr.priority,
+      });
+    });
+  }
+  S.targets.forEach(t => {
+    t.life -= dt * 0.2;
+    if (t.trackId && S.tracks[t.trackId]) {
+      t.x = S.tracks[t.trackId].x;
+      t.y = S.tracks[t.trackId].y;
+    }
+  });
+  S.targets = S.targets.filter(t => t.life > 0);
+}
+
+function stepGateCascade(dt) {
+  // Cascading B/E microarray: each stage is a weak residual learner (GBDT metaphor)
+  // Active switches deflect segments transversely; product collects at outer radius
+  const stageW = 1 / (S.nStages + 1);
+  let productU = 0, productN = 0, tailsU = 0, tailsN = 0;
+
+  S.segments.forEach(seg => {
+    const stage = Math.floor(seg.x / stageW) - 1; // stages start after inlet
+    if (stage >= 0 && stage < S.nStages && stage !== seg.stageSeen) {
+      seg.stageSeen = stage;
+      const g = S.gates[stage];
+      const lane = clamp(Math.floor(seg.y * S.nLanes), 0, S.nLanes - 1);
+      const sw = g.switches[lane];
+      const duty = g.duty[lane];
+      if (sw || duty > 0.2) {
+        // Deflection strength: residual gain shrinks down the cascade (boosting)
+        const field = g.kind === 'B'
+          ? S.gateB * (0.4 + 0.6 * duty) * g.residualGain
+          : (S.gateE / 25) * (0.4 + 0.6 * duty) * g.residualGain;
+        // Excited / high-est monomers kick outward; clusters stay near axis
+        const estBias = (seg.estU235 - S.feedAssay) / Math.max(S.feedAssay, 1e-4);
+        const wantOut = seg.laserExcited || estBias > 0.15 || (seg.maserTagged && estBias > 0);
+        const dir = wantOut ? (seg.y < 0.5 ? -1 : 1) : (seg.y < 0.5 ? 1 : -1) * 0.35;
+        // true physics uses trueU but imperfect policy uses est — mismatch = learning signal
+        const truthKick = (seg.trueU235 > S.feedAssay ? 1 : -0.5) * (seg.laserExcited ? 1.2 : 0.6);
+        const policyKick = wantOut ? 1 : -0.4;
+        const kick = field * (0.55 * policyKick + 0.45 * truthKick) * dir * 0.04;
+        seg.vy += kick;
+        if (g.kind === 'E' && S.ionOn && seg.laserExcited) {
+          seg.vy += dir * 0.008 * S.chargeDensity * duty;
+        }
+      }
+    }
+    // Free-stream monomer diffusion (SILEX core)
+    if (seg.laserExcited) {
+      seg.vy += (seg.y < 0.5 ? -1 : 1) * 0.0009 * S.selectivity;
+      seg.vx *= 1.0005;
+    } else if (seg.clustered) {
+      seg.vy *= 0.97;
+      // gentle return to axis
+      seg.vy += (0.5 - seg.y) * 0.0015;
+    }
+    seg.x += seg.vx * (S.thru / 50) * dt * 18;
+    seg.y = clamp(seg.y + seg.vy * (S.thru / 50) * dt * 18, 0.02, 0.98);
+    seg.vy *= 0.96;
+    seg.life -= dt * 0.02;
+
+    // Skimmer decision at end of cascade
+    if (seg.x >= 0.92 && seg.product === null) {
+      const r = Math.abs(seg.y - 0.5) * 2; // 0 axis → 1 rim
+      seg.product = r > (1 - S.skimmerPos * 0.85);
+      if (seg.product) { productU += seg.trueU235; productN++; }
+      else { tailsU += seg.trueU235; tailsN++; }
+    }
+  });
+
+  // Remove finished / dead segments
+  S.segments = S.segments.filter(s => {
+    if (s.life <= 0 || s.x >= 1.05) return false;
+    if (s.product !== null && s.x > 0.97) return false;
+    return true;
+  });
+
+  if (productN + tailsN > 4) {
+    const pMean = productN ? productU / productN : S.feedAssay;
+    const tMean = tailsN ? tailsU / tailsN : S.feedAssay;
+    S.arrayProductFrac = lerp(S.arrayProductFrac, pMean / Math.max(S.feedAssay, 1e-6), 0.12);
+    S.arrayTailsFrac = lerp(S.arrayTailsFrac, tMean / Math.max(S.feedAssay, 1e-6), 0.12);
+    // Separation quality: product/tails contrast (measured reward signal)
+    const contrast = clamp((pMean - tMean) / Math.max(S.feedAssay, 1e-6), 0, 8);
+    S.arrayBoost = lerp(S.arrayBoost, 1 + contrast * 0.45, 0.1);
+  }
+}
+
+function computeSenseGateEnergy(switchFlips) {
+  const activeSw = S.gates.reduce((a, g) => a + g.switches.reduce((b, v) => b + v, 0), 0);
+  const dutySum = S.gates.reduce((a, g) => a + g.duty.reduce((b, v) => b + v, 0), 0);
+  const n = Math.max(S.nStages * S.nLanes, 1);
+  const switchKW = 0.35 * activeSw + 0.08 * dutySum + 1.2 * switchFlips;
+  const bKW = 4.5 * S.gateB * (0.3 + 0.7 * dutySum / n);
+  const eKW = 0.18 * S.gateE * (0.3 + 0.7 * dutySum / n);
+  S.gateEnergyKW = S.plantOn ? switchKW + bKW + eKW : 0;
+  S.senseEnergyKW = S.plantOn ? (
+    (S.laserSenseOn ? 6 * (S.laserSensePwr / 100) * (0.4 + 0.6 * S.laserSenseLock) : 0)
+    + (S.maserSenseOn ? 4 * (S.maserSensePwr / 100) * (0.4 + 0.6 * S.maserSenseLock) : 0)
+    + (S.cvOn ? 1.5 * S.cvGain : 0)
+  ) : 0;
+  return { activeSw, dutySum, switchFlips };
+}
+
+function stepRLController(dt) {
+  // Policy-gradient RL: reward = measured isotopic separation − energy costs
+  let switchFlips = 0;
+
+  if (!S.rlOn || S.manualGates || !S.plantOn) {
+    // open-loop / manual: gentle duty animation from global B/E profile
+    S.gates.forEach((g) => {
+      for (let i = 0; i < S.nLanes; i++) {
+        const base = 0.3 + 0.4 * (i / Math.max(S.nLanes - 1, 1));
+        g.prevSwitches[i] = g.switches[i];
+        g.duty[i] = lerp(g.duty[i], base, 0.05);
+        const nsw = g.duty[i] > 0.5 ? 1 : 0;
+        if (nsw !== g.switches[i]) switchFlips++;
+        g.switches[i] = nsw;
+      }
+    });
+    S.gateSwitchEvents = lerp(S.gateSwitchEvents, switchFlips / Math.max(dt, 0.016), 0.25);
+    computeSenseGateEnergy(switchFlips);
+    S.rlReward = 0;
+    return;
+  }
+
+  const laneStats = laneStatistics();
+  const phiAll = [];
+  const actAll = [];
+
+  for (let s = 0; s < S.nStages; s++) {
+    phiAll[s] = [];
+    actAll[s] = [];
+    for (let i = 0; i < S.nLanes; i++) {
+      const phi = gateFeatures(s, i, laneStats);
+      phiAll[s][i] = phi;
+      let logit = dot(S.rlWeights[s][i], phi);
+      // exploration noise
+      if (S.rlTrain && Math.random() < S.rlEpsilon) {
+        logit += (Math.random() - 0.5) * 2.5;
+      }
+      let duty = sigmoid(logit);
+      // bias outer lanes when high-priority targets present
+      const topPri = laneStats[i].priority;
+      duty = clamp(duty + 0.08 * topPri * (i < 2 || i >= S.nLanes - 2 ? 1 : 0.3), 0.02, 0.98);
+      actAll[s][i] = duty;
+
+      const g = S.gates[s];
+      g.prevSwitches[i] = g.switches[i];
+      g.duty[i] = lerp(g.duty[i], duty, 0.35);
+      const nsw = g.duty[i] > 0.5 ? 1 : 0;
+      if (nsw !== g.switches[i]) switchFlips++;
+      g.switches[i] = nsw;
+    }
+  }
+
+  S.gateSwitchEvents = lerp(S.gateSwitchEvents, switchFlips / Math.max(dt, 0.016), 0.25);
+  computeSenseGateEnergy(switchFlips);
+
+  // Measured isotopic separation reward
+  const sep = clamp(S.arrayBoost - 1, 0, 4);
+  const sepRate = clamp((S.alpha - 1) / 12, 0, 1.5);
+  const energyNorm = (S.gateEnergyKW + S.senseEnergyKW) / 80;
+  const reward = sep * 1.4 + sepRate * 0.6 - S.rlEnergyW * energyNorm - 0.02 * switchFlips;
+  S.rlReward = reward;
+  S.rlRewardSmooth = lerp(S.rlRewardSmooth, reward, 0.08);
+  S.rlBaseline = lerp(S.rlBaseline, reward, 0.04);
+  const adv = reward - S.rlBaseline;
+
+  // REINFORCE-style linear policy update on duties
+  if (S.rlTrain && S.rlLastPhi && S.rlLastAct) {
+    const lr = S.rlLr;
+    for (let s = 0; s < S.nStages; s++) {
+      for (let i = 0; i < S.nLanes; i++) {
+        if (!S.rlLastPhi[s] || !S.rlLastPhi[s][i]) continue;
+        const phi = S.rlLastPhi[s][i];
+        const a = S.rlLastAct[s][i];
+        const mu = sigmoid(dot(S.rlWeights[s][i], phi));
+        const gradScale = (a - mu) * adv * lr;
+        for (let f = 0; f < N_FEAT; f++) {
+          S.rlWeights[s][i][f] += gradScale * phi[f];
+          S.rlWeights[s][i][f] = clamp(S.rlWeights[s][i][f], -4, 4);
+        }
+      }
+    }
+    S.rlLoss = lerp(S.rlLoss, Math.abs(adv), 0.1);
+  }
+
+  S.rlLastPhi = phiAll;
+  S.rlLastAct = actAll;
+  S.rlEpisode += dt;
+
+  if (Math.floor(S.time * 2) !== Math.floor((S.time - dt) * 2)) {
+    S.rlHist.push(S.rlRewardSmooth);
+    S.rlSepHist.push(S.arrayBoost);
+    S.rlEnergyHist.push(S.gateEnergyKW + S.senseEnergyKW);
+    if (S.rlHist.length > 100) {
+      S.rlHist.shift(); S.rlSepHist.shift(); S.rlEnergyHist.shift();
+    }
+  }
+}
+
+function swuOf(F, P, T, xf, xp, xt) {
+  // Approximate separative work (kg SWU)
+  const V = x => (1 - 2 * x) * Math.log((1 - x) / Math.max(x, 1e-9));
+  if (P <= 0 || F <= 0) return 0;
+  return Math.max(0, P * V(xp) + T * V(xt) - F * V(xf));
+}
+
+function stepPhysics(dt) {
+  // dt in simulation-seconds (we run ~1 sim-second per real second when thru=50)
+  if (!S.running) return;
+
+  ensureGateGeometry();
+
+  // Market walk
+  S.marketShock *= 0.995;
+  S.swuPrice += (Math.random() - 0.5) * 0.4 + S.marketShock * 0.1;
+  S.swuPrice = clamp(S.swuPrice, 55, 250);
+  S.productPrice = 1800 + S.swuPrice * 8 + (S.productAssay * 100 - 0.72) * 220;
+  S.feedPrice += (Math.random() - 0.5) * 0.15;
+  S.feedPrice = clamp(S.feedPrice, 40, 160);
+
+  // Auto-tune laser to Q-branch
+  if (S.autoTune && S.plantOn) {
+    S.wavenumber = lerp(S.wavenumber, 628.3, 0.08);
+    if (S.view === 'laser') {
+      const el = document.getElementById('r-wavenumber');
+      if (el) { el.value = S.wavenumber; document.getElementById('v-wavenumber').textContent = S.wavenumber.toFixed(2) + ' cm⁻¹'; }
+    }
+  }
+
+  // CV track lock dynamics
+  if (S.cvOn && S.laserOn && S.plantOn) {
+    const target = 0.55 + 0.4 * S.selectivity + 0.15 * S.laserSenseLock + 0.1 * S.maserSenseLock;
+    S.trackLock = lerp(S.trackLock, clamp(target, 0, 1), 0.05 * (0.5 + S.cvGain));
+  } else {
+    S.trackLock = lerp(S.trackLock, 0, 0.05);
+  }
+
+  // Gate program mirror of first-stage duties (legacy sparkline)
+  if (S.gates[0]) {
+    for (let i = 0; i < S.gateProgram.length; i++) {
+      S.gateProgram[i] = S.gates[0].duty[i % S.nLanes];
+    }
+  }
+
+  // ── Fluid segments: spawn → sense → RL gates → cascade routing ──
+  if (S.plantOn && S.feedStock > 0.01) {
+    const spawnRate = 18 * (S.thru / 50);
+    let budget = spawnRate * dt + (Math.random() < (spawnRate * dt) % 1 ? 1 : 0);
+    while (budget > 0 && S.segments.length < 140) {
+      spawnFluidSegment();
+      budget -= 1;
+    }
+    if (S.segments.length < 35) {
+      for (let k = 0; k < 4; k++) spawnFluidSegment();
+    }
+  }
+
+  S.selectivity = computeSelectivity();
+  senseSegments(dt);
+  stepRLController(dt);
+  stepGateCascade(dt);
+  S.alpha = computeAlpha();
+  S.cut = computeCut();
+
+  // Power draw (includes sensor + microarray switch energy)
+  const laserKW = S.laserOn ? 80 * (S.laserPower / 100) * (S.repRate / 30) : 0;
+  const maserKW = S.maserOn ? 12 * S.polField : 0;
+  const ionKW = S.ionOn ? 8 * S.ionVoltage : 0;
+  const millKW = S.plantOn ? 15 * (S.millRpm / 2000) : 0;
+  const fluoroKW = S.plantOn ? 25 * (S.reactorT / 450) * (S.f2Flow / 100) : 0;
+  const gateKW = S.plantOn ? S.gateEnergyKW : 0;
+  const senseKW = S.plantOn ? S.senseEnergyKW : 0;
+  S.powerKW = laserKW + maserKW + ionKW + millKW + fluoroKW + gateKW + senseKW + (S.plantOn ? 10 : 2);
+
+  // Energy cost
+  const kWh = S.powerKW * (dt / 3600);
+  const eCost = kWh * S.powerCost * 50; // scale for game pace
+  S.energyToday += eCost;
+  S.costToday += eCost;
+  S.cash -= eCost;
+
+  // Production only if plant on and feed available
+  if (S.plantOn && S.feedStock > 0.01) {
+    const capacityKgPerSec = 0.008 * (S.thru / 50); // game-scaled
+    const feedUse = capacityKgPerSec * dt * S.conversion;
+    if (feedUse > 0 && S.feedStock >= feedUse) {
+      S.feedStock -= feedUse;
+      const F = feedUse;
+      const theta = S.cut;
+      const P = F * theta;
+      const T = F - P;
+      const xf = S.feedAssay;
+      const a = S.alpha;
+      let xp = xf * a / (theta * (a - 1) + 1);
+      xp = clamp(xp, xf, 0.08);
+      let xt = (F * xf - P * xp) / Math.max(T, 1e-9);
+      xt = clamp(xt, 0.001, xf);
+
+      S.productAssay = lerp(S.productAssay, xp, 0.15);
+      S.tailsAssay = lerp(S.tailsAssay, xt, 0.15);
+
+      S.productKg += P;
+      S.tailsKg += T;
+
+      const dSWU = swuOf(F, P, T, xf, S.productAssay, S.tailsAssay);
+      S.swuToday += dSWU;
+      S.swuRate = dSWU / Math.max(dt, 1e-6) * 3600;
+
+      S.millWear = clamp(S.millWear + dt * 0.001 * (S.millRpm / 2000), 0, 1);
+    }
+  } else {
+    S.swuRate = lerp(S.swuRate, 0, 0.1);
+    S.arrayBoost = lerp(S.arrayBoost, 1, 0.02);
+  }
+
+  // Day cycle ~90 real seconds
+  S.dtAcc += dt;
+  if (S.dtAcc > 90) {
+    S.dtAcc = 0;
+    S.day++;
+    const pnl = S.cash - S.dayStartCash;
+    log(`── Day ${S.day} ── P&L $${pnl.toFixed(0)} | SWU ${S.swuToday.toFixed(2)} | assay ${(S.productAssay*100).toFixed(2)}% | RL R̃ ${S.rlRewardSmooth.toFixed(2)}`, 'info');
+    S.dayStartCash = S.cash;
+    S.swuToday = 0;
+    S.revenueToday = 0;
+    S.costToday = 0;
+    S.energyToday = 0;
+    if (!S.plantOn) S.millWear = Math.max(0, S.millWear - 0.05);
+  }
+
+  // Histories
+  if (Math.floor(S.time * 2) !== Math.floor((S.time - dt) * 2)) {
+    S.priceHist.push(S.swuPrice);
+    S.cashHist.push(S.cash);
+    S.assayHist.push(S.productAssay * 100);
+    if (S.priceHist.length > 120) { S.priceHist.shift(); S.cashHist.shift(); S.assayHist.shift(); }
+  }
+
+  // Particles for laser-jet viz (mirror of fluid segments)
+  if (S.plantOn && S.particles.length < 180) {
+    for (let i = 0; i < 3; i++) {
+      const excited = S.laserOn && Math.random() < S.selectivity * 0.85;
+      S.particles.push({
+        x: 0.12 + Math.random() * 0.04,
+        y: 0.48 + (Math.random() - 0.5) * 0.06,
+        vx: 0.0035 + Math.random() * 0.002,
+        vy: (Math.random() - 0.5) * 0.001,
+        excited,
+        clustered: !excited && Math.random() < 0.7,
+        r: excited ? 1.6 : 2.2,
+        life: 1,
+      });
+    }
+  }
+  S.particles.forEach(p => {
+    if (p.excited) {
+      p.vy += (p.y < 0.5 ? -1 : 1) * 0.00008 * (0.5 + S.selectivity);
+      p.vx *= 1.001;
+    } else if (p.clustered) {
+      p.vy *= 0.98;
+      p.vx *= 0.999;
+    }
+    if (S.ionOn && p.excited) {
+      p.vy += (Math.random() - 0.3) * 0.00005 * S.ionVoltage;
+    }
+    // microarray residual nudge from stage-average duty
+    if (S.gates.length) {
+      const mid = S.gates[Math.min(2, S.gates.length - 1)];
+      const lane = clamp(Math.floor(p.y * S.nLanes), 0, S.nLanes - 1);
+      if (mid.switches[lane] && p.excited) {
+        p.vy += (p.y < 0.5 ? -1 : 1) * 0.00004 * mid.duty[lane];
+      }
+    }
+    p.x += p.vx * (S.thru / 40);
+    p.y += p.vy * (S.thru / 40);
+    p.life -= 0.004;
+  });
+  S.particles = S.particles.filter(p => p.life > 0 && p.x < 1.05);
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAW HELPERS
+// ═══════════════════════════════════════════════════════
+function cssW() { return canvas.clientWidth; }
+function cssH() { return canvas.clientHeight; }
+
+function clearStage() {
+  const W = cssW(), H = cssH();
+  ctx.fillStyle = '#040a04';
+  ctx.fillRect(0, 0, W, H);
+  // subtle grid
+  ctx.strokeStyle = 'rgba(40,80,40,0.25)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 32) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 32) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  return { W, H };
+}
+
+function panel(x, y, w, h, title) {
+  ctx.fillStyle = '#0a160a';
+  ctx.strokeStyle = '#2a4a2a';
+  ctx.lineWidth = 2;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = '#1a301a';
+  ctx.fillRect(x, y, w, 18);
+  ctx.fillStyle = '#40c8c8';
+  ctx.font = '10px "Press Start 2P", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(title, x + 6, y + 13);
+}
+
+function sparkline(x, y, w, h, data, color) {
+  if (!data.length) return;
+  const min = Math.min(...data), max = Math.max(...data);
+  const span = max - min || 1;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const px = x + (i / (data.length - 1 || 1)) * w;
+    const py = y + h - ((v - min) / span) * h;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+}
+
+function areaChart(x, y, w, h, data, stroke, fill) {
+  if (!data || data.length < 2) return;
+  const min = Math.min(...data), max = Math.max(...data);
+  const span = max - min || 1;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const px = x + (i / (data.length - 1)) * w;
+    const py = y + h - ((v - min) / span) * h;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.closePath();
+  ctx.globalAlpha = 0.2;
+  ctx.fillStyle = fill || stroke;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function barMeter(x, y, w, h, frac, color, label) {
+  ctx.fillStyle = '#061006';
+  ctx.strokeStyle = '#2a4a2a';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeRect(x, y, w, h);
+  const fw = Math.max(0, Math.min(1, frac)) * (w - 4);
+  ctx.fillStyle = color;
+  ctx.fillRect(x + 2, y + 2, fw, h - 4);
+  if (label) text(label, x + w + 6, y + h - 2, '#5a8a5a', 12);
+}
+
+function donut(cx, cy, R, frac, color, bg) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = bg || '#1a301a';
+  ctx.lineWidth = 10;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(frac, 0, 1));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 10;
+  ctx.stroke();
+}
+
+function text(s, x, y, color='#9ec89e', size=14, align='left') {
+  ctx.fillStyle = color;
+  ctx.font = size + 'px VT323, monospace';
+  ctx.textAlign = align;
+  ctx.fillText(s, x, y);
+}
+
+// ── View drawers ──
+function drawFinance(W, H) {
+  panel(12, 12, W - 24, H - 24, 'FINANCIAL CONSOLE');
+  const pnl = S.cash - S.dayStartCash;
+
+  // Cash donut + inventory bars (diagrams over raw tables)
+  donut(90, 95, 42, clamp(S.cash / 500000, 0, 1), '#e8c040');
+  text(fmtMoney(S.cash), 90, 92, '#e8c040', 16, 'center');
+  text('CASH', 90, 110, '#5a8a5a', 12, 'center');
+
+  text(`Day ${S.day}`, 160, 55, '#5a8a5a', 14);
+  text(`P&L ${fmtMoney(pnl)}`, 160, 78, pnl >= 0 ? '#40c860' : '#c84040', 20);
+  text(`Rev ${fmtMoney(S.revenueToday)}  ·  Cost ${fmtMoney(S.costToday)}`, 160, 100, '#9ec89e', 14);
+  text(`${S.swuRate.toFixed(1)} SWU/h  ·  α ${S.alpha.toFixed(2)}  ·  η ${(S.selectivity*100).toFixed(0)}%`, 160, 122, '#40c8c8', 14);
+
+  // Inventory stack diagram
+  const ix = W - 200, iy = 40;
+  panel(ix - 8, iy - 8, 180, 110, 'INVENTORY');
+  barMeter(ix, iy + 28, 120, 12, clamp(S.feedStock / 200, 0, 1), '#a88840', S.feedStock.toFixed(0) + ' kg feed');
+  barMeter(ix, iy + 52, 120, 12, clamp(S.productKg / 25, 0, 1), '#c848c8', S.productKg.toFixed(2) + ' kg LEU');
+  barMeter(ix, iy + 76, 120, 12, clamp(S.tailsKg / 80, 0, 1), '#608050', S.tailsKg.toFixed(1) + ' kg tails');
+
+  const chartH = Math.min(100, (H - 200) / 2);
+  panel(28, 160, W - 56, chartH + 30, 'CASH HISTORY');
+  areaChart(40, 188, W - 80, chartH - 10, S.cashHist, '#e8c040');
+
+  const half = (W - 70) / 2;
+  const y2 = 160 + chartH + 40;
+  panel(28, y2, half, chartH + 30, 'SWU SPOT $/SWU');
+  areaChart(40, y2 + 28, half - 30, chartH - 10, S.priceHist, '#40c8c8');
+  text('$' + S.swuPrice.toFixed(1), 40, y2 + chartH + 22, '#40c8c8', 14);
+
+  panel(40 + half, y2, half, chartH + 30, 'PRODUCT ASSAY %');
+  areaChart(52 + half, y2 + 28, half - 30, chartH - 10, S.assayHist, '#c848c8');
+  text((S.productAssay * 100).toFixed(3) + '% ²³⁵U', 52 + half, y2 + chartH + 22, '#c848c8', 14);
+}
+
+function drawFeed(W, H) {
+  panel(12, 12, W - 24, H - 24, 'RAW MATERIAL INPUT — UNENRICHED STOCK');
+  // cylinders with flow arrow into plant
+  for (let i = 0; i < 4; i++) {
+    const x = 40 + i * 90;
+    const fill = clamp(S.feedStock / 40 - i, 0, 1);
+    ctx.fillStyle = '#1a2810';
+    ctx.fillRect(x, 70, 60, 150);
+    ctx.strokeStyle = '#3a5a2a';
+    ctx.strokeRect(x, 70, 60, 150);
+    ctx.fillStyle = '#a88840';
+    ctx.fillRect(x + 4, 70 + 150 * (1 - fill) + 4, 52, Math.max(0, 150 * fill - 8));
+    text(`CYL ${i + 1}`, x + 30, 240, '#5a8a5a', 13, 'center');
+    text(`${(fill * 40).toFixed(0)}kg`, x + 30, 256, '#e8c040', 13, 'center');
+  }
+
+  // Flow diagram: RAW → VALVE → MILL
+  const x0 = Math.min(W * 0.48, 400), vx = Math.min(W * 0.62, x0 + 100), vy = 120;
+  ctx.strokeStyle = '#a88840';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(x0, vy + 40); ctx.lineTo(vx, vy + 40); ctx.stroke();
+  if (S.plantOn && S.running) {
+    for (let i = 0; i < 5; i++) {
+      const t = ((S.time * 40 + i * 18) % 80) / 80;
+      const px = x0 + t * (vx - x0);
+      ctx.fillStyle = '#e8c040';
+      ctx.fillRect(px, vy + 37, 6, 6);
+    }
+  }
+  ctx.fillStyle = S.plantOn ? '#40c860' : '#604040';
+  ctx.beginPath(); ctx.arc(vx, vy + 40, 20, 0, Math.PI * 2); ctx.fill();
+  text(S.plantOn ? 'OPEN' : 'SHUT', vx, vy + 72, '#9ec89e', 13, 'center');
+  ctx.strokeStyle = '#40a0c8';
+  ctx.beginPath(); ctx.moveTo(vx + 20, vy + 40); ctx.lineTo(vx + 80, vy + 40); ctx.stroke();
+  text('→ MILL', vx + 90, vy + 44, '#40a0c8', 14);
+
+  // Assay gauge
+  const gx = W - 160, gy = H - 140;
+  donut(gx, gy, 36, S.feedAssay / 0.0072, '#a88840');
+  text((S.feedAssay * 100).toFixed(2) + '%', gx, gy + 4, '#e8c040', 14, 'center');
+  text('x_f ²³⁵U', gx, gy + 50, '#5a8a5a', 12, 'center');
+
+  text(`$${S.feedPrice.toFixed(0)}/kg  ·  stock ${S.feedStock.toFixed(1)} kg UF₆-eq`, 40, H - 36, '#9ec89e', 15);
+  text('Natural ≈ 0.72% · lower assay = cheaper but harder enrichment', 40, H - 18, '#5a8a5a', 13);
+}
+
+function drawMill(W, H) {
+  panel(12, 12, W - 24, H - 24, 'MILL / PULVERIZATION');
+  const cx = W * 0.35, cy = H * 0.5, R = Math.min(W, H) * 0.22;
+  // drum
+  ctx.strokeStyle = '#888870';
+  ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = '#3a3a28';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, R - 14, 0, Math.PI * 2); ctx.stroke();
+  // rotating lifters
+  const ang = S.time * (S.millRpm / 600) * (S.plantOn ? 1 : 0);
+  for (let i = 0; i < 6; i++) {
+    const a = ang + i * Math.PI / 3;
+    ctx.strokeStyle = '#a0a080';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * (R - 30), cy + Math.sin(a) * (R - 30));
+    ctx.lineTo(cx + Math.cos(a) * (R - 8), cy + Math.sin(a) * (R - 8));
+    ctx.stroke();
+  }
+  // particles inside
+  for (let i = 0; i < 40; i++) {
+    const a = ang * 0.7 + i * 0.7 + Math.sin(S.time + i);
+    const r = R * 0.3 + (i % 7) * R * 0.06;
+    ctx.fillStyle = i % 3 ? '#a88840' : '#c8b060';
+    ctx.fillRect(cx + Math.cos(a) * r - 2, cy + Math.sin(a) * r - 2, 4, 4);
+  }
+  text(`${S.millRpm} RPM`, cx, cy + R + 28, '#e8c040', 18, 'center');
+  text(`Target ${S.millMesh} µm · wear ${(S.millWear*100).toFixed(0)}%`, cx, cy + R + 48, '#5a8a5a', 14, 'center');
+
+  // PSD bars
+  panel(W * 0.58, 50, W * 0.36, H - 80, 'PSD');
+  const ideal = S.millMesh;
+  for (let i = 0; i < 8; i++) {
+    const size = 10 + i * 15;
+    const match = Math.exp(-Math.pow((size - ideal) / 25, 2));
+    const h = 20 + match * 80 * (S.plantOn ? 1 : 0.3);
+    const x = W * 0.62 + i * 22;
+    ctx.fillStyle = match > 0.5 ? '#40c860' : '#606040';
+    ctx.fillRect(x, H - 100 - h, 16, h);
+    text(size, x + 8, H - 82, '#5a8a5a', 11, 'center');
+  }
+  text('µm', W * 0.76, H - 60, '#5a8a5a', 14, 'center');
+}
+
+function drawFluoro(W, H) {
+  panel(12, 12, W - 24, H - 24, 'FLUORINATION  U + F₂ → UF₆');
+  // reactor vessel
+  const rx = W * 0.2, ry = 70, rw = W * 0.25, rh = H - 140;
+  ctx.fillStyle = '#0e2030';
+  ctx.strokeStyle = '#40a0c8';
+  ctx.lineWidth = 2;
+  ctx.fillRect(rx, ry, rw, rh);
+  ctx.strokeRect(rx, ry, rw, rh);
+  // heat glow
+  const glow = clamp((S.reactorT - 200) / 400, 0, 1);
+  ctx.fillStyle = `rgba(232,120,48,${0.15 + glow * 0.25})`;
+  ctx.fillRect(rx + 8, ry + 8, rw - 16, rh - 16);
+  text(`${S.reactorT} °C`, rx + rw / 2, ry + rh / 2, '#e87830', 22, 'center');
+  text(`conv ${(S.conversion*100).toFixed(0)}%`, rx + rw / 2, ry + rh / 2 + 24, '#9ec89e', 16, 'center');
+
+  // F2 inlet
+  ctx.strokeStyle = '#40c8c8';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(30, ry + 40); ctx.lineTo(rx, ry + 40); ctx.stroke();
+  text('F₂', 36, ry + 30, '#40c8c8', 16);
+  // pulsing bubbles
+  if (S.plantOn) {
+    for (let i = 0; i < 12; i++) {
+      const by = ry + rh - 20 - ((S.time * 40 + i * 30) % (rh - 40));
+      const bx = rx + 20 + (i * 37) % (rw - 40);
+      ctx.fillStyle = `rgba(64,200,200,${0.3 + 0.3 * Math.sin(S.time * 5 + i)})`;
+      ctx.beginPath(); ctx.arc(bx, by, 3 + (i % 3), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // UF6 out
+  ctx.strokeStyle = '#c8c040';
+  ctx.beginPath(); ctx.moveTo(rx + rw, ry + rh - 40); ctx.lineTo(W * 0.55, ry + rh - 40); ctx.stroke();
+  text('UF₆(g)', W * 0.48, ry + rh - 50, '#c8c040', 16);
+
+  // carrier mix
+  panel(W * 0.55, 70, W * 0.38, 140, 'CARRIER DILUTION');
+  text(`G : UF₆  =  ${S.dilution} : 1`, W * 0.58, 120, '#e8c040', 20);
+  text('Ar / N₂ / He carrier', W * 0.58, 145, '#5a8a5a', 14);
+  text(`F₂ flow ${S.f2Flow}% · jet prep for Laval nozzle`, W * 0.58, 170, '#9ec89e', 14);
+
+  panel(W * 0.55, 230, W * 0.38, H - 270, 'CHEMISTRY');
+  text('U₃O₈ / UO₂  +  F₂', W * 0.58, 270, '#9ec89e', 16);
+  text('→  UF₆(g)  +  O₂', W * 0.58, 295, '#40c860', 16);
+  text('Dilute ≈100× before', W * 0.58, 330, '#5a8a5a', 14);
+  text('supersonic expansion.', W * 0.58, 350, '#5a8a5a', 14);
+}
+
+function drawLaser(W, H) {
+  panel(12, 12, W - 24, H - 24, 'LASER IR — ν₃ SELECTIVE EXCITATION');
+  // nozzle + jet
+  const nx = 50, ny = H * 0.5;
+  ctx.fillStyle = '#2a3a2a';
+  ctx.beginPath();
+  ctx.moveTo(nx, ny - 40); ctx.lineTo(nx + 50, ny - 12);
+  ctx.lineTo(nx + 50, ny + 12); ctx.lineTo(nx, ny + 40);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#5a8a5a'; ctx.stroke();
+  text('LAVAL', nx + 8, ny - 50, '#5a8a5a', 12);
+
+  // jet envelope
+  ctx.strokeStyle = 'rgba(64,200,200,0.35)';
+  ctx.beginPath();
+  ctx.moveTo(nx + 50, ny - 12);
+  ctx.quadraticCurveTo(W * 0.5, ny - 80, W - 80, ny - 100);
+  ctx.moveTo(nx + 50, ny + 12);
+  ctx.quadraticCurveTo(W * 0.5, ny + 80, W - 80, ny + 100);
+  ctx.stroke();
+
+  // particles
+  S.particles.forEach(p => {
+    const px = p.x * (W - 100) + 60;
+    const py = (p.y - 0.5) * H * 0.7 + H * 0.5;
+    if (p.excited) {
+      ctx.fillStyle = `rgba(200,72,200,${0.5 + 0.5 * p.life})`;
+      ctx.shadowColor = '#c848c8';
+      ctx.shadowBlur = 8;
+    } else {
+      ctx.fillStyle = p.clustered ? `rgba(100,140,100,${0.4 * p.life})` : `rgba(160,160,80,${0.5 * p.life})`;
+      ctx.shadowBlur = 0;
+    }
+    ctx.beginPath();
+    ctx.arc(px, py, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  // laser beam
+  if (S.laserOn) {
+    const pulse = 0.5 + 0.5 * Math.sin(S.time * S.repRate * 0.5);
+    ctx.strokeStyle = `rgba(200,72,200,${0.35 + 0.4 * pulse * S.laserPower / 100})`;
+    ctx.lineWidth = 3 + pulse * 2;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.35, 40);
+    ctx.lineTo(W * 0.45, H * 0.5);
+    ctx.lineTo(W * 0.55, H - 40);
+    ctx.stroke();
+    // source box
+    ctx.fillStyle = '#280828';
+    ctx.fillRect(W * 0.28, 20, 80, 36);
+    ctx.strokeStyle = '#c848c8';
+    ctx.strokeRect(W * 0.28, 20, 80, 36);
+    text('16 µm', W * 0.32, 42, '#e8a0e8', 14);
+  }
+
+  // spectrum inset
+  panel(W - 220, 50, 200, 120, 'IR SPECTRUM');
+  const sx = W - 210, sy = 80, sw = 180, sh = 70;
+  ctx.strokeStyle = '#2a4a2a';
+  ctx.strokeRect(sx, sy, sw, sh);
+  // two peaks
+  for (let i = 0; i < sw; i++) {
+    const wn = 626 + (i / sw) * 4;
+    const p235 = Math.exp(-Math.pow((wn - 628.3) / 0.08, 2));
+    const p238 = Math.exp(-Math.pow((wn - 627.7) / 0.08, 2));
+    const cold = clamp((120 - S.jetTemp) / 80, 0.2, 1);
+    ctx.fillStyle = 'rgba(200,72,200,0.8)';
+    ctx.fillRect(sx + i, sy + sh - p235 * sh * cold, 1, p235 * sh * cold);
+    ctx.fillStyle = 'rgba(100,160,100,0.5)';
+    ctx.fillRect(sx + i, sy + sh - p238 * sh * cold * 0.7, 1, p238 * sh * cold * 0.7);
+  }
+  // laser line
+  const lx = sx + ((S.wavenumber - 626) / 4) * sw;
+  ctx.strokeStyle = '#e8c040';
+  ctx.beginPath(); ctx.moveTo(lx, sy); ctx.lineTo(lx, sy + sh); ctx.stroke();
+  text(`ν ${S.wavenumber.toFixed(2)}`, sx, sy + sh + 16, '#e8c040', 12);
+  text(`Δ ${S.detune >= 0 ? '+' : ''}${S.detune.toFixed(2)} cm⁻¹`, sx + 90, sy + sh + 16, '#c848c8', 12);
+
+  text(`sel ${(S.selectivity*100).toFixed(1)}%  ·  ${S.repRate} kHz  ·  P ${S.laserPower}%`, 40, H - 24, '#c848c8', 16);
+  text('Excited ²³⁵UF₆ resists clustering → free monomers migrate off-axis', 40, H - 44, '#5a8a5a', 14);
+}
+
+function drawMaser(W, H) {
+  panel(12, 12, W - 24, H - 24, 'MASER SPIN EXCITATION / POLARIZATION');
+  const cx = W * 0.4, cy = H * 0.5;
+  // field coils
+  for (let i = 0; i < 5; i++) {
+    const y = cy - 80 + i * 40;
+    ctx.strokeStyle = S.maserOn ? `rgba(200,64,128,${0.4 + 0.1 * Math.sin(S.time * 3 + i)})` : '#403040';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(cx, y, 70, 14, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  // spins
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2 + S.time * (S.maserOn ? 2 : 0.2);
+    const r = 30 + (i % 5) * 8;
+    const align = S.maserOn ? S.polEfficiency : 0.1;
+    const sx = cx + Math.cos(a) * r * 0.3;
+    const sy = cy - 60 + (i % 8) * 18;
+    const len = 12 * (0.4 + align);
+    ctx.strokeStyle = S.maserOn ? '#e080c0' : '#606060';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx + Math.sin(a * 0.5) * 4 * (1 - align), sy - len);
+    ctx.stroke();
+  }
+  text(`B = ${S.polField.toFixed(2)} T`, cx, cy + 110, '#e8c040', 18, 'center');
+  text(`f = ${S.maserFreq} MHz · η ${(S.polEfficiency*100).toFixed(0)}%`, cx, cy + 132, '#9ec89e', 14, 'center');
+
+  panel(W * 0.65, 60, W * 0.3, H - 100, 'EFFECT');
+  text('Polarized monomers', W * 0.68, 100, '#c84080', 16);
+  text('gain radial kick', W * 0.68, 122, '#c84080', 16);
+  text('in B-gradient,', W * 0.68, 144, '#5a8a5a', 14);
+  text('boosting product', W * 0.68, 166, '#5a8a5a', 14);
+  text('stream contrast.', W * 0.68, 188, '#5a8a5a', 14);
+  const boost = S.maserOn ? (1 + 0.35 * S.polEfficiency * clamp(S.polField / 0.8, 0, 1.2)) : 1;
+  text(`α multiplier ×${boost.toFixed(2)}`, W * 0.68, 230, '#40c860', 18);
+}
+
+function drawIon(W, H) {
+  panel(12, 12, W - 24, H - 24, 'IONIZATION / CHARGING');
+  // electrodes
+  const y1 = H * 0.3, y2 = H * 0.7;
+  ctx.fillStyle = S.ionOn ? '#4080c8' : '#304050';
+  ctx.fillRect(80, y1 - 8, W - 160, 10);
+  ctx.fillRect(80, y2, W - 160, 10);
+  text('+ ANODE', 90, y1 - 16, '#80b0e0', 14);
+  text('− CATHODE', 90, y2 + 28, '#80b0e0', 14);
+
+  // field lines
+  if (S.ionOn) {
+    for (let i = 0; i < 12; i++) {
+      const x = 100 + i * ((W - 200) / 11);
+      ctx.strokeStyle = `rgba(64,128,200,${0.2 + 0.15 * Math.sin(S.time * 4 + i)})`;
+      ctx.beginPath(); ctx.moveTo(x, y1 + 6); ctx.lineTo(x + Math.sin(S.time + i) * 6, y2); ctx.stroke();
+    }
+  }
+  // charged particles
+  for (let i = 0; i < 30; i++) {
+    const t = (S.time * 0.3 + i * 0.1) % 1;
+    const x = 100 + (i * 47) % (W - 200);
+    const y = y1 + 20 + t * (y2 - y1 - 40);
+    const excited = i % 3 === 0;
+    ctx.fillStyle = excited ? '#c848c8' : '#80a060';
+    if (S.ionOn && excited) {
+      ctx.beginPath(); ctx.arc(x + S.ionVoltage * 3 * Math.sin(t * 5), y, 3, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  text(`Bias ${S.ionVoltage.toFixed(2)} kV · charge dens ${(S.chargeDensity*100).toFixed(0)}%`, 80, H - 30, '#4080c8', 16);
+  text(S.ionOn ? 'E×B product steering ACTIVE' : 'Charge assist idle', 80, H - 50, S.ionOn ? '#40c860' : '#5a8a5a', 16);
+}
+
+function drawVision(W, H) {
+  panel(12, 12, W - 24, H - 24, 'LASER / MASER SENSE — FLUID SEGMENT ID · TRACK · TARGET');
+  const fx = 28, fy = 44, fw = W - 56, fh = H - 120;
+
+  // sensor status strip
+  ctx.fillStyle = '#0a1810';
+  ctx.fillRect(fx, fy, fw, 36);
+  ctx.strokeStyle = '#2a4a2a';
+  ctx.strokeRect(fx, fy, fw, 36);
+  text(`LASER SENSE ${S.laserSenseOn ? '●' : '○'} lock ${(S.laserSenseLock*100).toFixed(0)}%  P ${S.laserSensePwr}%`,
+    fx + 8, fy + 15, S.laserSenseOn ? '#c848c8' : '#5a8a5a', 14);
+  text(`MASER SENSE ${S.maserSenseOn ? '●' : '○'} lock ${(S.maserSenseLock*100).toFixed(0)}%  P ${S.maserSensePwr}%`,
+    fx + 8, fy + 30, S.maserSenseOn ? '#c84080' : '#5a8a5a', 14);
+  text(`hits/s ${S.senseHits.toFixed(0)}  noise ${(S.senseNoise*100).toFixed(0)}%  CV ${(S.trackLock*100).toFixed(0)}%`,
+    fx + fw - 8, fy + 22, '#40c8c8', 14, 'right');
+
+  // cascade track field
+  const cx = fx, cy = fy + 44, cw = fw * 0.68, ch = fh - 52;
+  ctx.strokeStyle = '#40c8c8';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cx, cy, cw, ch);
+  // stage guides
+  for (let s = 0; s <= S.nStages; s++) {
+    const x = cx + (s / (S.nStages + 1)) * cw;
+    ctx.strokeStyle = 'rgba(64,200,200,0.15)';
+    ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x, cy + ch); ctx.stroke();
+    if (s < S.nStages) {
+      const g = S.gates[s];
+      text(g ? g.kind + s : 'S' + s, x + 4, cy + 12, g && g.kind === 'B' ? '#4080c8' : '#e87830', 11);
+    }
+  }
+  // lane guides
+  for (let i = 1; i < S.nLanes; i++) {
+    const y = cy + (i / S.nLanes) * ch;
+    ctx.strokeStyle = 'rgba(40,80,40,0.35)';
+    ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + cw, y); ctx.stroke();
+  }
+
+  // fluid segments
+  S.segments.forEach(seg => {
+    const x = cx + seg.x * cw;
+    const y = cy + seg.y * ch;
+    const conf = seg.senseConf;
+    if (seg.laserExcited) {
+      ctx.fillStyle = `rgba(200,72,200,${0.45 + 0.5 * conf})`;
+      ctx.shadowColor = '#c848c8';
+      ctx.shadowBlur = 6;
+    } else if (seg.maserTagged) {
+      ctx.fillStyle = `rgba(200,64,128,${0.4 + 0.4 * conf})`;
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = seg.clustered ? `rgba(80,120,80,${0.35})` : `rgba(160,160,80,${0.45})`;
+      ctx.shadowBlur = 0;
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, seg.laserExcited ? 3.2 : 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // ID tag for tracked high-priority
+    if (seg.trackId && S.targetQueue.includes(seg.trackId)) {
+      ctx.strokeStyle = '#e8c040';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 6, y - 6, 12, 12);
+    }
+  });
+
+  // track overlays
+  Object.values(S.tracks).forEach(tr => {
+    const x = cx + tr.x * cw;
+    const y = cy + tr.y * ch;
+    const pri = tr.priority;
+    ctx.strokeStyle = `rgba(232,192,64,${0.3 + 0.5 * clamp(pri / 2, 0, 1)})`;
+    ctx.lineWidth = 1;
+    const s = 8 + pri * 3;
+    ctx.strokeRect(x - s / 2, y - s / 2, s, s);
+    text('T' + tr.id, x + s / 2 + 2, y - 2, '#e8c040', 10);
+  });
+
+  // target queue panel
+  const qx = cx + cw + 10, qy = cy, qw = fw - cw - 10, qh = ch;
+  panel(qx, qy - 18, qw, qh + 18, 'TARGET QUEUE');
+  text('rank · track · pri · est% · tags', qx + 6, qy + 14, '#5a8a5a', 12);
+  S.targetQueue.slice(0, 10).forEach((id, rank) => {
+    const tr = S.tracks[id];
+    if (!tr) return;
+    const yy = qy + 32 + rank * 18;
+    const tags = (tr.excited ? 'L' : '-') + (tr.maser ? 'M' : '-');
+    text(`${rank + 1}`, qx + 8, yy, '#e8c040', 13);
+    text(`T${id}`, qx + 28, yy, '#40c8c8', 13);
+    text(tr.priority.toFixed(2), qx + 70, yy, '#9ec89e', 13);
+    text((tr.estU235 * 100).toFixed(2), qx + 110, yy, '#c848c8', 13);
+    text(tags, qx + 155, yy, '#c84080', 13);
+  });
+  if (!S.targetQueue.length) text('(no tracks)', qx + 8, qy + 40, '#5a8a5a', 14);
+
+  text(`SEGMENTS ${S.segments.length}  TRACKS ${Object.keys(S.tracks).length}  TARGETS ${S.targetQueue.length}  ·  ID→track→priority→gate aim`,
+    fx, H - 22, '#5a8a5a', 14);
+}
+
+function drawGates(W, H) {
+  panel(12, 12, W - 24, H - 24, 'GATE MICROARRAY — CASCADING B/E SWITCHES (GBDT RESIDUAL STAGES)');
+
+  const mx = 36, my = 48, mw = W - 200, mh = H - 100;
+  // flow direction
+  text('FEED →', mx, my - 6, '#5a8a5a', 12);
+  text('→ SKIMMER', mx + mw - 70, my - 6, '#40c860', 12);
+
+  // stages as vertical gate columns
+  const stageW = mw / (S.nStages + 1);
+  for (let s = 0; s < S.nStages; s++) {
+    const g = S.gates[s];
+    const x = mx + (s + 0.55) * stageW;
+    // residual gain bar (GBDT shrinkage)
+    const rgH = g.residualGain * 40;
+    ctx.fillStyle = g.kind === 'B' ? 'rgba(64,128,200,0.25)' : 'rgba(232,120,48,0.25)';
+    ctx.fillRect(x - 18, my + mh + 4, 36, 8);
+    ctx.fillStyle = g.kind === 'B' ? '#4080c8' : '#e87830';
+    ctx.fillRect(x - 18, my + mh + 4, 36 * g.residualGain / 0.55, 8);
+
+    text(`${g.kind}${s}`, x, my - 2, g.kind === 'B' ? '#4080c8' : '#e87830', 12, 'center');
+    text(`η${g.residualGain.toFixed(2)}`, x, my + mh + 22, '#5a8a5a', 10, 'center');
+
+    // lane switches
+    for (let i = 0; i < S.nLanes; i++) {
+      const y = my + ((i + 0.5) / S.nLanes) * mh;
+      const on = g.switches[i];
+      const duty = g.duty[i];
+      // switch body
+      ctx.fillStyle = on
+        ? (g.kind === 'B' ? `rgba(64,128,200,${0.35 + duty * 0.55})` : `rgba(232,120,48,${0.35 + duty * 0.55})`)
+        : 'rgba(30,50,30,0.8)';
+      ctx.fillRect(x - 14, y - 7, 28, 14);
+      ctx.strokeStyle = on ? (g.kind === 'B' ? '#80b0e0' : '#e8a060') : '#2a4a2a';
+      ctx.lineWidth = on ? 2 : 1;
+      ctx.strokeRect(x - 14, y - 7, 28, 14);
+      // duty tick
+      ctx.fillStyle = '#e8c040';
+      ctx.fillRect(x - 12, y + 5, 24 * duty, 2);
+      // field glyph when ON
+      if (on) {
+        ctx.strokeStyle = g.kind === 'B'
+          ? `rgba(200,72,200,${0.3 + S.gateB * 0.25})`
+          : `rgba(64,200,200,${0.3 + S.gateE / 80})`;
+        ctx.beginPath();
+        if (g.kind === 'B') {
+          ctx.arc(x, y, 4 + duty * 5, 0, Math.PI * 2);
+        } else {
+          ctx.moveTo(x - 8, y - 10); ctx.lineTo(x - 8, y + 10);
+          ctx.moveTo(x + 8, y - 10); ctx.lineTo(x + 8, y + 10);
+        }
+        ctx.stroke();
+      }
+    }
+  }
+
+  // skimmer at right
+  const sx = mx + mw + 10;
+  const open = S.skimmerPos;
+  const apH = mh * (0.12 + open * 0.45);
+  ctx.fillStyle = '#1a2a1a';
+  ctx.fillRect(sx, my, 18, mh);
+  ctx.fillStyle = '#040a04';
+  ctx.fillRect(sx, my + mh / 2 - apH / 2, 18, apH);
+  ctx.strokeStyle = '#40c860';
+  ctx.strokeRect(sx - 1, my + mh / 2 - apH / 2 - 1, 20, apH + 2);
+  text('PROD', sx + 28, my + mh / 2 - apH / 2, '#c848c8', 12);
+  text('TAILS', sx + 28, my + mh / 2 + apH / 2 + 12, '#80a060', 12);
+
+  // fluid segments through array
+  S.segments.forEach(seg => {
+    const x = mx + seg.x * mw;
+    const y = my + seg.y * mh;
+    ctx.fillStyle = seg.laserExcited ? '#c848c8' : (seg.clustered ? '#4a6a4a' : '#a0a050');
+    ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+  });
+
+  // legend / telemetry
+  const active = S.gates.reduce((a, g) => a + g.switches.reduce((b, v) => b + v, 0), 0);
+  text(`B ${S.gateB.toFixed(2)} T · E ${S.gateE.toFixed(1)} kV/m · ${S.nStages} stg × ${S.nLanes} lanes · switches ON ${active} · flips/s ${S.gateSwitchEvents.toFixed(1)}`,
+    36, H - 28, '#9ec89e', 14);
+  text(`array boost ×${S.arrayBoost.toFixed(2)}  prod/feed ${S.arrayProductFrac.toFixed(2)}  tails/feed ${S.arrayTailsFrac.toFixed(2)}  ·  ${S.manualGates ? 'MANUAL' : (S.rlOn ? 'RL CTRL' : 'OPEN LOOP')}`,
+    36, H - 12, S.rlOn && !S.manualGates ? '#e8c040' : '#5a8a5a', 13);
+}
+
+function drawML(W, H) {
+  panel(12, 12, W - 24, H - 24, 'ML CONTROLLER — REINFORCEMENT LEARNING GATE POLICY');
+
+  // reward equation
+  text('r  =  w_sep · measured_isotopic_separation  −  w_E · (E_gates + E_sensors + switch_ops)',
+    28, 48, '#9ec89e', 15);
+  text(`w_E = ${S.rlEnergyW.toFixed(2)}   ε-explore = ${(S.rlEpsilon*100).toFixed(0)}%   lr = ${S.rlLr.toFixed(2)}   ${S.rlTrain ? 'TRAINING' : 'FROZEN'}   ${S.rlOn ? 'POLICY ACTIVE' : 'POLICY OFF'}`,
+    28, 68, '#5a8a5a', 14);
+
+  // KPI tiles
+  const tiles = [
+    { lab: 'REWARD r', val: S.rlReward.toFixed(3), c: S.rlReward >= 0 ? '#40c860' : '#c84040' },
+    { lab: 'SMOOTH R̃', val: S.rlRewardSmooth.toFixed(3), c: '#e8c040' },
+    { lab: 'BASELINE b', val: S.rlBaseline.toFixed(3), c: '#40c8c8' },
+    { lab: 'ADVANTAGE', val: (S.rlReward - S.rlBaseline).toFixed(3), c: '#c848c8' },
+    { lab: 'SEP BOOST', val: '×' + S.arrayBoost.toFixed(2), c: '#40c860' },
+    { lab: 'GATE+ SENSE kW', val: (S.gateEnergyKW + S.senseEnergyKW).toFixed(1), c: '#e87830' },
+  ];
+  tiles.forEach((t, i) => {
+    const x = 28 + (i % 6) * ((W - 56) / 6);
+    const y = 84;
+    ctx.fillStyle = '#0a160a';
+    ctx.strokeStyle = '#2a4a2a';
+    ctx.fillRect(x, y, (W - 70) / 6, 52);
+    ctx.strokeRect(x, y, (W - 70) / 6, 52);
+    text(t.lab, x + 6, y + 16, '#5a8a5a', 11);
+    text(t.val, x + 6, y + 40, t.c, 18);
+  });
+
+  // reward history
+  panel(28, 150, W * 0.55 - 20, 110, 'REWARD HISTORY R̃(t)');
+  sparkline(40, 178, W * 0.55 - 50, 65, S.rlHist, '#e8c040');
+  // zero line
+  if (S.rlHist.length > 1) {
+    ctx.strokeStyle = 'rgba(90,138,90,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(40, 178 + 32); ctx.lineTo(40 + W * 0.55 - 50, 178 + 32);
+    ctx.stroke();
+  }
+
+  panel(W * 0.55 + 20, 150, W * 0.45 - 40, 110, 'SEP BOOST vs ENERGY kW');
+  sparkline(W * 0.55 + 32, 178, W * 0.45 - 70, 40, S.rlSepHist, '#40c860');
+  sparkline(W * 0.55 + 32, 220, W * 0.45 - 70, 28, S.rlEnergyHist, '#e87830');
+  text('green=arrayBoost  orange=kW', W * 0.55 + 32, 252, '#5a8a5a', 12);
+
+  // policy heatmap: duty per stage × lane
+  panel(28, 275, W - 56, H - 310, 'POLICY DUTY MAP  stages →  ·  lanes ↓  ·  bright = switch preference');
+  const hx = 48, hy = 305, hw = W - 100, hh = H - 360;
+  const cw = hw / S.nStages, ch = hh / S.nLanes;
+  for (let s = 0; s < S.nStages; s++) {
+    for (let i = 0; i < S.nLanes; i++) {
+      const d = S.gates[s] ? S.gates[s].duty[i] : 0;
+      const on = S.gates[s] && S.gates[s].switches[i];
+      const kind = S.gates[s] ? S.gates[s].kind : 'B';
+      if (kind === 'B') {
+        ctx.fillStyle = `rgba(64,128,200,${0.15 + d * 0.75})`;
+      } else {
+        ctx.fillStyle = `rgba(232,120,48,${0.15 + d * 0.75})`;
+      }
+      ctx.fillRect(hx + s * cw + 1, hy + i * ch + 1, cw - 2, ch - 2);
+      if (on) {
+        ctx.strokeStyle = '#e8c040';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(hx + s * cw + 2, hy + i * ch + 2, cw - 4, ch - 4);
+      }
+      if (cw > 36 && ch > 14) {
+        text(d.toFixed(2), hx + s * cw + cw / 2, hy + i * ch + ch / 2 + 4, '#d4f0d4', 11, 'center');
+      }
+    }
+    text((S.gates[s] ? S.gates[s].kind : '?') + s, hx + s * cw + cw / 2, hy - 6, '#9ec89e', 11, 'center');
+  }
+  for (let i = 0; i < S.nLanes; i++) {
+    text('L' + i, hx - 4, hy + i * ch + ch / 2 + 4, '#5a8a5a', 10, 'right');
+  }
+
+  text(`REINFORCE Δw ∝ (a−μ)·(r−b)·φ   |grad|~${S.rlLoss.toFixed(3)}   episode t=${S.rlEpisode.toFixed(0)}s   features: dens, residual-est, L/M tags, priority, stage, field`,
+    36, H - 18, '#5a8a5a', 12);
+}
+
+function drawMarket(W, H) {
+  panel(12, 12, W - 24, H - 24, 'SALE PRICE DYNAMICS');
+  const ch = Math.min(140, H * 0.35);
+  panel(28, 40, W - 56, ch + 30, 'SWU SPOT $/SWU');
+  areaChart(40, 68, W - 80, ch - 10, S.priceHist, '#40c8c8');
+  text('$' + S.swuPrice.toFixed(2), 40, 40 + ch + 22, '#e8c040', 18);
+
+  const y2 = 40 + ch + 45;
+  const half = (W - 70) / 2;
+  // Price comparison bars (diagram)
+  panel(28, y2, half, 100, 'LEU $/kg (assay-linked)');
+  const leuFrac = clamp(S.productPrice / 4000, 0, 1);
+  barMeter(40, y2 + 40, half - 50, 18, leuFrac, '#c848c8');
+  text('$' + S.productPrice.toFixed(0) + '  @ ' + (S.productAssay * 100).toFixed(2) + '%', 40, y2 + 78, '#c848c8', 15);
+
+  panel(40 + half, y2, half, 100, 'TAILS CREDIT $/kg');
+  barMeter(52 + half, y2 + 40, half - 50, 18, clamp(S.tailsPrice / 30, 0, 1), '#80a060');
+  text('$' + S.tailsPrice.toFixed(1) + '  depleted UF₆', 52 + half, y2 + 78, '#80a060', 15);
+
+  const y3 = y2 + 115;
+  if (H - y3 > 60) {
+    panel(28, y3, W - 56, H - y3 - 20, 'VALUE CHAIN');
+    text('FEED buy  →  enrich (SWU)  →  LEU sell  ·  tails credit side-stream', 40, y3 + 40, '#9ec89e', 15);
+    text('Last sale +$' + S.lastSale.toFixed(0) + '  ·  Feed bid $' + S.feedPrice.toFixed(0) + '/kg', 40, y3 + 64, '#e8c040', 15);
+  }
+}
+
+function drawOverview(W, H) {
+  panel(12, 12, W - 24, H - 24, 'CASCADE OVERVIEW — RAW → REFINED');
+  const stages = [
+    { n: 'FEED', c: '#a88840' },
+    { n: 'MILL', c: '#888870' },
+    { n: 'F₂', c: '#40a0c8' },
+    { n: '16µm', c: '#c848c8' },
+    { n: 'SENSE', c: '#40c8c8' },
+    { n: 'ARRAY', c: '#4080c8' },
+    { n: 'ML', c: '#e8c040' },
+    { n: 'PROD', c: '#40c860' },
+  ];
+  const y = Math.max(70, H * 0.18);
+  const step = (W - 80) / stages.length;
+  stages.forEach((s, i) => {
+    const x = 40 + i * step;
+    const on = S.plantOn && (s.n !== '16µm' || S.laserOn) && (s.n !== 'ML' || S.rlOn);
+    ctx.fillStyle = on ? s.c : '#2a3a2a';
+    ctx.fillRect(x, y - 18, Math.min(54, step - 8), 36);
+    ctx.strokeStyle = '#000';
+    ctx.strokeRect(x, y - 18, Math.min(54, step - 8), 36);
+    text(s.n, x + Math.min(54, step - 8) / 2, y + 5, '#041004', 11, 'center');
+    if (i < stages.length - 1) {
+      ctx.strokeStyle = on ? s.c : '#2a3a2a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.min(54, step - 8), y);
+      ctx.lineTo(x + step, y);
+      ctx.stroke();
+      // flow ticks
+      if (S.plantOn && S.running && on) {
+        const t = (S.time * 0.8 + i * 0.2) % 1;
+        ctx.fillStyle = i < 3 ? '#a88840' : '#c848c8';
+        ctx.fillRect(x + Math.min(54, step - 8) + t * (step - Math.min(54, step - 8)), y - 2, 5, 5);
+      }
+    }
+  });
+
+  // Tank diagram product vs tails
+  const ty = y + 55;
+  barMeter(40, ty, 160, 14, clamp(S.productKg / 25, 0, 1), '#c848c8',
+    'PROD ' + (S.productAssay * 100).toFixed(2) + '% · ' + S.productKg.toFixed(2) + ' kg');
+  barMeter(40, ty + 28, 160, 14, clamp(S.tailsKg / 80, 0, 1), '#608050',
+    'TAILS ' + (S.tailsAssay * 100).toFixed(2) + '% · ' + S.tailsKg.toFixed(1) + ' kg');
+  barMeter(40, ty + 56, 160, 14, clamp(S.feedStock / 200, 0, 1), '#a88840',
+    'RAW ' + S.feedStock.toFixed(0) + ' kg remaining');
+
+  // KPI strip as mini gauges
+  donut(W - 220, ty + 40, 28, clamp((S.alpha - 1) / 12, 0, 1), '#40c860');
+  text('α ' + S.alpha.toFixed(2), W - 220, ty + 80, '#40c860', 12, 'center');
+  donut(W - 140, ty + 40, 28, S.selectivity, '#c848c8');
+  text('η ' + (S.selectivity * 100).toFixed(0) + '%', W - 140, ty + 80, '#c848c8', 12, 'center');
+  donut(W - 60, ty + 40, 28, clamp(S.swuRate / 20, 0, 1), '#e8c040');
+  text(S.swuRate.toFixed(1) + ' SWU/h', W - 60, ty + 80, '#e8c040', 11, 'center');
+
+  // mini microarray strip
+  const ay = ty + 100, ah = Math.max(50, H - ay - 40);
+  for (let s = 0; s < S.nStages; s++) {
+    const g = S.gates[s];
+    if (!g) continue;
+    const x = 40 + s * ((W - 120) / S.nStages);
+    for (let i = 0; i < S.nLanes; i++) {
+      const yy = ay + (i / S.nLanes) * ah;
+      ctx.fillStyle = g.switches[i]
+        ? (g.kind === 'B' ? '#4080c8' : '#e87830')
+        : '#1a2a1a';
+      ctx.fillRect(x, yy, 20, ah / S.nLanes - 1);
+    }
+  }
+  S.segments.slice(0, 100).forEach(seg => {
+    ctx.fillStyle = seg.laserExcited ? '#c848c8' : '#508050';
+    ctx.fillRect(40 + seg.x * (W - 120), ay + seg.y * ah, 3, 3);
+  });
+  text('microarray · brown raw → magenta excited · blue B / orange E gates', 40, H - 16, '#5a8a5a', 12);
+}
+
+function draw() {
+  const { W, H } = clearStage();
+  switch (S.view) {
+    case 'finance': drawFinance(W, H); break;
+    case 'feed': drawFeed(W, H); break;
+    case 'mill': drawMill(W, H); break;
+    case 'fluoro': drawFluoro(W, H); break;
+    case 'laser': drawLaser(W, H); break;
+    case 'maser': drawMaser(W, H); break;
+    case 'ion': drawIon(W, H); break;
+    case 'vision': drawVision(W, H); break;
+    case 'gates': drawGates(W, H); break;
+    case 'ml': drawML(W, H); break;
+    case 'market': drawMarket(W, H); break;
+    default: drawOverview(W, H); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// UI TELEMETRY
+// ═══════════════════════════════════════════════════════
+function fmtMoney(n) {
+  if (Math.abs(n) >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'k';
+  return '$' + n.toFixed(0);
+}
+
+function updateUI() {
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+
+  set('h-cash', Math.round(S.cash).toLocaleString());
+  set('h-assay', (S.productAssay * 100).toFixed(2));
+  set('h-swu', S.swuRate.toFixed(1));
+  set('h-prod', S.productKg.toFixed(2));
+  set('h-mkt', '$' + S.swuPrice.toFixed(0));
+
+  set('k-cash', fmtMoney(S.cash));
+  set('k-pnl', fmtMoney(S.cash - S.dayStartCash));
+  set('k-alpha', S.alpha.toFixed(2));
+  set('t-xf', (S.feedAssay * 100).toFixed(3));
+  set('t-xp', (S.productAssay * 100).toFixed(3));
+  set('t-xt', (S.tailsAssay * 100).toFixed(3));
+  set('t-kw', S.powerKW.toFixed(0));
+  set('t-arr', '×' + S.arrayBoost.toFixed(2));
+  set('t-trk', String(Object.keys(S.tracks).length));
+  set('day-label', 'DAY ' + S.day);
+
+  const tRl = document.getElementById('t-rl');
+  if (tRl) {
+    tRl.textContent = S.rlRewardSmooth.toFixed(2);
+    tRl.style.color = S.rlRewardSmooth >= 0 ? '#40c860' : '#c84040';
+  }
+
+  // System diagram tanks + status
+  set('tank-feed', S.feedStock.toFixed(0) + ' kg');
+  set('tank-prod', S.productKg.toFixed(2) + ' kg');
+  set('tank-tails', S.tailsKg.toFixed(1) + ' kg');
+  const fb = document.getElementById('tank-feed-bar');
+  const pb = document.getElementById('tank-prod-bar');
+  const tb = document.getElementById('tank-tails-bar');
+  if (fb) fb.style.width = (clamp(S.feedStock / 200, 0, 1) * 100).toFixed(0) + '%';
+  if (pb) pb.style.width = (clamp(S.productKg / 25, 0, 1) * 100).toFixed(0) + '%';
+  if (tb) tb.style.width = (clamp(S.tailsKg / 80, 0, 1) * 100).toFixed(0) + '%';
+
+  set('out-prod', (S.productAssay * 100).toFixed(2) + '% · ' + S.productKg.toFixed(2) + ' kg');
+  set('out-tails', (S.tailsAssay * 100).toFixed(2) + '% · ' + S.tailsKg.toFixed(1) + ' kg');
+  set('sys-alpha', S.alpha.toFixed(2));
+  set('sys-eta', (S.selectivity * 100).toFixed(0) + '%');
+  set('sys-swu', S.swuRate.toFixed(1));
+
+  const status = S.plantOn ? (S.laserOn && S.selectivity > 0.15 ? 'ENRICHING' : 'RUNNING') : 'STANDBY';
+  const ps = document.getElementById('plant-status');
+  if (ps) {
+    ps.textContent = status;
+    ps.style.color = S.plantOn ? '#40c860' : '#e87830';
+  }
+  const live = document.getElementById('sys-live');
+  if (live) {
+    live.textContent = S.plantOn && S.running ? '● FLOWING' : (S.plantOn ? '● PAUSED' : '● STANDBY');
+    live.className = S.plantOn && S.running ? 'live' : 'idle';
+  }
+  const flow = document.getElementById('sys-flow');
+  if (flow) flow.classList.toggle('running', S.plantOn && S.running && S.feedStock > 0.5);
+
+  // Stage activity meters
+  const vals = {
+    feed: clamp(S.feedStock / 150, 0, 1),
+    mill: S.plantOn ? clamp(S.millRpm / 3600, 0, 1) * (1 - S.millWear * 0.3) : 0,
+    fluoro: S.plantOn ? S.conversion : 0,
+    laser: S.laserOn ? S.selectivity : 0,
+    maser: S.maserOn ? S.polEfficiency * clamp(S.polField, 0, 1) : 0,
+    ion: S.ionOn ? S.chargeDensity : 0,
+    vision: S.cvOn || S.laserSenseOn || S.maserSenseOn
+      ? clamp(0.4 * S.trackLock + 0.35 * S.laserSenseLock + 0.25 * S.maserSenseLock, 0, 1) : 0,
+    gates: S.plantOn ? clamp((S.arrayBoost - 1) / 2, 0, 1) * 0.6 + S.cut * 0.4 : 0,
+    ml: S.rlOn ? clamp(0.5 + S.rlRewardSmooth * 0.35, 0, 1) : 0,
+  };
+  for (const id of Object.keys(vals)) {
+    const bar = document.getElementById('pb-' + id);
+    if (bar) bar.style.width = (vals[id] * 100).toFixed(0) + '%';
+    const row = document.querySelector(`.sys-node[data-id="${id}"]`);
+    if (row) row.classList.toggle('on', vals[id] > 0.12);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// AUDIO — plant drones + music (unlock on gesture / MIX btn)
+// ═══════════════════════════════════════════════════════
+const AUD = {
+  ac: null, master: null, musicG: null, droneG: null, plantG: null,
+  laserG: null, laserOsc: null, laserMod: null, laserF: null, laserModG: null,
+  on: false, wantOn: true, vol: 0.55, musicVol: 0.5,
+  noteTimer: null, padTimer: null, started: false,
+  scale: [55, 65.41, 73.42, 82.41, 98, 110, 130.81, 146.83, 164.81, 196, 220, 246.94, 293.66, 329.63],
+  padScale: [55, 82.41, 110, 164.81, 220],
+
+  init() {
+    if (this.ac) return true;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { log('Web Audio not supported in this browser', 'err'); return false; }
+      this.ac = new AC();
+      this.master = this.ac.createGain();
+      this.master.gain.value = 0;
+      this.master.connect(this.ac.destination);
+
+      // drone bed
+      this.droneG = this.ac.createGain();
+      this.droneG.gain.value = 0.04;
+      this.droneG.connect(this.master);
+      [
+        { f: 41.2, type: 'sawtooth', lf: 0.05, ld: 0.6 },
+        { f: 55, type: 'triangle', lf: 0.09, ld: 0.8 },
+        { f: 82.4, type: 'sine', lf: 0.03, ld: 0.4 },
+        { f: 110.0, type: 'triangle', lf: 0.12, ld: 0.5 },
+      ].forEach(sp => {
+        const osc = this.ac.createOscillator(); osc.type = sp.type; osc.frequency.value = sp.f;
+        const lp = this.ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 280;
+        const g = this.ac.createGain(); g.gain.value = 0.22;
+        const lfo = this.ac.createOscillator(); lfo.frequency.value = sp.lf;
+        const lfoG = this.ac.createGain(); lfoG.gain.value = sp.ld;
+        lfo.connect(lfoG); lfoG.connect(osc.frequency); lfo.start();
+        osc.connect(lp); lp.connect(g); g.connect(this.droneG); osc.start();
+      });
+
+      // plant noise (air / vacuum)
+      const sr = this.ac.sampleRate;
+      const buf = this.ac.createBuffer(1, sr * 2, sr);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = this.ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const bp = this.ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.7;
+      this.plantG = this.ac.createGain(); this.plantG.gain.value = 0.02;
+      src.connect(bp); bp.connect(this.plantG); this.plantG.connect(this.master); src.start();
+
+      // laser tone
+      this.laserMod = this.ac.createOscillator(); this.laserMod.type = 'sine'; this.laserMod.frequency.value = 40;
+      this.laserModG = this.ac.createGain(); this.laserModG.gain.value = 120;
+      this.laserMod.connect(this.laserModG);
+      this.laserOsc = this.ac.createOscillator(); this.laserOsc.type = 'sawtooth'; this.laserOsc.frequency.value = 380;
+      this.laserModG.connect(this.laserOsc.frequency);
+      this.laserF = this.ac.createBiquadFilter(); this.laserF.type = 'bandpass'; this.laserF.frequency.value = 900; this.laserF.Q.value = 3;
+      this.laserG = this.ac.createGain(); this.laserG.gain.value = 0;
+      this.laserMod.start(); this.laserOsc.start();
+      this.laserOsc.connect(this.laserF); this.laserF.connect(this.laserG); this.laserG.connect(this.master);
+
+      // ambient music bus
+      this.musicG = this.ac.createGain();
+      this.musicG.gain.value = this.musicVol * 0.16;
+      this.musicG.connect(this.master);
+      this.started = true;
+      return true;
+    } catch (e) {
+      console.warn('Audio init failed', e);
+      return false;
+    }
+  },
+
+  async resume() {
+    if (!this.init()) return false;
+    if (this.ac.state === 'suspended') {
+      try { await this.ac.resume(); } catch (e) { console.warn('resume failed', e); return false; }
+    }
+    return this.ac.state === 'running';
+  },
+
+  _syncBtn() {
+    const b = document.getElementById('btn-sound');
+    if (!b) return;
+    b.textContent = this.on ? '🔊 MIX ON' : '🔇 MIX OFF';
+    b.classList.toggle('active', this.on);
+  },
+
+  _startLoops() {
+    clearTimeout(this.noteTimer);
+    clearTimeout(this.padTimer);
+    this._nextNote();
+    this._pad();
+  },
+
+  _pad() {
+    const playPad = () => {
+      if (!this.ac || !this.on) return;
+      const now = this.ac.currentTime;
+      const root = this.padScale[Math.floor(Math.random() * this.padScale.length)];
+      [1, 1.5, 2].forEach((mult, i) => {
+        try {
+          const osc = this.ac.createOscillator();
+          osc.type = i === 2 ? 'triangle' : 'sine';
+          osc.frequency.value = root * mult;
+          const env = this.ac.createGain();
+          env.gain.setValueAtTime(0.0001, now);
+          env.gain.linearRampToValueAtTime(0.08 / (i + 1), now + 2);
+          env.gain.linearRampToValueAtTime(0.0001, now + 8 + Math.random() * 4);
+          const lp = this.ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600;
+          osc.connect(lp); lp.connect(env); env.connect(this.musicG);
+          osc.start(now); osc.stop(now + 14);
+        } catch (_) { /* ignore */ }
+      });
+      this.padTimer = setTimeout(playPad, 6000 + Math.random() * 5000);
+    };
+    this.padTimer = setTimeout(playPad, 200);
+  },
+
+  _nextNote() {
+    if (!this.ac || !this.on) return;
+    try {
+      const now = this.ac.currentTime;
+      const freq = this.scale[Math.floor(Math.random() * this.scale.length)];
+      [[freq, 'sine', 1], [freq * 1.005, 'sine', 0.5], [freq * 1.5, 'triangle', 0.25]].forEach(([f, type, amp]) => {
+        const osc = this.ac.createOscillator(); osc.type = type; osc.frequency.value = f;
+        const env = this.ac.createGain();
+        const atk = 0.4, sus = 1.0 + Math.random() * 1.5, rel = 2.5;
+        env.gain.setValueAtTime(0.0001, now);
+        env.gain.linearRampToValueAtTime(amp * 0.22, now + atk);
+        env.gain.setValueAtTime(amp * 0.22, now + atk + sus);
+        env.gain.linearRampToValueAtTime(0.0001, now + atk + sus + rel);
+        osc.connect(env); env.connect(this.musicG);
+        osc.start(now); osc.stop(now + atk + sus + rel + 0.1);
+      });
+    } catch (_) { /* ignore */ }
+    this.noteTimer = setTimeout(() => this._nextNote(), 2000 + Math.random() * 3500);
+  },
+
+  _beep(freq, type, dur, peak) {
+    if (!this.ac || !this.on) return;
+    try {
+      const now = this.ac.currentTime;
+      const osc = this.ac.createOscillator(); osc.type = type; osc.frequency.value = freq;
+      const env = this.ac.createGain();
+      env.gain.setValueAtTime(0.0001, now);
+      env.gain.linearRampToValueAtTime(peak, now + 0.01);
+      env.gain.linearRampToValueAtTime(0.0001, now + dur);
+      osc.connect(env); env.connect(this.master);
+      osc.start(now); osc.stop(now + dur + 0.02);
+    } catch (_) { /* ignore */ }
+  },
+
+  click() { this._beep(880, 'square', 0.06, 0.1); },
+  buzz() { this._beep(90, 'sawtooth', 0.2, 0.12); },
+  chime() {
+    if (!this.ac || !this.on) return;
+    [523.25, 659.25, 783.99].forEach((f, i) => {
+      setTimeout(() => this._beep(f, 'sine', 0.45, 0.1), i * 70);
+    });
+  },
+
+  update() {
+    if (!this.ac || !this.on) return;
+    const now = this.ac.currentTime;
+    try {
+      if (this.droneG) this.droneG.gain.setTargetAtTime(S.running ? 0.04 : 0.01, now, 0.5);
+      if (this.plantG) this.plantG.gain.setTargetAtTime(S.plantOn && S.running ? 0.025 * (S.thru / 50) : 0.005, now, 0.4);
+      if (this.laserG) this.laserG.gain.setTargetAtTime(S.laserOn && S.plantOn && S.running ? 0.03 * (S.laserPower / 100) : 0, now, 0.2);
+      if (this.laserMod) this.laserMod.frequency.setTargetAtTime(25 + S.repRate * 1.2, now, 0.15);
+      if (this.laserF) this.laserF.frequency.setTargetAtTime(600 + S.laserPower * 6, now, 0.2);
+    } catch (_) { /* ignore */ }
+  },
+
+  async toggle() {
+    try {
+      const ok = await this.resume();
+      if (!ok) {
+        log('Audio blocked — click again or check site sound permissions', 'err');
+        return;
+      }
+      this.on = !this.on;
+      this.wantOn = this.on;
+      if (this.master) {
+        this.master.gain.cancelScheduledValues(this.ac.currentTime);
+        this.master.gain.setTargetAtTime(this.on ? this.vol : 0, this.ac.currentTime, 0.15);
+      }
+      if (this.on) {
+        this._startLoops();
+        this.click();
+      } else {
+        clearTimeout(this.noteTimer);
+        clearTimeout(this.padTimer);
+      }
+      this._syncBtn();
+    } catch (e) {
+      console.warn('Audio toggle failed', e);
+      log('Audio init failed — check browser autoplay / permissions', 'err');
+    }
+  },
+
+  async ensureOn(ev) {
+    // Sound button has its own toggle — only resume context there to avoid ON→OFF race
+    const fromSoundBtn = ev && ev.target && (
+      ev.target.id === 'btn-sound' || (ev.target.closest && ev.target.closest('#btn-sound'))
+    );
+    if (fromSoundBtn) {
+      try { await this.resume(); } catch (_) { /* ignore */ }
+      return;
+    }
+    if (!this.wantOn) return;
+    try {
+      const ok = await this.resume();
+      if (!ok) return;
+      if (!this.on) {
+        this.on = true;
+        if (this.master) {
+          this.master.gain.cancelScheduledValues(this.ac.currentTime);
+          this.master.gain.setTargetAtTime(this.vol, this.ac.currentTime, 0.25);
+        }
+        this._startLoops();
+        this._syncBtn();
+      } else if (this.ac.state === 'suspended') {
+        await this.ac.resume();
+      }
+    } catch (e) {
+      console.warn('Audio ensureOn failed', e);
+    }
+  },
+
+  setVol(v) {
+    this.vol = clamp(v, 0, 1);
+    if (this.ac && this.on && this.master) {
+      this.master.gain.setTargetAtTime(this.vol, this.ac.currentTime, 0.1);
+    }
+  },
+  setMusicVol(v) {
+    this.musicVol = clamp(v, 0, 1);
+    if (this.musicG && this.ac) {
+      this.musicG.gain.setTargetAtTime(this.musicVol * 0.16, this.ac.currentTime, 0.2);
+    }
+  },
+};
+
+// Wire music/volume sliders now that AUD exists
+(function bindAudioSliders() {
+  const rm = document.getElementById('r-music');
+  const rv = document.getElementById('r-vol');
+  if (rm) rm.addEventListener('input', () => {
+    AUD.setMusicVol(parseFloat(rm.value) / 100);
+    AUD.ensureOn();
+  });
+  if (rv) rv.addEventListener('input', () => {
+    AUD.setVol(parseFloat(rv.value) / 100);
+    AUD.ensureOn();
+  });
+  AUD.setMusicVol((S.musicPct || 50) / 100);
+  AUD.setVol((S.volPct || 55) / 100);
+})();
+
+// Unlock audio on first interaction (browsers require a gesture)
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => {
+  window.addEventListener(ev, (e) => { AUD.ensureOn(e); }, { passive: true });
+});
+
+// ═══════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════
+let lastTs = 0;
+let _resizeTick = 0;
+function loop(ts) {
+  requestAnimationFrame(loop);
+  if (!lastTs) lastTs = ts;
+  let dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+  dt = Math.min(dt, 0.1);
+
+  // Re-measure canvas if layout settles late or size is zero
+  if ((++_resizeTick % 30) === 0 || canvas.width < 4 || canvas.clientWidth < 4) resize();
+
+  try {
+    if (S.running) {
+      S.time += dt;
+      stepPhysics(dt);
+    }
+    updateUI();
+    draw();
+    if (AUD && AUD.update) AUD.update();
+  } catch (err) {
+    console.error('frame error', err);
+  }
+}
+
+// boot
+try {
+  resize();
+  setView('finance');
+  log('QuasiSILEX3 online — raw feed → laser SILEX → product tanks', 'ok');
+  log('Left diagram: watch unenriched stock flow through stages; LEU accumulates on the right tanks.', 'info');
+  log('Tune IR to 628.3 cm⁻¹ · Sense/Track ON · RL gates · sell high assay LEU', 'info');
+  log('Audio: click 🔊 MIX ON (or any control) to unlock plant sound', 'warn');
+  requestAnimationFrame(loop);
+} catch (bootErr) {
+  console.error('boot failed', bootErr);
+  const el = document.getElementById('ops-log');
+  if (el) el.textContent = 'BOOT ERROR: ' + bootErr.message;
+}
+</script>
+</body>
+</html>

@@ -351,6 +351,14 @@ def eagle_drill():
     name = 'eagle_drill.html' if os.path.exists('eagle_drill.html') else 'eagle.html'
     return send_from_directory('.', name)
 
+@app.route('/quasisilex.html')
+def quasisilex():
+    return send_from_directory('.', 'quasisilex.html')
+
+@app.route('/quasisilex.css')
+def quasisilex_css():
+    return send_from_directory('.', 'quasisilex.css')
+
 @app.route('/plasma.html')
 def plasma():
     # Prefer local copy; fall back to PlasmaSim deploy path on prod
