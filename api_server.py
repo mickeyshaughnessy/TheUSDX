@@ -433,15 +433,63 @@ def rifts_narrate():
             except Exception as e:
                 print(f"[rifts] xAI failed: {e}")
 
-        # Fallback: OpenRouter (may include x-ai/grok models)
+        # Fallback: OpenRouter — try Grok first, then configured model, then free models
         if not narration and getattr(config, 'OPENROUTER_API_KEY', None):
             try:
-                from handlers import call_openrouter
-                model_override = getattr(config, 'RIFTS_MODEL', None)
-                # Prefer grok on OpenRouter when available
-                or_model = model_override or getattr(config, 'OPENROUTER_MODEL', None)
-                narration = call_openrouter(prompt, system_message=system)
-                provider = f'openrouter:{or_model}'
+                import requests as _req
+                or_key = config.OPENROUTER_API_KEY
+                or_url = getattr(config, 'OPENROUTER_API_URL',
+                                 'https://openrouter.ai/api/v1/chat/completions')
+                candidates = []
+                for m in (
+                    getattr(config, 'RIFTS_MODEL', None),
+                    'x-ai/grok-3-mini',
+                    'x-ai/grok-3',
+                    getattr(config, 'OPENROUTER_MODEL', None),
+                    getattr(config, 'OPENROUTER_FALLBACK_MODEL', None),
+                    'google/gemma-2-9b-it:free',
+                    'meta-llama/llama-3.1-8b-instruct:free',
+                    'openrouter/auto',
+                ):
+                    if m and m not in candidates:
+                        candidates.append(m)
+                last_err = None
+                for model in candidates:
+                    try:
+                        r = _req.post(
+                            or_url,
+                            headers={
+                                'Authorization': f'Bearer {or_key}',
+                                'Content-Type': 'application/json',
+                                'HTTP-Referer': 'https://themithrilcompany.com/rifts.html',
+                                'X-Title': 'RIFTs Text Ops',
+                            },
+                            json={
+                                'model': model,
+                                'messages': [
+                                    {'role': 'system', 'content': system},
+                                    {'role': 'user', 'content': prompt},
+                                ],
+                                'temperature': 0.85,
+                                'max_tokens': 220,
+                            },
+                            timeout=25,
+                        )
+                        if r.status_code == 200:
+                            narration = r.json()['choices'][0]['message']['content'].strip()
+                            provider = f'openrouter:{model}'
+                            break
+                        last_err = f'{model}: {r.status_code} {r.text[:160]}'
+                        print(f'[rifts] OpenRouter try fail {last_err}')
+                    except Exception as e:
+                        last_err = f'{model}: {e}'
+                        print(f'[rifts] OpenRouter try err {last_err}')
+                if not narration and last_err:
+                    return jsonify({
+                        'error': 'narration unavailable',
+                        'details': last_err,
+                        'fallback': True,
+                    }), 503
             except Exception as e:
                 print(f"[rifts] OpenRouter failed: {e}")
                 return jsonify({
