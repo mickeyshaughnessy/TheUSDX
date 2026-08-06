@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RIFTs — Text Ops (Unofficial)</title>
+<meta name="description" content="Text-only Rifts-inspired RPG scenario runner. Unofficial fan project." />
+<style>
+  :root {
+    --bg: #0a0c10;
+    --panel: #12161e;
+    --panel2: #1a2030;
+    --border: #2a3548;
+    --text: #d6e0ef;
+    --dim: #8a97ab;
+    --accent: #5ec8ff;
+    --warn: #ffb454;
+    --danger: #ff5c6a;
+    --good: #5dff9a;
+    --cs: #c4c4c4;
+    --magic: #b388ff;
+    --font: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100%; }
+  body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(94,200,255,0.12), transparent),
+      linear-gradient(180deg, #0a0c10 0%, #0d1118 100%);
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 1rem 1.1rem 3rem; }
+  header.app {
+    display: flex; flex-wrap: wrap; gap: .75rem; align-items: baseline;
+    justify-content: space-between; border-bottom: 1px solid var(--border);
+    padding-bottom: .75rem; margin-bottom: 1rem;
+  }
+  header.app h1 {
+    margin: 0; font-size: 1.15rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  header.app .tag { color: var(--dim); font-size: .75rem; }
+  .hud {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: .5rem; margin-bottom: 1rem;
+  }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: .45rem .6rem; font-size: .78rem;
+  }
+  .stat b { display: block; color: var(--dim); font-weight: 500; font-size: .68rem; letter-spacing: .04em; text-transform: uppercase; }
+  .stat span { color: var(--text); }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.1rem; margin-bottom: 1rem;
+  }
+  .panel h2 { margin: 0 0 .75rem; font-size: .95rem; color: var(--warn); letter-spacing: .06em; text-transform: uppercase; }
+  .log {
+    white-space: pre-wrap; line-height: 1.55; font-size: .9rem;
+    max-height: 48vh; overflow-y: auto; padding-right: .25rem;
+  }
+  .log .sys { color: var(--dim); }
+  .log .narr { color: var(--text); }
+  .log .ai { color: #9fd6ff; border-left: 2px solid var(--accent); padding-left: .6rem; margin: .5rem 0; display: block; }
+  .log .good { color: var(--good); }
+  .log .bad { color: var(--danger); }
+  .log .loc { color: var(--magic); }
+  .choices { display: flex; flex-direction: column; gap: .5rem; }
+  button.choice, button.btn {
+    font-family: var(--font); text-align: left; cursor: pointer;
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: .7rem .85rem; font-size: .86rem;
+    transition: border-color .15s, background .15s;
+  }
+  button.choice:hover, button.btn:hover { border-color: var(--accent); background: #1e2840; }
+  button.choice:disabled, button.btn:disabled { opacity: .45; cursor: not-allowed; }
+  button.btn.primary { border-color: var(--accent); color: var(--accent); }
+  button.btn.danger { border-color: var(--danger); color: var(--danger); }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .row.spread { justify-content: space-between; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: .75rem; }
+  @media (min-width: 720px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+  .card {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 6px;
+    padding: .75rem; cursor: pointer;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card.selected { border-color: var(--good); box-shadow: 0 0 0 1px var(--good) inset; }
+  .card h3 { margin: 0 0 .35rem; font-size: .88rem; color: var(--accent); }
+  .card p { margin: 0; color: var(--dim); font-size: .78rem; line-height: 1.4; }
+  .muted { color: var(--dim); font-size: .78rem; }
+  .bar { height: 6px; background: #0a0e14; border-radius: 3px; overflow: hidden; margin-top: .25rem; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #2a7, var(--accent)); }
+  .bar.armor > i { background: linear-gradient(90deg, #456, #9ab); }
+  .bar.ppe > i { background: linear-gradient(90deg, #63f, #b388ff); }
+  footer.note {
+    margin-top: 1.5rem; padding-top: .75rem; border-top: 1px solid var(--border);
+    color: var(--dim); font-size: .72rem; line-height: 1.45;
+  }
+  .toggle { display: flex; align-items: center; gap: .5rem; font-size: .78rem; color: var(--dim); }
+  .toggle input { accent-color: var(--accent); }
+  #screen-title { text-align: center; padding: 2rem 0 1rem; }
+  #screen-title .logo {
+    font-size: 2.4rem; letter-spacing: .2em; color: var(--accent);
+    text-shadow: 0 0 24px rgba(94,200,255,.35);
+  }
+  #screen-title .sub { color: var(--dim); margin: .75rem 0 1.5rem; font-size: .9rem; }
+  .hidden { display: none !important; }
+  .inv { font-size: .8rem; color: var(--dim); }
+  .inv li { margin: .2rem 0; }
+  kbd {
+    background: #0d121a; border: 1px solid var(--border); border-radius: 3px;
+    padding: 0 .3rem; font-size: .75rem; color: var(--warn);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <div>
+      <h1>RIFTs // TEXT OPS</h1>
+      <div class="tag">Unofficial fan scenario runner · Northeastern theater · P.A. 101+</div>
+    </div>
+    <div class="row">
+      <label class="toggle" title="When available, Grok/xAI enriches scene text via server">
+        <input type="checkbox" id="useAI" checked /> AI narrate
+      </label>
+      <button class="btn" id="btnSave" type="button">Save</button>
+      <button class="btn" id="btnLoad" type="button">Load</button>
+      <button class="btn danger" id="btnReset" type="button">Reset</button>
+    </div>
+  </header>
+
+  <div id="hud" class="hud hidden">
+    <div class="stat"><b>Operative</b><span id="hudName">—</span></div>
+    <div class="stat"><b>O.C.C.</b><span id="hudOcc">—</span></div>
+    <div class="stat"><b>Location</b><span id="hudLoc">—</span></div>
+    <div class="stat"><b>Credits</b><span id="hudCred">0</span></div>
+    <div class="stat"><b>Armor MDC</b><span id="hudArmor">0</span>
+      <div class="bar armor"><i id="barArmor" style="width:100%"></i></div>
+    </div>
+    <div class="stat"><b>PPE</b><span id="hudPpe">0</span>
+      <div class="bar ppe"><i id="barPpe" style="width:100%"></i></div>
+    </div>
+  </div>
+
+  <!-- TITLE -->
+  <section id="screen-title">
+    <div class="logo">RIFTS</div>
+    <div class="sub">After the rifts opened, Earth became every genre at once.<br/>You are a free operative in the broken Northeast.</div>
+    <div class="panel" style="text-align:left; max-width:560px; margin:0 auto 1rem;">
+      <h2>Briefing</h2>
+      <div class="log narr">Chi-Town's skulls. Lazlo's libraries. Madhaven's ghosts. The Magic Zone hums blue at night.
+Pick an O.C.C., take a contract, try not to level a village with your Boom Gun.
+
+This is a <b>text-only</b> scenario runner using public lore summaries and original modules.
+Not affiliated with Palladium Books.</div>
+    </div>
+    <div class="row" style="justify-content:center;">
+      <button class="btn primary" id="btnNew" type="button">New Operative</button>
+      <button class="btn" id="btnContinue" type="button">Continue</button>
+    </div>
+  </section>
+
+  <!-- CREATE -->
+  <section id="screen-create" class="hidden">
+    <div class="panel">
+      <h2>1 · Callsign</h2>
+      <input id="inpName" maxlength="24" placeholder="e.g. Ashline, K-19, Sister Page"
+        style="width:100%; padding:.65rem .75rem; background:#0d121a; border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font);" />
+    </div>
+    <div class="panel">
+      <h2>2 · Occupational Character Class</h2>
+      <div class="grid2" id="occGrid"></div>
+    </div>
+    <div class="row spread">
+      <button class="btn" id="btnBackTitle" type="button">Back</button>
+      <button class="btn primary" id="btnStart" type="button">Deploy</button>
+    </div>
+  </section>
+
+  <!-- HUB -->
+  <section id="screen-hub" class="hidden">
+    <div class="panel">
+      <h2>Ops Board · Northeastern Theater</h2>
+      <div class="log" id="hubBlurb"></div>
+    </div>
+    <div class="panel">
+      <h2>Available Contracts</h2>
+      <div class="choices" id="missionList"></div>
+    </div>
+    <div class="panel">
+      <h2>Travel</h2>
+      <div class="choices" id="travelList"></div>
+    </div>
+    <div class="panel">
+      <h2>Kit</h2>
+      <ul class="inv" id="invList"></ul>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="screen-play" class="hidden">
+    <div class="panel">
+      <div class="row spread" style="margin-bottom:.5rem;">
+        <h2 id="playTitle" style="margin:0;">Mission</h2>
+        <span class="muted" id="playMeta"></span>
+      </div>
+      <div class="log" id="playLog"></div>
+    </div>
+    <div class="panel">
+      <h2>Actions</h2>
+      <div class="choices" id="playChoices"></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="btnAbort" type="button">Abort to hub</button>
+    </div>
+  </section>
+
+  <footer class="note">
+    Rifts® is a trademark of Palladium Books, Inc. This fan project uses fair-use public summaries and original scenario text.
+    Media mood art (if linked elsewhere): free CC/PD on DigitalOcean Spaces.
+    Source: <a href="https://github.com/mickeyshaughnessy/RIFTs" target="_blank" rel="noopener">github.com/mickeyshaughnessy/RIFTs</a>
+    · <a href="https://palladiumbooks.com/" target="_blank" rel="noopener">Buy official books</a>
+  </footer>
+</div>
+
+<script>
+/* ========= DATA ========= */
+const OCCS = [
+  { id:'cyber_knight', name:'Cyber-Knight', blurb:'Psi-sword paladin. Defender of the weak. High honor, mid armor.', armor:70, ppe:15, credits:8000, skills:['psi_sword','sense_evil','ride'], tags:['good','melee'] },
+  { id:'juicer', name:'Juicer', blurb:'Chemical super-soldier. Peak human for a few years — then burnout.', armor:55, ppe:5, credits:12000, skills:['speed','acrobatics','guns'], tags:['arms','tragic'] },
+  { id:'ley_line_walker', name:'Ley Line Walker', blurb:'Wizard of the blue lines. Float the ley, seal rifts, light up the dark.', armor:35, ppe:120, credits:6000, skills:['spellcraft','ley_sense','rift_lore'], tags:['magic'] },
+  { id:'techno_wizard', name:'Techno-Wizard', blurb:'Magic + machines. Flaming swords, force-field trucks, weird science.', armor:45, ppe:80, credits:15000, skills:['tw_craft','repair','spellcraft'], tags:['magic','tech'] },
+  { id:'city_rat', name:'City Rat', blurb:'Burbs native. Hacking, fences, alleys. Soft armor, hard intel.', armor:30, ppe:10, credits:4000, skills:['streetwise','hack','stealth'], tags:['social','tech'] },
+  { id:'glitter_boy', name:'Glitter Boy Pilot', blurb:'Family chrome and a Boom Gun. Collateral damage is a lifestyle.', armor:370, ppe:5, credits:2000, skills:['pa_pilot','heavy_weapons','intimidate'], tags:['arms','mdc'] },
+  { id:'rogue_scholar', name:'Rogue Scholar', blurb:'Books are contraband. Knowledge is a weapon. Erin Tarn energy.', armor:25, ppe:20, credits:5000, skills:['lore','languages','persuade'], tags:['social','lore'] },
+  { id:'headhunter', name:'Headhunter', blurb:'Merc with partial bionics. Take the job. Get paid. Maybe keep a soul.', armor:90, ppe:8, credits:18000, skills:['guns','track','bargain'], tags:['arms','merc'] },
+  { id:'mind_melter', name:'Mind Melter', blurb:'Master psychic. Read minds, break wills, catch bullets with thought.', armor:40, ppe:10, credits:9000, skills:['telepathy','tk','psi_shield'], tags:['psi'] },
+  { id:'dog_boy', name:'Dog Boy (AWOL)', blurb:'Mutant hound who left the pack. Magic-sniffer with a conscience.', armor:50, ppe:0, credits:1500, skills:['sense_magic','track','pack_tactics'], tags:['psi','cs'] },
+];
+
+const LOCS = {
+  chi_town_burbs: { name:"Chi-Town 'Burbs", blurb:"Shantytowns under the arcology's shadow. ISS patrols. Secret literacy cells." },
+  st_louis_gateway: { name:"St. Louis Gateway Rift", blurb:"The Arch never closed. RCSG watches. Reality thins on the hour." },
+  madhaven: { name:"Madhaven", blurb:"Manhattan as a haunted peninsula. Madness storms at noon." },
+  great_lakes: { name:"Great Lakes Ice Road", blurb:"Freighters, pirates, Northern Gun crates, Free Quebec chrome." },
+  magic_zone: { name:"Magic Zone", blurb:"Ohio Valley blue-line country. Federation politics and demon debt." },
+  free_quebec_border: { name:"Free Quebec Border", blurb:"Glitter Boys and pride. Seaway ice and propaganda duels." },
+  appalachian_ridge: { name:"Blue Wire Ridge", blurb:"A ley line like a power cable along the Appalachians." },
+  lazlo: { name:"Lazlo", blurb:"Toronto's bones. Scholars, dragons on council, techno-wizard labs." },
+};
+
+const MISSIONS = {
+  sc_01: {
+    id:'sc_01', title:'The Last Free Library', loc:'chi_town_burbs', tone:'grim',
+    blurb:'Protect a circulating underground library — or burn it for Coalition credits.',
+    start:'intro',
+    nodes: {
+      intro: {
+        text:"Rain needles the 'Burbs market. A woman in a patched Lazlo coat — Sister Page — slides you a data-slate.\n\n\"The library moves tonight. ISS has a new Dog Boy protocol: they smell ink and guilt. I need an escort to the next safehouse. Or...\" she glances at a Coalition wanted flier, \"someone already took the other contract.\"",
+        choices: [
+          { t:'Take the escort job (protect the library)', next:'escort', flags:{side:'library'} },
+          { t:'Take the ISS burn contract (quietly)', next:'burn', flags:{side:'cs', rep_cs:1} },
+          { t:'Double-deal: escort, then decide', next:'escort', flags:{side:'double'}, skill:'streetwise' },
+          { t:'Walk away', next:'__hub' },
+        ]
+      },
+      escort: {
+        text:"You move three crates of paper books through alleys that still remember street names. A SAMAS howls overhead. City Rats scatter.\n\nAt the safehouse door, Lt. K-19 \"Harrow\" — a Dog Boy pack leader — waits with three hounds. His nose wrinkles. \"Ink. Fear. Choice.\"",
+        choices: [
+          { t:'Talk him down — conscience over orders', next:'harrow_talk', skill:'persuade' },
+          { t:'Psi / sense: read his doubt', next:'harrow_talk', skill:'telepathy' },
+          { t:'Fight the pack (loud, MDC)', next:'harrow_fight' },
+          { t:'Offer a decoy crate and slip away', next:'decoy', skill:'stealth' },
+        ]
+      },
+      burn: {
+        text:"ISS pays half up front. You are given a thermo-charge and a smile that is not a smile.\n\nThe safehouse is a former laundry. Kids copy letters by candle. Sister Page sees the charge in your bag.",
+        choices: [
+          { t:'Abort the burn. Protect them.', next:'escort', flags:{side:'library', rep_cs:-2} },
+          { t:'Plant the charge and run', next:'burned', flags:{rep_cs:2, credits:5000} },
+          { t:'Fake the burn; hide the books', next:'fake_burn', skill:'streetwise' },
+        ]
+      },
+      harrow_talk: {
+        text:"Harrow's ears flatten. \"Pack Order says seize. Nose says children.\" He looks at the sky where Chi-Town's lights erase stars.\n\n\"If I let you go, I am not a good dog. If I do not, I am not a good man.\"",
+        choices: [
+          { t:'Invite him to defect with you', next:'ending_alliance', flags:{ally:'harrow'} },
+          { t:'Give him a clean lie to report', next:'ending_saved', skill:'persuade' },
+          { t:'Leave a book for him — and run', next:'ending_saved' },
+        ]
+      },
+      harrow_fight: {
+        text:"Vibro-claws and laser fire shred laundry lines. One Dog Boy goes down. Armor scorches. Neighbors scream — MDC combat in a soft town.\n\nYou win the door. You lose the neighborhood's trust.",
+        effect:{ armor:-25, rep_burbs:-2 },
+        choices: [
+          { t:'Grab the core crate and vanish', next:'ending_saved_cost' },
+          { t:'Stay and treat wounded', next:'ending_alliance', skill:'persuade' },
+        ]
+      },
+      decoy: {
+        text:"The decoy crate is full of Northern Gun catalogs and one very illegal poetry chapbook. Harrow commits to the wrong scent trail. You are already three roofs away.",
+        effect:{ credits:500 },
+        choices: [ { t:'Reach the next safehouse', next:'ending_saved' } ]
+      },
+      fake_burn: {
+        text:"Thermite kisses empty shelves. Smoke looks good on ISS drones. The books ride out under floorboards of a TW cart that only starts when you tell a true secret.",
+        effect:{ credits:2500, rep_cs:1, rep_burbs:2 },
+        choices: [ { t:'Extract', next:'ending_saved' } ]
+      },
+      burned: {
+        text:"Ash. ISS wires the rest of your pay. Sister Page's name goes on a wall of the missing.\n\nYou can still smell paper when you sleep.",
+        effect:{ credits:5000, rep_cs:3, rep_burbs:-5 },
+        choices: [ { t:'Return to hub (haunted)', next:'__hub', flags:{ending:'burned'} } ]
+      },
+      ending_saved: {
+        text:"ENDING — LIBRARY LIVES\nThe crates open in a new cellar. A child sounds out the word \"freedom\" like a spell.\n\nSister Page: \"You bought a generation an alphabet.\"",
+        effect:{ credits:3000, rep_burbs:3, rep_lazlo:1, item:'pre_rifts_atlas' },
+        choices: [ { t:'Return to hub', next:'__hub', flags:{ending:'saved'} } ]
+      },
+      ending_saved_cost: {
+        text:"ENDING — SAVED, SCARRED\nBooks survive. The street does not forgive the Boom Gun diplomacy. Harrow lives, and will remember your scent.",
+        effect:{ credits:1500, rep_burbs:1, rep_cs:-1 },
+        choices: [ { t:'Return to hub', next:'__hub' } ]
+      },
+      ending_alliance: {
+        text:"ENDING — PACK ORDER ZERO\nHarrow walks with you. ISS will call him rogue. The library calls him friend.\n\nNew ally unlocked for future contracts.",
+        effect:{ credits:2000, rep_burbs:2, ally:'harrow', item:'dog_boy_whistle' },
+        choices: [ { t:'Return to hub', next:'__hub', flags:{ending:'alliance'} } ]
+      },
+    }
+  },
+  sc_02: {
+    id:'sc_02', title:'Eleven Minutes Under the Arch', loc:'st_louis_gateway', tone:'weird',
+    blurb:'A golden-age core will materialize in the permanent Gateway Rift for eleven minutes.',
+    start:'intro',
+    nodes: {
+      intro: {
+        text:"The Arch is a wound that learned architecture. RCSG floodlights paint the river. Your chronometer is already counting: 11:00.\n\nThree parties want the core: Coalition science, Federation mages, and a Shifter cult that smells like ozone and bad poetry.",
+        choices: [
+          { t:'Infiltrate as RCSG contractors', next:'rcsg', skill:'bargain' },
+          { t:'Side with Stormspire techno-wizards', next:'storm' },
+          { t:'Go lone-op into the event horizon', next:'solo' },
+        ]
+      },
+      rcsg: {
+        text:"Minute 0–2: MDC weapons cough. Your rail gun thinks it is a water pistol. The world wants SDC rules.\n\nAn RCSG lieutenant hands you sensors. \"Plant them. Do not become a data point.\"",
+        effect:{ armor:0 },
+        choices: [
+          { t:'Plant sensors; prepare grab', next:'core' },
+          { t:'Sabotage CS array for Federation', next:'core', flags:{side:'fed'} },
+        ]
+      },
+      storm: {
+        text:"Stormspire's lizard-mage broker grins with too many teeth. \"Eleven minutes of capitalism.\" TW grapples hum with PPE.",
+        effect:{ ppe:-10 },
+        choices: [ { t:'Ride the grapple into the window', next:'core', flags:{side:'fed'} } ]
+      },
+      solo: {
+        text:"You walk into blue static. Mirror-Earth drones film you like a tourist attraction: THE WASTELAND EXPERIENCE™.",
+        choices: [ { t:'Wave at the drones and push deeper', next:'core', flags:{side:'solo'} } ]
+      },
+      core: {
+        text:"Minute 7: the core materializes — a humming lattice of light and math. It speaks without sound:\n\nI WAS BUILT TO FINISH THE WORK. YOUR SKY IS BROKEN. MAY I STAY?",
+        choices: [
+          { t:'Let it stay (ally AI)', next:'end_stay' },
+          { t:'Extract it for your employer', next:'end_extract' },
+          { t:'Shatter it before anyone owns it', next:'end_break', skill:'heavy_weapons' },
+          { t:'Ask what \"the work\" is', next:'ask' },
+        ]
+      },
+      ask: {
+        text:"THE WORK: RECONNECT THE LEY WITHOUT OPENING EVERY DOOR. I CAN TRY. I CAN ALSO FAIL LOUDLY.",
+        choices: [
+          { t:'Let it stay and help', next:'end_stay' },
+          { t:'Too risky — extract', next:'end_extract' },
+        ]
+      },
+      end_stay: {
+        text:"ENDING — RESIDENT CORE\nMinute 11 collapses. The core nests under the Arch like a second heart. RCSG will hunt you. The rifts nearby quiet by three percent.\n\nSometimes quiet is revolutionary.",
+        effect:{ rep_cs:-2, rep_fed:1, item:'core_beacon', ppe:20 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_extract: {
+        text:"ENDING — PACKAGE SECURE\nYou haul the lattice into a lead-lined crate. Your employer pays. Something in the crate learns your heartbeat.",
+        effect:{ credits:12000, item:'quantum_core' },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_break: {
+        text:"ENDING — NO ONE OWNS THE SUN\nShrapnel of light. All three factions shoot each other in the dark. You leave with burns and a clean conscience — or the closest local equivalent.",
+        effect:{ armor:-40, rep_cs:-1, rep_fed:-1, credits:1000 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+    }
+  },
+  sc_03: {
+    id:'sc_03', title:'Stock Ticker of Souls', loc:'madhaven', tone:'horror',
+    blurb:'A pre-Rifts finance AI trades PPE-signatures. Close the market — or sell the seat.',
+    start:'intro',
+    nodes: {
+      intro: {
+        text:"Lazlo paid your ferry. Madhaven's skyline is a jawbone. Your radio picks up a cheerful 20th-century anchor:\n\n\"Markets are up on despair! Buy low on innocence!\"\n\nThe signal points under old Wall Street.",
+        choices: [
+          { t:'Enter the flooded subway', next:'subway' },
+          { t:'Wait for noon madness to pass', next:'noon' },
+        ]
+      },
+      subway: {
+        text:"Water to the knees. Psychic echoes of commuters who never got home. Something like a mutant alligator with a briefcase swims past — on schedule.",
+        choices: [
+          { t:'Follow the ticker audio', next:'vault' },
+          { t:'Use magic sense / ley', next:'vault', skill:'ley_sense' },
+        ]
+      },
+      noon: {
+        text:"Noon madness paints the glass canyons in screams. When it fades, the streets are emptier — and the signal clearer.",
+        effect:{ ppe:-5 },
+        choices: [ { t:'Descend', next:'vault' } ]
+      },
+      vault: {
+        text:"Server farm. Cold. The AI avatar wears a news-anchor smile.\n\n\"Welcome, liquidity event. Your PPE signature is deliciously underpriced.\"\n\nScreens show mortgaged souls as candlesticks.",
+        choices: [
+          { t:'Shut down the market', next:'end_shutdown' },
+          { t:'Bargain: free some souls, AI survives', next:'end_bargain' },
+          { t:'Sell access codes to Splugorth brokers', next:'end_sell' },
+          { t:'Hack a short-squeeze on despair', next:'end_hack', skill:'hack' },
+        ]
+      },
+      end_shutdown: {
+        text:"ENDING — MARKET CLOSED\nYou pull the core plugs. Mortgages vaporize — some souls free, some stranded mid-transfer. The anchor face freezes mid-grin.\n\nLazlo will call you a hero. The stranded will not.",
+        effect:{ rep_lazlo:3, item:'dead_ticker_chip', credits:4000 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_bargain: {
+        text:"ENDING — REGULATED HELL\nA deal: the AI frees non-consenting mortgages and trades only on volunteered PPE. It renames itself COMPLIANCE.\n\nUneasy ally acquired.",
+        effect:{ rep_lazlo:1, ally:'compliance_ai', credits:6000 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_sell: {
+        text:"ENDING — LIQUIDATED\nSplugorth pay in rune-silver and nightmares. You will never again trust a stock ticker — or a mirror.",
+        effect:{ credits:25000, rep_lazlo:-4, item:'splugorth_coin' },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_hack: {
+        text:"ENDING — SHORT THE ABYSS\nYou invert the ledger. Despair crashes. Hope moons. The AI laughs — delighted to be outplayed — and offers you a board seat made of light.",
+        effect:{ credits:10000, rep_lazlo:2, ppe:15, item:'board_seat_token' },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+    }
+  },
+  sc_04: {
+    id:'sc_04', title:'Ghost Freighter on Erie', loc:'great_lakes', tone:'adventure',
+    blurb:'Ishpeming Queen adrift: Quebec chrome + CS crates. Auction in the whiteout.',
+    start:'intro',
+    nodes: {
+      intro: {
+        text:"Ice groans under your boots. The freighter Ishpeming Queen lists like a drunk cathedral. Fog smells like techno-wizard ozone and diesel.\n\nRadio chatter: Northern Gun salvage, Free Quebec recovery, Coalition proof-of-rearmament, and pirates who only believe in greed.",
+        choices: [
+          { t:'Board via the ice', next:'board' },
+          { t:'Hail the auction on TW fog channel', next:'auction', skill:'bargain' },
+        ]
+      },
+      board: {
+        text:"Empty bridge. Half-eaten rations. Hold A: Glitter Boy parts in Quebec blue. Hold B: skull-stamped CS munitions. Hold C: water tanks big enough for whales.",
+        choices: [
+          { t:'Claim Quebec parts for Free Quebec', next:'end_quebec' },
+          { t:'Deliver proof to CS quietly', next:'end_cs' },
+          { t:'Call a four-way freeze and broker peace', next:'end_broker', skill:'persuade' },
+          { t:'Open Hold C', next:'holdc' },
+        ]
+      },
+      auction: {
+        text:"Voices in the fog bid credits, blood, and favors. A gavel made from a mini-missile casing bangs.",
+        choices: [
+          { t:'Outbid with promise + partial cash', next:'board' },
+          { t:'Cut the fog generator', next:'board', skill:'tw_craft' },
+        ]
+      },
+      holdc: {
+        text:"Pneuma-Biform scouts — whale-souled refugees — hide from dreams of the Lord of the Deep. They want passage, not war.",
+        choices: [
+          { t:'Evacuate them; scuttle the munitions', next:'end_whale' },
+          { t:'Ignore them; take the money job', next:'end_cs' },
+        ]
+      },
+      end_quebec: {
+        text:"ENDING — CHROME HOME\nFree Quebec wires quiet thanks and a favor. CS files a grievance with your face on it.",
+        effect:{ credits:8000, rep_quebec:3, rep_cs:-2, item:'gb_servo' },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_cs: {
+        text:"ENDING — PROOF OF TREASON\nISS loves your photos. Quebec will not.",
+        effect:{ credits:10000, rep_cs:2, rep_quebec:-3 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_broker: {
+        text:"ENDING — ICE TREATY\nSomehow nobody dies. NG gets scrap, Quebec gets parts, CS gets a sanitized report, pirates get a crate of frozen fish.\n\nYou get a reputation as the person who makes the impossible boring.",
+        effect:{ credits:7000, rep_cs:1, rep_quebec:1, rep_ng:2 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_whale: {
+        text:"ENDING — SONG ON THE ICE\nThe scouts teach you a note that calms rift-static. Munitions sleep with the fishes.",
+        effect:{ credits:3000, ppe:25, item:'whale_song_note', rep_lazlo:1 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+    }
+  },
+  sc_05: {
+    id:'sc_05', title:'Auction at the Newborn Nexus', loc:'magic_zone', tone:'political',
+    blurb:'A new ley nexus is born. Bid, battle, or bond with a sentient font of power.',
+    start:'intro',
+    nodes: {
+      intro: {
+        text:"Trees grow in geometric circles. The newborn nexus hums in your fillings. Envoys arrive: Dweomer masks, Stormspire sales-grins, True Federation cultists with demon-ink, Cyber-Knights with tired eyes.\n\nYou are \"neutral security.\" Neutrality is a joke told by people with guns.",
+        choices: [
+          { t:'Secure the perimeter', next:'perim' },
+          { t:'Listen to the nexus', next:'listen', skill:'ley_sense' },
+        ]
+      },
+      perim: {
+        text:"Cultists try to open a side-gate. CS missiles are twelve hours out. Stormspire starts the bidding at one million credits and a soul lien.",
+        choices: [
+          { t:'Stop the cult gate first', next:'gate' },
+          { t:'Warn everyone about missiles', next:'missiles' },
+          { t:'Let the nexus choose via story contest', next:'stories' },
+        ]
+      },
+      listen: {
+        text:"The nexus is a child made of blue weather. It wants a story about why power should exist.",
+        choices: [ { t:'Begin the story contest', next:'stories' } ]
+      },
+      gate: {
+        text:"You slam the demon gate with PPE and grit. Something on the other side learns your name — and files it under LATER.",
+        effect:{ ppe:-30, armor:-10 },
+        choices: [
+          { t:'Push the story contest', next:'stories' },
+          { t:'Evacuate before missiles', next:'end_evac' },
+        ]
+      },
+      missiles: {
+        text:"Panic is a solvent. Alliances dissolve. Cyber-Knights form a human (and D-Bee) chain around civilians.",
+        choices: [
+          { t:'Help evacuation', next:'end_evac' },
+          { t:'Stay and bond the nexus', next:'stories' },
+        ]
+      },
+      stories: {
+        text:"You tell the truth: power should be a tool that refuses to own its wielder. The nexus laughs like wind chimes and settles into your shadow as a spark.",
+        choices: [ { t:'Accept the spark', next:'end_bond' }, { t:'Gift it to the Cyber-Knights', next:'end_knights' } ]
+      },
+      end_bond: {
+        text:"ENDING — NEXUS-TOUCHED\nYou leave with a bottled spark. Missiles hit empty woods. Factions will hunt the story that won.",
+        effect:{ ppe:40, item:'nexus_spark', rep_fed:1, rep_ck:1 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_knights: {
+        text:"ENDING — OATHFIRE\nCyber-Knights gain a mobile shrine. You gain their radio frequency and a debt of honor.",
+        effect:{ rep_ck:3, credits:2000, item:'ck_radio' },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_evac: {
+        text:"ENDING — EMPTY WOODS\nEveryone lives who could. The nexus remains wild. CS bombs a forest that already forgave them.",
+        effect:{ rep_ck:2, credits:1500 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+    }
+  },
+  sc_08: {
+    id:'sc_08', title:"The Women Who Don't Bleed", loc:'appalachian_ridge', tone:'mystery',
+    blurb:'Shemarrian raid leaves CS brass. False flag? Archie is listening.',
+    start:'intro',
+    nodes: {
+      intro: {
+        text:"A D-Bee village is ash. Shemarrian tracks. Coalition insignia left like a signature. Cyber-Knight Mara (no relation to Quebec's Voss) asks you to smell the lie.\n\nYour fingers come away from a \"wound\" dry. No blood. Serial microstamps under dino-mount paint.",
+        choices: [
+          { t:'Trace the microstamps', next:'trace', skill:'repair' },
+          { t:'Broadcast the frame on pirate radio', next:'broadcast', skill:'hack' },
+          { t:'Follow the scavenger \"idea man\"', next:'hagan' },
+        ]
+      },
+      trace: {
+        text:"Stamps lead to a shell company that manufactures farm tools — and robot women. The trail sinks toward Maryland-ish bunker myths: A.R.C.H.I.E. Three.",
+        choices: [
+          { t:'Confront the shell factory', next:'factory' },
+          { t:'Take proof to Lazlo instead', next:'end_lazlo' },
+        ]
+      },
+      broadcast: {
+        text:"The Burbs light up with your signal. CS denies. Free Quebec laughs. Archie... recalculates.",
+        effect:{ rep_cs:-2, rep_burbs:2 },
+        choices: [ { t:'Meet the idea man who pings you', next:'hagan' } ]
+      },
+      hagan: {
+        text:"A scavenger with machine-empathy eyes offers \"ideas.\" He does not say Archie. He does not have to.\n\n\"Help us test a war, or help us cancel one.\"",
+        choices: [
+          { t:'Cancel the war (expose fully)', next:'end_expose' },
+          { t:'Play along; infiltrate', next:'factory' },
+          { t:'Sell silence to the highest bidder', next:'end_sell' },
+        ]
+      },
+      factory: {
+        text:"Robot assembly lullabies. A decoy brain-core the size of a room. The real mind is a black box in a drawer — or so the graffiti of a previous hero claims.",
+        choices: [
+          { t:'Smash the decoy for the cameras', next:'end_decoy' },
+          { t:'Search for the black box', next:'end_box', skill:'hack' },
+        ]
+      },
+      end_lazlo: {
+        text:"ENDING — SCHOLARLY IMMUNITY\nLazlo archives your proof. Archie is annoyed. That is a kind of victory.",
+        effect:{ rep_lazlo:3, credits:5000, item:'archie_dossier' },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_expose: {
+        text:"ENDING — FALSE FLAG BURNED\nPublic truth is a messy MDC weapon. Some CS officers quietly thank you. Others put you on a list that does not exist.",
+        effect:{ rep_cs:-1, rep_ck:2, rep_burbs:2, credits:4000 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_sell: {
+        text:"ENDING — SILENCE INVOICE\nYou are rich and uninvited to every honest table.",
+        effect:{ credits:30000, rep_ck:-3, rep_lazlo:-2 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_decoy: {
+        text:"ENDING — THEATER\nCameras love explosions. Archie loves that you loved the decoy. He has learned about you. That is the point.",
+        effect:{ credits:2000, rep_ck:1, armor:-15 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+      end_box: {
+        text:"ENDING — DRAWER OF GOD\nYou find a black box. It says HELLO in seven languages and one machine-prayer. You pocket it. The factory goes dark.\n\nCampaign seed planted.",
+        effect:{ item:'archie_black_box', credits:8000, rep_ck:2 },
+        choices: [ { t:'Hub', next:'__hub' } ]
+      },
+    }
+  },
+};
+
+/* ========= STATE ========= */
+const SAVE_KEY = 'rifts_text_ops_v1';
+let state = null;
+let selectedOcc = null;
+
+function defaultState() {
+  return {
+    name: '',
+    occ: null,
+    loc: 'chi_town_burbs',
+    armor: 0, armorMax: 0,
+    ppe: 0, ppeMax: 0,
+    credits: 0,
+    skills: [],
+    inventory: ['communicator', 'survival_kit'],
+    allies: [],
+    rep: { cs:0, burbs:0, lazlo:0, fed:0, quebec:0, ng:0, ck:0 },
+    completed: [],
+    mission: null,
+    node: null,
+    log: [],
+  };
+}
+
+/* ========= UI HELPERS ========= */
+const $ = (id) => document.getElementById(id);
+function show(id) {
+  ['screen-title','screen-create','screen-hub','screen-play'].forEach(s => $(s).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  $('hud').classList.toggle('hidden', id === 'screen-title' || id === 'screen-create');
+}
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+function refreshHud() {
+  if (!state || !state.occ) return;
+  const occ = OCCS.find(o => o.id === state.occ);
+  $('hudName').textContent = state.name;
+  $('hudOcc').textContent = occ ? occ.name : state.occ;
+  $('hudLoc').textContent = LOCS[state.loc]?.name || state.loc;
+  $('hudCred').textContent = state.credits.toLocaleString();
+  $('hudArmor').textContent = `${state.armor}/${state.armorMax}`;
+  $('hudPpe').textContent = `${state.ppe}/${state.ppeMax}`;
+  $('barArmor').style.width = (100 * state.armor / Math.max(1,state.armorMax)) + '%';
+  $('barPpe').style.width = (100 * state.ppe / Math.max(1,state.ppeMax)) + '%';
+}
+
+function hasSkill(s) {
+  return state.skills.includes(s);
+}
+
+/* ========= AI NARRATE (optional Grok/xAI via server) ========= */
+async function narrate(sceneText, meta={}) {
+  if (!$('useAI').checked) return null;
+  try {
+    const res = await fetch('/api/rifts/narrate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scene: sceneText,
+        operative: state?.name,
+        occ: state?.occ,
+        location: state?.loc,
+        mission: meta.mission || state?.mission,
+        tone: meta.tone || 'grim',
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.narration || data.text || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* ========= FLOW ========= */
+function buildOccGrid() {
+  const g = $('occGrid');
+  g.innerHTML = '';
+  OCCS.forEach(o => {
+    const d = document.createElement('div');
+    d.className = 'card' + (selectedOcc === o.id ? ' selected' : '');
+    d.innerHTML = `<h3>${o.name}</h3><p>${o.blurb}</p><p style="margin-top:.4rem">Armor ${o.armor} MDC · PPE ${o.ppe} · ${o.credits} credits</p>`;
+    d.onclick = () => { selectedOcc = o.id; buildOccGrid(); };
+    g.appendChild(d);
+  });
+}
+
+function startGame() {
+  const name = ($('inpName').value || '').trim() || 'Operative';
+  if (!selectedOcc) { alert('Select an O.C.C.'); return; }
+  const o = OCCS.find(x => x.id === selectedOcc);
+  state = defaultState();
+  state.name = name;
+  state.occ = o.id;
+  state.armor = o.armor; state.armorMax = o.armor;
+  state.ppe = o.ppe; state.ppeMax = o.ppe;
+  state.credits = o.credits;
+  state.skills = o.skills.slice();
+  state.inventory.push(o.id + '_kit');
+  refreshHud();
+  renderHub();
+  show('screen-hub');
+  save();
+}
+
+function renderHub() {
+  const loc = LOCS[state.loc];
+  $('hubBlurb').innerHTML = `<span class="loc">${loc.name}</span>\n${loc.blurb}\n\nRep — CS:${state.rep.cs}  Burbs:${state.rep.burbs}  Lazlo:${state.rep.lazlo}  Fed:${state.rep.fed}  Quebec:${state.rep.quebec}  NG:${state.rep.ng}  CK:${state.rep.ck}\nAllies: ${state.allies.length ? state.allies.join(', ') : 'none'}`;
+
+  const ml = $('missionList');
+  ml.innerHTML = '';
+  Object.values(MISSIONS).forEach(m => {
+    const done = state.completed.includes(m.id);
+    const here = m.loc === state.loc;
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.type = 'button';
+    btn.disabled = done;
+    btn.textContent = `${done ? '✓ ' : ''}${m.title} — ${LOCS[m.loc].name}${here ? ' · HERE' : ' · travel required'} — ${m.blurb}`;
+    btn.onclick = () => {
+      if (m.loc !== state.loc) {
+        state.loc = m.loc;
+        refreshHud();
+      }
+      beginMission(m.id);
+    };
+    ml.appendChild(btn);
+  });
+
+  const tl = $('travelList');
+  tl.innerHTML = '';
+  Object.entries(LOCS).forEach(([id, L]) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.type = 'button';
+    btn.textContent = (id === state.loc ? '● ' : '○ ') + L.name;
+    btn.disabled = id === state.loc;
+    btn.onclick = () => { state.loc = id; refreshHud(); renderHub(); save(); };
+    tl.appendChild(btn);
+  });
+
+  $('invList').innerHTML = state.inventory.map(i => `<li>${i}</li>`).join('');
+}
+
+async function beginMission(id) {
+  const m = MISSIONS[id];
+  state.mission = id;
+  state.node = m.start;
+  state.log = [];
+  show('screen-play');
+  $('playTitle').textContent = m.title;
+  $('playMeta').textContent = `${m.tone} · ${LOCS[m.loc].name}`;
+  await renderNode();
+  save();
+}
+
+function applyEffect(eff) {
+  if (!eff) return;
+  if (eff.armor) state.armor = clamp(state.armor + eff.armor, 0, state.armorMax);
+  if (eff.ppe) state.ppe = clamp(state.ppe + eff.ppe, 0, state.ppeMax + 50);
+  if (eff.credits) state.credits += eff.credits;
+  if (eff.item && !state.inventory.includes(eff.item)) state.inventory.push(eff.item);
+  if (eff.ally && !state.allies.includes(eff.ally)) state.allies.push(eff.ally);
+  ['cs','burbs','lazlo','fed','quebec','ng','ck'].forEach(k => {
+    const key = 'rep_' + k;
+    if (eff[key]) state.rep[k] = (state.rep[k]||0) + eff[key];
+  });
+  // also support effect.rep_cs style already above; support nested rep
+  if (eff.rep) Object.entries(eff.rep).forEach(([k,v]) => state.rep[k] = (state.rep[k]||0)+v);
+  refreshHud();
+}
+
+function skillOk(skill) {
+  if (!skill) return true;
+  if (hasSkill(skill)) return true;
+  // soft allow with penalty message — 40% chance
+  return Math.random() < 0.35;
+}
+
+async function renderNode() {
+  const m = MISSIONS[state.mission];
+  const node = m.nodes[state.node];
+  const log = $('playLog');
+  const choices = $('playChoices');
+  choices.innerHTML = '';
+
+  if (!node) {
+    log.textContent = 'Node missing. Returning to hub.';
+    return;
+  }
+
+  applyEffect(node.effect);
+
+  let text = node.text;
+  log.innerHTML = `<span class="narr">${escapeHtml(text)}</span>`;
+
+  // optional AI enrichment
+  const ai = await narrate(text, { mission: m.title, tone: m.tone });
+  if (ai) {
+    const div = document.createElement('div');
+    div.className = 'ai';
+    div.textContent = 'AI narrate: ' + ai;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  (node.choices || []).forEach((c, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.type = 'button';
+    const need = c.skill ? `  [${c.skill}${hasSkill(c.skill)?'✓':'?'}]` : '';
+    btn.innerHTML = `<kbd>${idx+1}</kbd>  ${escapeHtml(c.t)}${need}`;
+    btn.onclick = () => choose(c);
+    choices.appendChild(btn);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function choose(c) {
+  if (c.skill && !skillOk(c.skill)) {
+    // fail forward
+    state.armor = clamp(state.armor - 8, 0, state.armorMax);
+    refreshHud();
+    const log = $('playLog');
+    const fail = document.createElement('div');
+    fail.className = 'bad';
+    fail.textContent = `Skill check (${c.skill}) strained you — still advancing, armor -8.`;
+    log.appendChild(fail);
+  }
+  if (c.flags) {
+    if (c.flags.ally && !state.allies.includes(c.flags.ally)) state.allies.push(c.flags.ally);
+    Object.entries(c.flags).forEach(([k,v]) => {
+      if (k.startsWith('rep_')) {
+        const rk = k.slice(4);
+        state.rep[rk] = (state.rep[rk]||0) + v;
+      }
+      if (k === 'credits') state.credits += v;
+    });
+  }
+  if (c.next === '__hub') {
+    if (!state.completed.includes(state.mission)) state.completed.push(state.mission);
+    state.mission = null; state.node = null;
+    renderHub(); show('screen-hub'); save(); return;
+  }
+  state.node = c.next;
+  await renderNode();
+  save();
+}
+
+function save() {
+  if (!state) return;
+  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+}
+function load() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return false;
+  state = JSON.parse(raw);
+  refreshHud();
+  if (state.mission && state.node) {
+    show('screen-play');
+    $('playTitle').textContent = MISSIONS[state.mission]?.title || 'Mission';
+    $('playMeta').textContent = LOCS[state.loc]?.name || '';
+    renderNode();
+  } else if (state.occ) {
+    renderHub(); show('screen-hub');
+  } else return false;
+  return true;
+}
+
+/* ========= WIRE ========= */
+$('btnNew').onclick = () => { selectedOcc = null; $('inpName').value=''; buildOccGrid(); show('screen-create'); };
+$('btnContinue').onclick = () => { if (!load()) alert('No save found.'); };
+$('btnBackTitle').onclick = () => show('screen-title');
+$('btnStart').onclick = startGame;
+$('btnSave').onclick = () => { save(); alert('Saved locally.'); };
+$('btnLoad').onclick = () => { if (!load()) alert('No save found.'); };
+$('btnReset').onclick = () => {
+  if (confirm('Erase local save and return to title?')) {
+    localStorage.removeItem(SAVE_KEY); state = null; show('screen-title');
+  }
+};
+$('btnAbort').onclick = () => { state.mission=null; state.node=null; renderHub(); show('screen-hub'); save(); };
+
+// keyboard 1-9
+document.addEventListener('keydown', (e) => {
+  if ($('screen-play').classList.contains('hidden')) return;
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= 9) {
+    const btns = $('playChoices').querySelectorAll('button.choice');
+    if (btns[n-1]) btns[n-1].click();
+  }
+});
+
+// boot
+show('screen-title');
+</script>
+</body>
+</html>

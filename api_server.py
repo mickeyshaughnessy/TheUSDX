@@ -351,14 +351,6 @@ def eagle_drill():
     name = 'eagle_drill.html' if os.path.exists('eagle_drill.html') else 'eagle.html'
     return send_from_directory('.', name)
 
-@app.route('/quasisilex.html')
-def quasisilex():
-    return send_from_directory('.', 'quasisilex.html')
-
-@app.route('/quasisilex.css')
-def quasisilex_css():
-    return send_from_directory('.', 'quasisilex.css')
-
 @app.route('/plasma.html')
 def plasma():
     # Prefer local copy; fall back to PlasmaSim deploy path on prod
@@ -367,6 +359,110 @@ def plasma():
     if os.path.exists('/var/www/PlasmaSim/plasma.html'):
         return send_from_directory('/var/www/PlasmaSim', 'plasma.html')
     abort(404)
+
+@app.route('/rifts.html')
+def rifts_game():
+    # Prefer local copy; fall back to RIFTs deploy path on prod
+    if os.path.exists('rifts.html'):
+        return send_from_directory('.', 'rifts.html')
+    if os.path.exists('/var/www/RIFTs/rifts.html'):
+        return send_from_directory('/var/www/RIFTs', 'rifts.html')
+    abort(404)
+
+@app.route('/api/rifts/narrate', methods=['POST'])
+def rifts_narrate():
+    """Optional Grok/xAI (or OpenRouter) scene enrichment for the text game."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        scene = (data.get('scene') or '').strip()
+        if not scene:
+            return jsonify({'error': 'scene required'}), 400
+        if len(scene) > 6000:
+            scene = scene[:6000]
+
+        operative = data.get('operative') or 'Operative'
+        occ = data.get('occ') or 'adventurer'
+        location = data.get('location') or 'unknown'
+        mission = data.get('mission') or 'contract'
+        tone = data.get('tone') or 'grim'
+
+        system = (
+            "You are the narrative AI for an unofficial text-only Rifts-inspired RPG "
+            "(fan work; not affiliated with Palladium Books). Write 2-4 vivid sentences "
+            "enriching the scene for the player. Stay in second person. No stats, no "
+            "OOC, no markdown headings. Keep it PG-13 pulp: weird, deadly, moral gray. "
+            "Do not invent copyrighted stat blocks; flavor only."
+        )
+        prompt = (
+            f"Tone: {tone}\nLocation: {location}\nMission: {mission}\n"
+            f"Operative: {operative} ({occ})\n\nScene:\n{scene}\n\n"
+            "Enrich the sensory detail and stakes in 2-4 sentences:"
+        )
+
+        narration = None
+        provider = None
+
+        # Prefer xAI / Grok when configured (SpaceXAI / Grok Build stack)
+        xai_key = getattr(config, 'XAI_API_KEY', None) or os.environ.get('XAI_API_KEY')
+        xai_model = getattr(config, 'XAI_MODEL', None) or os.environ.get('XAI_MODEL') or 'grok-4.5'
+        if xai_key:
+            try:
+                import requests as _req
+                r = _req.post(
+                    'https://api.x.ai/v1/chat/completions',
+                    headers={
+                        'Authorization': f'Bearer {xai_key}',
+                        'Content-Type': 'application/json',
+                    },
+                    json={
+                        'model': xai_model,
+                        'messages': [
+                            {'role': 'system', 'content': system},
+                            {'role': 'user', 'content': prompt},
+                        ],
+                        'temperature': 0.85,
+                        'max_tokens': 220,
+                    },
+                    timeout=25,
+                )
+                if r.status_code == 200:
+                    narration = r.json()['choices'][0]['message']['content'].strip()
+                    provider = f'xai:{xai_model}'
+                else:
+                    print(f"[rifts] xAI error {r.status_code}: {r.text[:200]}")
+            except Exception as e:
+                print(f"[rifts] xAI failed: {e}")
+
+        # Fallback: OpenRouter (may include x-ai/grok models)
+        if not narration and getattr(config, 'OPENROUTER_API_KEY', None):
+            try:
+                from handlers import call_openrouter
+                model_override = getattr(config, 'RIFTS_MODEL', None)
+                # Prefer grok on OpenRouter when available
+                or_model = model_override or getattr(config, 'OPENROUTER_MODEL', None)
+                narration = call_openrouter(prompt, system_message=system)
+                provider = f'openrouter:{or_model}'
+            except Exception as e:
+                print(f"[rifts] OpenRouter failed: {e}")
+                return jsonify({
+                    'error': 'narration unavailable',
+                    'details': str(e),
+                    'fallback': True,
+                }), 503
+
+        if not narration:
+            return jsonify({
+                'error': 'No LLM configured (set XAI_API_KEY or OPENROUTER_API_KEY)',
+                'fallback': True,
+            }), 503
+
+        return jsonify({
+            'narration': narration,
+            'provider': provider,
+            'model_note': 'Unofficial fan narration; not Palladium canon.',
+        }), 200
+    except Exception as e:
+        return jsonify({'error': 'narrate failed', 'details': str(e)}), 500
 
 @app.route('/techtree.html')
 def techtree():

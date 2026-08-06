@@ -24,3 +24,8 @@ SSL_KEY_PATH = None   # '/etc/letsencrypt/live/yourdomain.com/privkey.pem'
 PORT = 6732
 HOST = '0.0.0.0'
 DEBUG = False
+
+# Optional: xAI / Grok for RIFTs text game narration (preferred)
+# XAI_API_KEY = 'xai-...'
+# XAI_MODEL = 'grok-4.5'
+# RIFTS_MODEL = 'x-ai/grok-3'  # optional OpenRouter override

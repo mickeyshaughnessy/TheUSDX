@@ -43,3 +43,9 @@ prompts):
 ## Demo Data Disclaimer
 
 All demo datasets are AI-generated synthetic records — not real government data and not derived from any actual public records release. This must be clearly communicated in the UI.
+
+## RIFTs text game
+
+- Served at `https://themithrilcompany.com/rifts.html`
+- Source of truth: `/var/www/RIFTs/rifts.html` (repo mickeyshaughnessy/RIFTs) or local `rifts.html` in TheUSDX
+- Optional AI: `POST /api/rifts/narrate` uses `XAI_API_KEY` (Grok) then OpenRouter fallback
