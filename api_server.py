@@ -369,6 +369,15 @@ def rifts_game():
         return send_from_directory('/var/www/RIFTs', 'rifts.html')
     abort(404)
 
+@app.route('/genies.html')
+def genies_game():
+    # Prefer local copy; fall back to TheGenies deploy path on prod
+    if os.path.exists('genies.html'):
+        return send_from_directory('.', 'genies.html')
+    if os.path.exists('/var/www/TheGenies/index.html'):
+        return send_from_directory('/var/www/TheGenies', 'index.html')
+    abort(404)
+
 @app.route('/api/rifts/narrate', methods=['POST'])
 def rifts_narrate():
     """Optional Grok/xAI (or OpenRouter) scene enrichment for the text game."""

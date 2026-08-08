@@ -49,3 +49,8 @@ All demo datasets are AI-generated synthetic records — not real government dat
 - Served at `https://themithrilcompany.com/rifts.html`
 - Source of truth: `/var/www/RIFTs/rifts.html` (repo mickeyshaughnessy/RIFTs) or local `rifts.html` in TheUSDX
 - Optional AI: `POST /api/rifts/narrate` uses `XAI_API_KEY` (Grok) then OpenRouter fallback
+
+## The Genies demo
+
+- Served at `https://themithrilcompany.com/genies.html` (and `/genies/` via nginx static)
+- Source of truth: `/var/www/TheGenies/index.html` (repo mickeyshaughnessy/TheGenies) or local `genies.html` in TheUSDX
