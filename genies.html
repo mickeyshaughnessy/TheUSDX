@@ -7,19 +7,17 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  --bg: #07070f;
-  --panel: #0a0c14;
-  --border: #1e2438;
-  --cell: #0e1220;
-  --text: #c8d4e8;
-  --muted: #5a6a88;
-  --accent: #6ee7ff;
+  --bg: #060a12;
+  --panel: #0a1220;
+  --border: #1a3050;
+  --cell: #0c1828;
+  --text: #d0e4f8;
+  --muted: #5a7a9a;
+  --accent: #4ec8f0;
   --gold: #f0c14b;
   --green: #3dd68c;
   --red: #ff5a6a;
-  --purple: #b794f4;
-  --road: #141820;
-  --grass: #0c1410;
+  --genie: #3a9fd8;
 }
 body {
   background: var(--bg);
@@ -28,32 +26,41 @@ body {
   height: 100vh;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr 320px;
-  grid-template-rows: 52px 1fr 120px;
+  grid-template-columns: 1fr 330px;
+  grid-template-rows: 52px 1fr 128px;
   grid-template-areas:
     "top top"
     "map side"
     "sheet sheet";
 }
-/* ── Top bar ── */
 #topbar {
   grid-area: top;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   padding: 0 14px;
-  background: linear-gradient(180deg, #0d1020 0%, #090b14 100%);
+  background: linear-gradient(180deg, #0c1a2e 0%, #08101c 100%);
   border-bottom: 1px solid var(--border);
   z-index: 5;
 }
 #topbar h1 {
   font-size: 15px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--accent);
   font-weight: 700;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-#topbar h1 span { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 8px; }
+#topbar h1 .logo {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: 12% 35%;
+  border: 1px solid #2a5080;
+}
+#topbar h1 span { color: var(--muted); font-weight: 500; font-size: 12px; }
 .badge {
   font-size: 10px;
   padding: 3px 8px;
@@ -65,11 +72,9 @@ body {
   text-transform: uppercase;
 }
 .badge.live { color: var(--green); border-color: #1a4a32; }
-.stat-pill {
-  font-size: 11px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
+.badge.alert { color: var(--red); border-color: #5a2030; animation: pulse-badge 1.2s ease-in-out infinite; }
+@keyframes pulse-badge { 50% { opacity: 0.55; } }
+.stat-pill { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .stat-pill b { color: var(--text); font-weight: 600; }
 .stat-pill .ok { color: var(--green); }
 .stat-pill .warn { color: var(--gold); }
@@ -77,26 +82,25 @@ body {
 #topbar .spacer { flex: 1; }
 .btn {
   padding: 5px 10px;
-  border: 1px solid #2a3350;
-  background: #10162a;
-  color: #c8d4f0;
+  border: 1px solid #2a4060;
+  background: #0e1c30;
+  color: #c8dcf0;
   border-radius: 4px;
   cursor: pointer;
   font-size: 11px;
   transition: background 0.1s, border-color 0.1s;
 }
-.btn:hover { background: #1a2240; border-color: #3a4a70; }
-.btn.primary { border-color: #2a6070; color: var(--accent); }
-.btn.active { outline: 1.5px solid var(--accent); outline-offset: -1.5px; background: #142030; }
+.btn:hover { background: #162840; border-color: #3a6090; }
+.btn.primary { border-color: #2a7090; color: var(--accent); background: #0a2030; }
+.btn.primary:hover { background: #0e3048; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ── Map ── */
 #map-wrap {
   grid-area: map;
   position: relative;
   min-width: 0;
   min-height: 0;
-  background: #050508;
+  background: #040810;
   overflow: hidden;
 }
 #canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
@@ -105,21 +109,21 @@ body {
   left: 12px;
   bottom: 10px;
   font-size: 11px;
-  color: #8899bb;
-  background: rgba(8,10,18,0.82);
-  border: 1px solid #222840;
-  padding: 6px 10px;
-  border-radius: 4px;
+  color: #8aa8c8;
+  background: rgba(6,12,22,0.88);
+  border: 1px solid #1a3858;
+  padding: 7px 11px;
+  border-radius: 6px;
   pointer-events: none;
-  max-width: 70%;
+  max-width: 78%;
   line-height: 1.45;
 }
 #overlay-hint kbd {
   display: inline-block;
   padding: 0 5px;
-  border: 1px solid #334;
+  border: 1px solid #2a4868;
   border-radius: 3px;
-  background: #12182a;
+  background: #0c1c30;
   font-size: 10px;
   color: var(--accent);
   font-family: inherit;
@@ -129,11 +133,11 @@ body {
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(10,16,28,0.94);
-  border: 1px solid #3a5070;
+  background: rgba(8,18,32,0.95);
+  border: 1px solid #3a70a0;
   color: var(--accent);
-  padding: 8px 14px;
-  border-radius: 4px;
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 12px;
   opacity: 0;
   transition: opacity 0.25s;
@@ -141,10 +145,13 @@ body {
   z-index: 4;
   max-width: 90%;
   text-align: center;
+  box-shadow: 0 4px 24px rgba(0,40,80,0.4);
 }
 #toast.show { opacity: 1; }
+#toast.good { border-color: #2a8060; color: var(--green); }
+#toast.bad { border-color: #803040; color: var(--red); }
+#toast.gold { border-color: #806020; color: var(--gold); }
 
-/* ── Side panel ── */
 #side {
   grid-area: side;
   background: var(--panel);
@@ -164,99 +171,115 @@ body {
 }
 .stage-label {
   font-size: 9px;
-  color: #556688;
+  color: #4a6a88;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  border-bottom: 1px solid #1a2030;
+  border-bottom: 1px solid #1a3048;
   padding-bottom: 3px;
-  margin-bottom: 2px;
 }
-.blurb {
-  font-size: 11px;
-  color: #8a9ab8;
-  line-height: 1.5;
-}
-.blurb b { color: #c0d0e8; }
+.blurb { font-size: 11px; color: #7a9ab8; line-height: 1.5; }
+.blurb b { color: #c0d8f0; }
 .blurb em { color: var(--gold); font-style: normal; }
-.sep { border-top: 1px solid #161c2c; }
+.sep { border-top: 1px solid #142030; }
 
-/* Genie scripts */
 .script-list { display: flex; flex-direction: column; gap: 5px; }
 .script-card {
-  border: 1px solid #222a40;
-  background: #0c101c;
-  border-radius: 4px;
-  padding: 7px 8px;
+  border: 1px solid #1e3858;
+  background: #0a1628;
+  border-radius: 6px;
+  padding: 6px 8px;
   cursor: pointer;
-  transition: border-color 0.1s, background 0.1s;
+  transition: border-color 0.1s, background 0.1s, box-shadow 0.1s;
   display: grid;
-  grid-template-columns: 28px 1fr auto;
-  gap: 6px;
+  grid-template-columns: 44px 1fr auto;
+  gap: 8px;
   align-items: center;
 }
-.script-card:hover { border-color: #3a4a68; background: #101828; }
-.script-card.selected { border-color: var(--accent); background: #0e1a28; }
-.script-card .ico {
-  width: 28px; height: 28px;
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+.script-card:hover { border-color: #3a6090; background: #0e1e34; }
+.script-card.selected {
+  border-color: var(--accent);
+  background: #0c2038;
+  box-shadow: 0 0 12px rgba(78,200,240,0.15);
+}
+.script-card .portrait {
+  width: 44px; height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #2a5080;
+  background: #081420;
 }
 .script-card .name {
   font-size: 11px;
-  color: #d0dcf0;
+  color: #d0e8f8;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.script-card .desc { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.script-card .desc { font-size: 10px; color: var(--muted); margin-top: 2px; }
 .script-card .qty {
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--gold);
   font-weight: 700;
 }
 
-/* Client list mini */
+.shop-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.shop-row .btn { flex: 1; min-width: 56px; padding: 4px 6px; font-size: 10px; }
+
 .client-row {
   display: grid;
   grid-template-columns: 10px 1fr auto;
   gap: 6px;
   align-items: center;
   font-size: 11px;
-  padding: 3px 0;
-  border-bottom: 1px solid #121824;
+  padding: 4px 2px;
+  border-bottom: 1px solid #101c2c;
   cursor: pointer;
 }
-.client-row:hover { background: #10162a; }
+.client-row:hover { background: #0e1a2c; }
+.client-row.hot-row { background: rgba(255,90,106,0.06); }
 .client-row .dot { width: 8px; height: 8px; border-radius: 50%; }
-.client-row .nm { color: #b8c8e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.client-row .met {
-  font-variant-numeric: tabular-nums;
-  font-size: 10px;
-  color: var(--muted);
-}
+.client-row .nm { color: #b0c8e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.client-row .met { font-variant-numeric: tabular-nums; font-size: 10px; color: var(--muted); }
 .client-row .met.hot { color: var(--red); }
 .client-row .met.cool { color: var(--green); }
 
-/* Mission log */
+.goal-bar {
+  background: #081420;
+  border: 1px solid #1a3858;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.goal-bar .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.goal-bar .track {
+  height: 6px; background: #0c1828; border-radius: 3px; overflow: hidden; margin-bottom: 6px;
+}
+.goal-bar .fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.goal-bar .fill.pay { background: linear-gradient(90deg, #f0c14b, #3dd68c); }
+.goal-bar .fill.waste { background: linear-gradient(90deg, #ff5a6a, #3dd68c); }
+
 #log {
   font-size: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #6a7a98;
+  color: #5a7a98;
   line-height: 1.55;
-  max-height: 110px;
+  max-height: 100px;
   overflow-y: auto;
 }
-#log .ln { border-bottom: 1px solid #10141e; padding: 2px 0; }
-#log .ln .t { color: #3a4a60; margin-right: 6px; }
+#log .ln { border-bottom: 1px solid #0e1824; padding: 2px 0; }
+#log .ln .t { color: #2a4058; margin-right: 6px; }
 #log .ln.good { color: var(--green); }
 #log .ln.bad { color: var(--red); }
 #log .ln.info { color: var(--accent); }
+#log .ln.gold { color: var(--gold); }
 
-/* ── Spreadsheet bottom ── */
 #sheet {
   grid-area: sheet;
-  background: #080a12;
+  background: #060e18;
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -268,146 +291,190 @@ body {
   align-items: center;
   gap: 12px;
   padding: 4px 12px;
-  background: #0c101c;
-  border-bottom: 1px solid #1a2030;
+  background: #0a1424;
+  border-bottom: 1px solid #142438;
   font-size: 10px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 #sheet-head strong { color: var(--gold); font-weight: 600; text-transform: none; letter-spacing: 0; font-size: 12px; }
-#sheet-body {
-  flex: 1;
-  overflow: auto;
-  padding: 0;
-}
+#sheet-body { flex: 1; overflow: auto; }
 table.ss {
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-family: ui-monospace, SFMono-Regular, Menlo, 'Segoe UI', monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 table.ss th, table.ss td {
-  border: 1px solid #1a2234;
+  border: 1px solid #142438;
   padding: 4px 8px;
   text-align: right;
   white-space: nowrap;
 }
 table.ss th {
-  background: #10162a;
-  color: #6a7a98;
+  background: #0c1a2c;
+  color: #5a7a98;
   font-weight: 600;
   text-align: center;
   position: sticky;
   top: 0;
   z-index: 1;
 }
-table.ss td.lbl { text-align: left; color: #a0b0c8; background: #0a0e18; }
-table.ss tr:hover td { background: #121a2c; }
-table.ss tr:hover td.lbl { background: #101828; }
+table.ss td.lbl { text-align: left; color: #a0bce0; background: #081018; }
+table.ss tr:hover td { background: #0e1c30; }
+table.ss tr:hover td.lbl { background: #0c1828; }
 table.ss .pos { color: var(--green); }
 table.ss .neg { color: var(--red); }
 table.ss .hl { color: var(--gold); }
-table.ss .muted { color: #4a5a70; }
-table.ss .sum td { background: #0e1424; font-weight: 600; }
+table.ss .muted { color: #3a5070; }
+table.ss .sum td { background: #0a1628; font-weight: 600; }
 
-/* Modal / intro */
 #modal-bg {
   position: fixed; inset: 0;
-  background: rgba(4,6,12,0.88);
+  background: rgba(2,6,14,0.92);
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
+  overflow-y: auto;
 }
 #modal-bg.hidden { display: none; }
 #modal {
-  background: #0c101c;
-  border: 1px solid #2a3858;
-  border-radius: 8px;
-  max-width: 620px;
+  background: #0a1424;
+  border: 1px solid #2a5080;
+  border-radius: 12px;
+  max-width: 720px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 94vh;
   overflow-y: auto;
-  padding: 22px 24px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px #152030;
+  box-shadow: 0 24px 80px rgba(0,40,100,0.55), 0 0 0 1px #152840;
 }
+#modal .hero {
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: cover;
+  object-position: center 40%;
+  display: block;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid #1a4060;
+}
+#modal .body { padding: 18px 22px 22px; }
 #modal h2 {
-  font-size: 18px;
+  font-size: 20px;
   color: var(--accent);
   letter-spacing: 0.04em;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
-#modal .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
-#modal p { font-size: 13px; line-height: 1.55; color: #a8b8d0; margin-bottom: 10px; }
-#modal ul { margin: 0 0 12px 18px; font-size: 12px; color: #8a9ab8; line-height: 1.6; }
-#modal li b { color: #c8d4e8; }
+#modal .sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+#modal p { font-size: 13px; line-height: 1.55; color: #98b4d0; margin-bottom: 10px; }
+#modal ul { margin: 0 0 12px 18px; font-size: 12px; color: #7a98b8; line-height: 1.65; }
+#modal li b { color: #c8e0f8; }
 #modal .partners {
-  display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0 14px;
+  display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 12px;
 }
 #modal .partners span {
   font-size: 10px;
-  padding: 3px 7px;
-  border-radius: 3px;
-  background: #12182a;
-  border: 1px solid #243048;
-  color: #7a8aa8;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #0c1c30;
+  border: 1px solid #1e4060;
+  color: #7a9ab8;
 }
-#modal .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 #modal .price {
-  background: #0a1420;
-  border: 1px solid #1e3a48;
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin: 10px 0;
+  background: linear-gradient(135deg, #0a1c30 0%, #0c2438 100%);
+  border: 1px solid #1e4a68;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 10px 0 12px;
   font-size: 12px;
-  color: #8ab0c8;
+  color: #8ab4d0;
 }
-#modal .price strong { color: var(--gold); font-size: 16px; display: block; margin-bottom: 2px; }
+#modal .price strong {
+  color: var(--gold);
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+}
+#modal .actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+#modal .actions .btn { padding: 8px 16px; font-size: 13px; }
 
-/* Deploy popup near player */
 #deploy-panel {
   position: absolute;
   display: none;
-  background: rgba(10,14,24,0.96);
-  border: 1px solid #3a5070;
-  border-radius: 6px;
-  padding: 10px;
+  background: rgba(8,16,28,0.97);
+  border: 1px solid #2a6090;
+  border-radius: 8px;
+  padding: 12px;
   z-index: 6;
-  min-width: 220px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  min-width: 280px;
+  max-width: 320px;
+  box-shadow: 0 12px 40px rgba(0,20,50,0.55);
 }
 #deploy-panel.show { display: block; }
-#deploy-panel h3 { font-size: 12px; color: var(--accent); margin-bottom: 2px; }
-#deploy-panel .sub { font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+#deploy-panel h3 { font-size: 13px; color: var(--accent); margin-bottom: 2px; }
+#deploy-panel .sub { font-size: 10px; color: var(--muted); margin-bottom: 8px; line-height: 1.4; }
 #deploy-panel .row {
   display: flex; justify-content: space-between; align-items: center;
-  gap: 8px; margin-bottom: 4px; font-size: 11px;
+  gap: 8px; margin-bottom: 5px; font-size: 11px;
 }
-#deploy-panel .row .btn { padding: 3px 8px; font-size: 10px; }
+#deploy-panel .tip {
+  font-size: 10px; color: #8ab4d0; background: #0a1c30;
+  border: 1px solid #1a4060; border-radius: 4px; padding: 6px 8px; margin: 6px 0;
+  line-height: 1.4;
+}
+#deploy-panel .tip b { color: var(--gold); }
+#deploy-panel .genie-row {
+  display: flex; gap: 4px; flex-wrap: wrap; margin: 6px 0;
+}
+#deploy-panel .genie-row img {
+  width: 36px; height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #2a5080;
+  opacity: 0.35;
+  cursor: pointer;
+}
+#deploy-panel .genie-row img.on {
+  opacity: 1;
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(78,200,240,0.35);
+}
+#deploy-panel .genie-row img.pick {
+  outline: 2px solid var(--gold);
+}
+#deploy-panel .row .btn { padding: 4px 10px; font-size: 11px; }
 
 @media (max-width: 900px) {
   body {
     grid-template-columns: 1fr;
-    grid-template-rows: 48px 1fr 180px 140px;
+    grid-template-rows: 48px 1fr 200px 140px;
     grid-template-areas: "top" "map" "side" "sheet";
   }
-  #side { border-left: none; border-top: 1px solid var(--border); max-height: 180px; }
+  #side { border-left: none; border-top: 1px solid var(--border); max-height: 200px; }
+  #modal .hero { max-height: 180px; }
 }
 </style>
 </head>
 <body>
 
 <div id="topbar">
-  <h1>◈ THE GENIES <span>AI crontab consulting</span></h1>
-  <span class="badge live">● OPS LIVE</span>
+  <h1>
+    <img class="logo" src="assets/genies-hero.png" alt="" id="top-logo"
+      onerror="this.src='https://mithril-media.sfo3.digitaloceanspaces.com/TheGenies/genies-hero.jpg'">
+    THE GENIES <span>AI crontab consulting</span>
+  </h1>
+  <span class="badge live" id="badge-live">● OPS LIVE</span>
   <span class="stat-pill">Month <b id="ui-month">1</b></span>
   <span class="stat-pill">Cash <b id="ui-cash" class="ok">$0</b></span>
-  <span class="stat-pill">Portfolio waste <b id="ui-waste" class="warn">—</b></span>
-  <span class="stat-pill">Avg payback <b id="ui-payback">—</b></span>
+  <span class="stat-pill">Combo <b id="ui-combo" class="warn">×1</b></span>
+  <span class="stat-pill">Waste <b id="ui-waste" class="warn">—</b></span>
+  <span class="stat-pill">Payback <b id="ui-payback">—</b></span>
   <span class="spacer"></span>
+  <button class="btn" id="btn-mute" title="Toggle ambient audio">♪ Mute</button>
   <button class="btn" id="btn-pause" title="Space">⏸ Pause</button>
   <button class="btn" id="btn-about">About</button>
   <button class="btn primary" id="btn-tick" title="Advance one month">⏭ Month+</button>
@@ -418,27 +485,38 @@ table.ss .sum td { background: #0e1424; font-weight: 600; }
   <div id="toast"></div>
   <div id="deploy-panel"></div>
   <div id="overlay-hint">
-    <kbd>WASD</kbd> drive · <kbd>E</kbd> deploy at site · <kbd>1–5</kbd> select Genie ·
-    <kbd>Space</kbd> pause · clear waste, hit <b style="color:#f0c14b">≤24 mo</b> payback
+    <kbd>WASD</kbd> drive · <kbd>Shift</kbd> turbo · <kbd>E</kbd> install selected Genie ·
+    <kbd>Q</kbd>/<kbd>1–5</kbd> select · <kbd>F</kbd> site panel · click minimap warp ·
+    win: payback <b style="color:#f0c14b">≤24 mo</b> &amp; waste &lt;15%
   </div>
 </div>
 
 <aside id="side">
   <div id="side-scroll">
+    <div class="stage-label">Win goals</div>
+    <div class="goal-bar" id="goal-bar">
+      <div class="row"><span>Payback ≤ 24 mo</span><span id="goal-pb">—</span></div>
+      <div class="track"><div class="fill pay" id="goal-pb-fill" style="width:0%"></div></div>
+      <div class="row"><span>Waste &lt; 15%</span><span id="goal-w">—</span></div>
+      <div class="track"><div class="fill waste" id="goal-w-fill" style="width:0%"></div></div>
+    </div>
+
     <div class="stage-label">Product</div>
     <div class="blurb">
-      A small set of battle-tested <b>bash scripts</b> that quietly make ops run cleaner.
-      Pay <em>once, up front</em> — typical payback under <em>24 months</em>. Cheap because
-      Mithril already owns pieces of GreenDial, The RSE, Love-Matcher, Teledildonics,
-      process engineering &amp; real estate.
+      Five blue <b>bash Genies</b> — pay once, typical payback under <em>24 months</em>.
+      Match Genies to site affinities for combo bonus. Kill <b>incidents</b> with the right script.
     </div>
 
     <div class="sep"></div>
-    <div class="stage-label">Genie scripts (select → deploy with E)</div>
+    <div class="stage-label">Genie scripts (E installs selected)</div>
     <div class="script-list" id="script-list"></div>
 
     <div class="sep"></div>
-    <div class="stage-label">Client sites</div>
+    <div class="stage-label">Buy inventory (cash)</div>
+    <div class="shop-row" id="shop-row"></div>
+
+    <div class="sep"></div>
+    <div class="stage-label">Client sites (click → warp)</div>
     <div id="client-list"></div>
 
     <div class="sep"></div>
@@ -449,9 +527,9 @@ table.ss .sum td { background: #0e1424; font-weight: 600; }
 
 <div id="sheet">
   <div id="sheet-head">
-    <span>Ledger · portfolio P&amp;L</span>
-    <strong id="sheet-title">The Genies — Client Efficiency Spreadsheet</strong>
-    <span style="margin-left:auto">One-time fee in · monthly savings out · payback = fee ÷ savings</span>
+    <span>Ledger</span>
+    <strong>The Genies — Client Efficiency Spreadsheet</strong>
+    <span style="margin-left:auto">Fee ÷ monthly savings = payback · affinities boost savings</span>
   </div>
   <div id="sheet-body">
     <table class="ss" id="ss-table">
@@ -461,7 +539,7 @@ table.ss .sum td { background: #0e1424; font-weight: 600; }
           <th>B · Vertical</th>
           <th>C · Fee ($k)</th>
           <th>D · Waste%</th>
-          <th>E · Scripts</th>
+          <th>E · Genies</th>
           <th>F · $/mo save</th>
           <th>G · Cum. save</th>
           <th>H · Payback mo</th>
@@ -475,41 +553,42 @@ table.ss .sum td { background: #0e1424; font-weight: 600; }
 
 <div id="modal-bg">
   <div id="modal">
-    <h2>◈ The Genies</h2>
-    <div class="sub">AI crontab consulting · The Mithril Company</div>
-    <p>
-      <b style="color:#c8d4e8">The Genies</b> is a deliberately understated automation service:
-      a small set of bash scripts that schedule, re-run safely, observe, clean up, and orchestrate
-      work across real business systems. You pay once. Most owners see the scripts pay for
-      themselves in roughly <b style="color:#f0c14b">24 months</b> — after that, the efficiency is essentially free.
-    </p>
-    <p>
-      Because The Mithril Company has other revenue streams — partial and full ownership of
-      GreenDial, The RSE, Love-Matcher, Teledildonics, plus process-engineering consulting and
-      real-estate development — The Genies stays surprisingly inexpensive.
-    </p>
-    <div class="stage-label" style="margin-top:8px">Interfaces (same patterns, many environments)</div>
-    <div class="partners">
-      <span>Pepsi</span><span>Starbucks</span><span>Taco Bell</span>
-      <span>Marvel comics video game</span><span>Rare Earth Refining</span>
-      <span>Si semiconductor automation</span><span>Disney</span>
-      <span>Wiring harness robots</span><span>Sentient superconducting robots</span>
-    </div>
-    <div class="price">
-      <strong>Demo game: deploy Genies across the city</strong>
-      Drive the Mithril van · park at a client · press E · install scripts · watch the spreadsheet
-      turn red waste into green payback. Win when portfolio average payback ≤ 24 months and
-      average waste &lt; 15%.
-    </div>
-    <ul>
-      <li><b>WASD / arrows</b> — drive the ops van (GTA-lite top-down)</li>
-      <li><b>E</b> — open deploy panel at nearest site</li>
-      <li><b>1–5</b> — select cron / idempotent / observe / cleanup / orchestrate</li>
-      <li><b>Month+</b> or wait — simulation advances; waste grows without scripts</li>
-    </ul>
-    <div class="actions">
-      <button class="btn primary" id="btn-start">▶ Start consulting</button>
-      <button class="btn" id="btn-start-hard">Hard mode (faster waste)</button>
+    <img class="hero" src="assets/genies-hero.png" alt="The five Genies"
+      onerror="this.src='https://mithril-media.sfo3.digitaloceanspaces.com/TheGenies/genies-hero.jpg'">
+    <div class="body">
+      <h2>◈ The Genies</h2>
+      <div class="sub">AI crontab consulting · The Mithril Company</div>
+      <p>
+        Five friendly bash Genies — <b style="color:#4ec8f0">cron.sh</b>,
+        <b style="color:#4ec8f0">idempotent.sh</b>, <b style="color:#4ec8f0">observe.sh</b>,
+        <b style="color:#4ec8f0">cleanup.sh</b>, <b style="color:#4ec8f0">orchestrate.sh</b> —
+        that schedule, re-run safely, observe, clean up, and orchestrate work across real systems.
+        Pay once. Most owners see payback in roughly <b style="color:#f0c14b">24 months</b>.
+      </p>
+      <div class="stage-label" style="margin-top:4px">Interfaces (same patterns, many environments)</div>
+      <div class="partners">
+        <span>Pepsi</span><span>Starbucks</span><span>Taco Bell</span>
+        <span>Marvel comics video game</span><span>Rare Earth Refining</span>
+        <span>Si semiconductor automation</span><span>Disney</span>
+        <span>Wiring harness robots</span><span>Sentient superconducting robots</span>
+      </div>
+      <div class="price">
+        <strong>Play: deploy Genies across the city</strong>
+        Drive the Mithril van · park at a client · press <b>E</b> to install the selected Genie ·
+        match affinities for combos · clear red incident markers · buy more scripts with cash.
+        Win when portfolio average payback ≤ 24 months and average waste &lt; 15%.
+      </div>
+      <ul>
+        <li><b>WASD / arrows</b> — drive · <b>Shift</b> turbo</li>
+        <li><b>E</b> — install selected Genie at nearest site (fast)</li>
+        <li><b>F</b> or click building — open site panel</li>
+        <li><b>1–5 / Q</b> — select script · shop buttons buy more</li>
+        <li><b>Month+</b> or wait — simulation advances; waste grows without scripts</li>
+      </ul>
+      <div class="actions">
+        <button class="btn primary" id="btn-start">▶ Start consulting</button>
+        <button class="btn" id="btn-start-hard">Hard mode (faster waste)</button>
+      </div>
     </div>
   </div>
 </div>
@@ -517,217 +596,354 @@ table.ss .sum td { background: #0e1424; font-weight: 600; }
 <script>
 "use strict";
 
-// ═══════════════════════════════════════════════════════════
-//  The Genies — ops map + spreadsheet + RPG deploy loop
-// ═══════════════════════════════════════════════════════════
+const HERO_SRC = "assets/genies-hero.png";
+const HERO_FALLBACK = "https://mithril-media.sfo3.digitaloceanspaces.com/TheGenies/genies-hero.jpg";
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d', { alpha: false });
+// Source crops in hero image — five genies L→R
+const GENIE_CROPS = {
+  cron:  { sx: 20,   sy: 80,  sw: 280, sh: 720 },
+  idem:  { sx: 280,  sy: 60,  sw: 280, sh: 740 },
+  obs:   { sx: 560,  sy: 70,  sw: 280, sh: 730 },
+  clean: { sx: 860,  sy: 70,  sw: 280, sh: 730 },
+  orch:  { sx: 1160, sy: 70,  sw: 300, sh: 730 }
+};
 
-// ── Scripts (the product) ─────────────────────────────────
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", { alpha: false });
+
+const heroImg = new Image();
+heroImg.src = HERO_SRC;
+let heroReady = false;
+heroImg.onerror = () => { heroImg.src = HERO_FALLBACK; };
+heroImg.onload = () => { heroReady = true; };
+
+const portraitCache = {};
+function getPortrait(id, size = 88) {
+  const key = id + "_" + size;
+  if (portraitCache[key]) return portraitCache[key];
+  const crop = GENIE_CROPS[id];
+  if (!crop || !heroReady) return null;
+  const c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  const g = c.getContext("2d");
+  g.fillStyle = "#081420";
+  g.fillRect(0, 0, size, size);
+  const scale = Math.max(size / crop.sw, size / crop.sh);
+  const dw = crop.sw * scale, dh = crop.sh * scale;
+  g.drawImage(heroImg, crop.sx, crop.sy, crop.sw, crop.sh,
+    (size - dw) / 2, (size - dh) / 2 + size * 0.05, dw, dh);
+  portraitCache[key] = c;
+  return c;
+}
+
+// ── Scripts ──
 const SCRIPTS = [
-  {
-    id: 'cron', key: '1', file: 'cron.sh', ico: '⏱',
-    color: '#6ee7ff', bg: '#0a2838',
-    name: 'cron.sh',
-    desc: 'Schedule & fire recurring work',
-    cost: 1,           // inventory uses per deploy
-    waste: -8,         // % waste change on deploy tick
-    saveMul: 1.15,     // multiplies monthly savings factor
-    passive: 0.4,      // waste drain per month while installed
-  },
-  {
-    id: 'idem', key: '2', file: 'idempotent.sh', ico: '↻',
-    color: '#3dd68c', bg: '#0a2818',
-    name: 'idempotent.sh',
-    desc: 'Re-run safely; converge state',
-    cost: 1,
-    waste: -6,
-    saveMul: 1.1,
-    passive: 0.5,
-    stabilize: true
-  },
-  {
-    id: 'obs', key: '3', file: 'observe.sh', ico: '◉',
-    color: '#b794f4', bg: '#1a1030',
-    name: 'observe.sh',
-    desc: 'Metrics, logs, health checks',
-    cost: 1,
-    waste: -3,
-    saveMul: 1.25,     // better visibility → better savings estimate
-    passive: 0.2,
-    reveal: true
-  },
-  {
-    id: 'clean', key: '4', file: 'cleanup.sh', ico: '⌫',
-    color: '#f0c14b', bg: '#28200a',
-    name: 'cleanup.sh',
-    desc: 'Drain waste, stuck jobs, temp',
-    cost: 1,
-    waste: -14,
-    saveMul: 1.05,
-    passive: 1.2
-  },
-  {
-    id: 'orch', key: '5', file: 'orchestrate.sh', ico: '⬡',
-    color: '#ff8a65', bg: '#28140a',
-    name: 'orchestrate.sh',
-    desc: 'Chain steps across systems',
-    cost: 1,
-    waste: -5,
-    saveMul: 1.35,
-    passive: 0.6,
-    chain: true
-  }
+  { id: "cron",  key: "1", file: "cron.sh",       name: "cron.sh",       desc: "Schedule & fire recurring work",  waste: -9,  saveMul: 1.16, passive: 0.45, cost: 4.5, color: "#4da3ff", tags: ["qsr", "schedule"] },
+  { id: "idem",  key: "2", file: "idempotent.sh", name: "idempotent.sh", desc: "Re-run safely; converge state",  waste: -7,  saveMul: 1.12, passive: 0.55, cost: 5.0, color: "#5eead4", tags: ["semi", "stabilize"], stabilize: true },
+  { id: "obs",   key: "3", file: "observe.sh",    name: "observe.sh",    desc: "Metrics, logs, health checks",   waste: -4,  saveMul: 1.28, passive: 0.25, cost: 3.5, color: "#a78bfa", tags: ["ent", "observe"], reveal: true },
+  { id: "clean", key: "4", file: "cleanup.sh",    name: "cleanup.sh",    desc: "Drain waste, stuck jobs, temp",  waste: -16, saveMul: 1.06, passive: 1.35, cost: 4.0, color: "#fbbf24", tags: ["materials", "waste"] },
+  { id: "orch",  key: "5", file: "orchestrate.sh",name: "orchestrate.sh",desc: "Chain steps across systems",    waste: -6,  saveMul: 1.38, passive: 0.7,  cost: 7.5, color: "#4ade80", tags: ["hpc", "chain"], chain: true }
 ];
 
-// ── Clients / map sites ───────────────────────────────────
-// World is 0..W x 0..H in world units; camera follows van.
 const WORLD = { w: 2400, h: 1600 };
 
+// preferred: script ids that get affinity bonus at this site
 const CLIENTS = [
-  { id: 'pepsi',   name: 'Pepsi Ops',           short: 'PEPSI',   vertical: 'QSR / CPG',        fee: 41, x: 320,  y: 380,  color: '#004b93', accent: '#e32934', w: 120, h: 90 },
-  { id: 'sbux',    name: 'Starbucks Roastery',  short: 'SBUX',    vertical: 'QSR / Retail',     fee: 48, x: 620,  y: 280,  color: '#00704a', accent: '#cba258', w: 110, h: 100 },
-  { id: 'tbell',   name: 'Taco Bell Live Más',  short: 'TBELL',   vertical: 'QSR',              fee: 36, x: 900,  y: 420,  color: '#702082', accent: '#a77bca', w: 115, h: 85 },
-  { id: 'marvel',  name: 'Marvel Game Studio',  short: 'MARVEL',  vertical: 'Entertainment IP', fee: 72, x: 1280, y: 300,  color: '#ed1d24', accent: '#f7c948', w: 140, h: 110 },
-  { id: 'ree',     name: 'Rare Earth Refining', short: 'REE',     vertical: 'Materials',        fee: 62, x: 380,  y: 780,  color: '#4a5568', accent: '#68d391', w: 150, h: 100 },
-  { id: 'semi',    name: 'Si Process Fab',      short: 'SEMI',    vertical: 'Semiconductor',    fee: 91, x: 780,  y: 900,  color: '#1a365d', accent: '#63b3ed', w: 160, h: 95 },
-  { id: 'disney',  name: 'Disney Systems',      short: 'DISNEY',  vertical: 'Entertainment',    fee: 85, x: 1500, y: 700,  color: '#1a365d', accent: '#f6e05e', w: 145, h: 105 },
-  { id: 'harness', name: 'Harness Robotics',    short: 'WIRE',    vertical: 'Physical auto',    fee: 38, x: 1100, y: 1100, color: '#744210', accent: '#ed8936', w: 130, h: 90 },
-  { id: 'scbot',   name: 'SC Supercompute Bots',short: 'SCBOT',   vertical: 'HPC / Sentient',   fee: 120,x: 1800, y: 980,  color: '#2b6cb0', accent: '#9f7aea', w: 170, h: 120 }
+  { id: "pepsi",  name: "Pepsi Ops",           short: "PEPSI",  vertical: "QSR / CPG",        fee: 41,  x: 320,  y: 380,  color: "#004b93", accent: "#e32934", w: 120, h: 90,  pref: ["cron", "clean"],  domain: "qsr" },
+  { id: "sbux",   name: "Starbucks Roastery",  short: "SBUX",   vertical: "QSR / Retail",     fee: 48,  x: 620,  y: 280,  color: "#00704a", accent: "#cba258", w: 110, h: 100, pref: ["cron", "obs"],    domain: "qsr" },
+  { id: "tbell",  name: "Taco Bell Live Más",  short: "TBELL",  vertical: "QSR",              fee: 36,  x: 900,  y: 420,  color: "#702082", accent: "#a77bca", w: 115, h: 85,  pref: ["cron", "clean"],  domain: "qsr" },
+  { id: "marvel", name: "Marvel Game Studio",  short: "MARVEL", vertical: "Entertainment IP", fee: 72,  x: 1280, y: 300,  color: "#8b1519", accent: "#f7c948", w: 140, h: 110, pref: ["orch", "obs"],   domain: "ent" },
+  { id: "ree",    name: "Rare Earth Refining", short: "REE",    vertical: "Materials",        fee: 62,  x: 380,  y: 780,  color: "#4a5568", accent: "#68d391", w: 150, h: 100, pref: ["clean", "idem"], domain: "materials" },
+  { id: "semi",   name: "Si Process Fab",      short: "SEMI",   vertical: "Semiconductor",    fee: 91,  x: 780,  y: 900,  color: "#1a365d", accent: "#63b3ed", w: 160, h: 95,  pref: ["idem", "orch"],  domain: "semi" },
+  { id: "disney", name: "Disney Systems",      short: "DISNEY", vertical: "Entertainment",    fee: 85,  x: 1500, y: 700,  color: "#1a365d", accent: "#f6e05e", w: 145, h: 105, pref: ["obs", "orch"],   domain: "ent" },
+  { id: "harness",name: "Harness Robotics",    short: "WIRE",   vertical: "Physical auto",    fee: 38,  x: 1100, y: 1100, color: "#744210", accent: "#ed8936", w: 130, h: 90,  pref: ["orch", "cron"],  domain: "robots" },
+  { id: "scbot",  name: "SC Supercompute Bots",short: "SCBOT",  vertical: "HPC / Sentient",   fee: 120, x: 1800, y: 980,  color: "#2b6cb0", accent: "#9f7aea", w: 170, h: 120, pref: ["orch", "idem"],  domain: "hpc" }
 ];
 
-// ── Game state ────────────────────────────────────────────
+// Incident types needing a specific genie
+const INCIDENT_TYPES = [
+  { id: "stuck",   label: "stuck job",       need: "cron",  waste: 12, color: "#4da3ff" },
+  { id: "drift",   label: "config drift",    need: "idem",  waste: 10, color: "#5eead4" },
+  { id: "alerts",  label: "alert storm",     need: "obs",   waste: 9,  color: "#a78bfa" },
+  { id: "leak",    label: "temp leak",       need: "clean", waste: 14, color: "#fbbf24" },
+  { id: "silo",    label: "pipeline silo",   need: "orch",  waste: 11, color: "#4ade80" }
+];
+
 const state = {
   running: false,
   paused: false,
   hard: false,
   month: 1,
-  monthT: 0,          // ms accumulator toward next month
-  monthMs: 9000,      // real ms per sim month
-  cash: 180,          // starting cash $k (working capital for demo)
+  monthT: 0,
+  monthMs: 8500,
+  cash: 180,
   inventory: { cron: 6, idem: 5, obs: 5, clean: 6, orch: 4 },
-  selectedScript: 'cron',
+  selectedScript: "cron",
   van: { x: 200, y: 200, vx: 0, vy: 0, angle: 0, speed: 0 },
   keys: Object.create(null),
-  sites: {},          // id -> site runtime
+  sites: {},
   log: [],
   win: false,
   nearSite: null,
   particles: [],
+  floats: [],
   traffic: [],
+  incidents: [],
   time: 0,
   cam: { x: 0, y: 0 },
-  lastToast: 0
+  floatingGenies: [],
+  combo: 0,
+  comboTimer: 0,
+  deployCD: 0,
+  monthFlash: 0
 };
+
+// ── Audio (Web Audio ambient + SFX, PlasmaSim-style) ──
+const AudioEng = (() => {
+  let ctx = null, master = null, ambient = null, muted = false, started = false;
+
+  function getCtx() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      master = ctx.createGain();
+      master.gain.value = 0.38;
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 2000;
+      master.connect(lp);
+      lp.connect(ctx.destination);
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  function oneShot(freq, type, dur, vol) {
+    if (muted || !started) return;
+    const c = getCtx();
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.4), c.currentTime + dur);
+    g.gain.setValueAtTime(vol, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dur);
+    o.connect(g); g.connect(master);
+    o.start(); o.stop(c.currentTime + dur);
+  }
+
+  function startAmbient() {
+    if (muted || ambient) return;
+    const c = getCtx();
+    const nodes = [];
+    const make = (type, freq, vol) => {
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = type; o.frequency.value = freq; g.gain.value = vol;
+      o.connect(g); g.connect(master); o.start();
+      nodes.push(o, g);
+    };
+    make("sine", 38, 0.07);
+    make("sine", 57, 0.035);
+    make("triangle", 152, 0.012);
+    // slow LFO shimmer
+    const o3 = c.createOscillator();
+    const g3 = c.createGain();
+    const lfo = c.createOscillator();
+    const lfoG = c.createGain();
+    o3.type = "sine"; o3.frequency.value = 228;
+    g3.gain.value = 0.01;
+    lfo.type = "sine"; lfo.frequency.value = 0.07;
+    lfoG.gain.value = 0.006;
+    lfo.connect(lfoG); lfoG.connect(g3.gain);
+    o3.connect(g3); g3.connect(master);
+    o3.start(); lfo.start();
+    nodes.push(o3, g3, lfo, lfoG);
+    ambient = nodes;
+  }
+
+  function stopAmbient() {
+    if (!ambient) return;
+    ambient.forEach(n => { try { if (n.stop) n.stop(); } catch (_) {} });
+    ambient = null;
+  }
+
+  return {
+    start() {
+      started = true;
+      getCtx();
+      startAmbient();
+    },
+    deploy(good) {
+      oneShot(good ? 392 : 260, "triangle", 0.18, 0.2);
+      oneShot(good ? 523 : 220, "sine", 0.22, 0.12);
+    },
+    clear() { oneShot(587, "sine", 0.3, 0.22); oneShot(784, "triangle", 0.25, 0.1); },
+    month() { oneShot(196, "sine", 0.35, 0.15); oneShot(247, "triangle", 0.3, 0.1); },
+    buy() { oneShot(440, "square", 0.08, 0.08); oneShot(660, "sine", 0.12, 0.1); },
+    incident() { oneShot(140, "sawtooth", 0.25, 0.08); },
+    win() {
+      [392, 494, 587, 784].forEach((f, i) =>
+        setTimeout(() => oneShot(f, i % 2 ? "triangle" : "sine", 0.45, 0.18), i * 140));
+    },
+    engine(level) {
+      // soft engine tick while moving hard — rare
+      if (level > 0.5 && Math.random() < 0.02) oneShot(55 + level * 20, "triangle", 0.05, 0.03);
+    },
+    toggleMute() {
+      muted = !muted;
+      if (master) master.gain.value = muted ? 0 : 0.38;
+      if (muted) stopAmbient(); else if (started) startAmbient();
+      return muted;
+    },
+    isMuted() { return muted; }
+  };
+})();
+
+function $(id) { return document.getElementById(id); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+function fmtMoney(k) {
+  if (!isFinite(k)) return "—";
+  if (Math.abs(k) >= 1000) return "$" + (k / 1000).toFixed(2) + "M";
+  if (Math.abs(k) >= 10) return "$" + k.toFixed(1) + "k";
+  return "$" + k.toFixed(2) + "k";
+}
+function fmtMo(m) {
+  if (!isFinite(m) || m > 999) return "∞";
+  return m.toFixed(1) + " mo";
+}
+
+function toast(msg, ms = 2000, kind = "") {
+  const el = $("toast");
+  el.textContent = msg;
+  el.className = "show" + (kind ? " " + kind : "");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.className = ""; }, ms);
+}
+
+function logLine(msg, kind = "") {
+  state.log.unshift({ t: "M" + state.month, msg, kind });
+  if (state.log.length > 50) state.log.pop();
+  renderLog();
+}
+function renderLog() {
+  $("log").innerHTML = state.log.map(l =>
+    `<div class="ln ${l.kind}"><span class="t">${l.t}</span>${esc(l.msg)}</div>`
+  ).join("");
+}
 
 function initSites() {
   for (const c of CLIENTS) {
     state.sites[c.id] = {
-      waste: 55 + Math.random() * 35,   // 55–90%
-      scripts: {},                       // scriptId -> count
-      cumSave: 0,                        // $k cumulative
+      waste: 48 + Math.random() * 38,
+      scripts: {},
+      cumSave: 0,
       monthlySave: 0,
       payback: Infinity,
-      status: 'noisy',
-      baseSave: c.fee * 0.035 + 0.8 + Math.random() * 0.6, // base $k/mo potential at 0 waste gap
+      status: "noisy",
+      baseSave: c.fee * 0.038 + 0.9 + Math.random() * 0.5,
       revealed: false,
-      pulse: Math.random() * Math.PI * 2
+      pulse: Math.random() * Math.PI * 2,
+      _passive: 0,
+      _nScripts: 0,
+      _affinity: 1
     };
   }
 }
 
-// ── UI helpers ────────────────────────────────────────────
-function $(id) { return document.getElementById(id); }
-
-function toast(msg, ms = 2200) {
-  const el = $('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.remove('show'), ms);
+function portraitDataURL(id) {
+  const p = getPortrait(id, 88);
+  return p ? p.toDataURL() : HERO_FALLBACK;
 }
 
-function logLine(msg, kind = '') {
-  const t = `M${state.month}`;
-  state.log.unshift({ t, msg, kind });
-  if (state.log.length > 40) state.log.pop();
-  renderLog();
+function affinityMul(siteId, scriptId) {
+  const c = CLIENTS.find(x => x.id === siteId);
+  if (!c) return 1;
+  return c.pref.includes(scriptId) ? 1.55 : 1;
 }
 
-function renderLog() {
-  const el = $('log');
-  el.innerHTML = state.log.map(l =>
-    `<div class="ln ${l.kind}"><span class="t">${l.t}</span>${esc(l.msg)}</div>`
-  ).join('');
-}
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[c]);
-}
-
-function fmtMoney(k) {
-  if (!isFinite(k)) return '—';
-  if (Math.abs(k) >= 1000) return '$' + (k / 1000).toFixed(2) + 'M';
-  if (Math.abs(k) >= 10) return '$' + k.toFixed(1) + 'k';
-  return '$' + k.toFixed(2) + 'k';
-}
-
-function fmtMo(m) {
-  if (!isFinite(m) || m > 999) return '∞';
-  return m.toFixed(1) + ' mo';
-}
-
-// ── Script list UI ────────────────────────────────────────
 function renderScripts() {
-  const el = $('script-list');
+  const el = $("script-list");
   el.innerHTML = SCRIPTS.map(s => {
     const qty = state.inventory[s.id] ?? 0;
-    const sel = state.selectedScript === s.id ? ' selected' : '';
+    const sel = state.selectedScript === s.id ? " selected" : "";
     return `<div class="script-card${sel}" data-id="${s.id}">
-      <div class="ico" style="background:${s.bg};color:${s.color}">${s.ico}</div>
+      <img class="portrait" src="${portraitDataURL(s.id)}" alt="${s.name}">
       <div>
         <div class="name">${s.key} · ${s.name}</div>
         <div class="desc">${s.desc}</div>
       </div>
       <div class="qty">×${qty}</div>
     </div>`;
-  }).join('');
-  el.querySelectorAll('.script-card').forEach(card => {
+  }).join("");
+  el.querySelectorAll(".script-card").forEach(card => {
     card.onclick = () => {
       state.selectedScript = card.dataset.id;
       renderScripts();
+      renderShop();
+      if (state.nearSite) renderDeployPanel();
     };
   });
+}
+
+function renderShop() {
+  const el = $("shop-row");
+  el.innerHTML = SCRIPTS.map(s =>
+    `<button class="btn" data-buy="${s.id}" title="Buy 1 ${s.name}">+${s.file.replace(".sh","")} $${s.cost}k</button>`
+  ).join("");
+  el.querySelectorAll("[data-buy]").forEach(btn => {
+    btn.onclick = () => buyScript(btn.dataset.buy);
+  });
+}
+
+function buyScript(id) {
+  if (!state.running || state.paused) return;
+  const sc = SCRIPTS.find(s => s.id === id);
+  if (!sc) return;
+  if (state.cash < sc.cost) {
+    toast("Need " + fmtMoney(sc.cost) + " for " + sc.name, 1800, "bad");
+    return;
+  }
+  state.cash -= sc.cost;
+  state.inventory[id] = (state.inventory[id] || 0) + 1;
+  AudioEng.buy();
+  logLine("Purchased " + sc.name + " (−" + fmtMoney(sc.cost) + ")", "info");
+  toast("Bought " + sc.name, 1400, "good");
+  renderScripts();
+  renderSheet();
 }
 
 function renderClients() {
-  const el = $('client-list');
+  const el = $("client-list");
   el.innerHTML = CLIENTS.map(c => {
     const s = state.sites[c.id];
-    const cls = s.waste > 40 ? 'hot' : s.waste < 18 ? 'cool' : '';
-    return `<div class="client-row" data-id="${c.id}">
-      <div class="dot" style="background:${c.accent}"></div>
-      <div class="nm">${c.short}</div>
+    const inc = state.incidents.find(i => i.siteId === c.id);
+    const cls = s.waste > 40 || inc ? "hot" : s.waste < 18 ? "cool" : "";
+    const rowCls = inc ? " hot-row" : "";
+    return `<div class="client-row${rowCls}" data-id="${c.id}">
+      <div class="dot" style="background:${inc ? "#ff5a6a" : c.accent}"></div>
+      <div class="nm">${c.short}${inc ? " ⚠" : ""}</div>
       <div class="met ${cls}">${s.waste.toFixed(0)}% · ${fmtMo(s.payback)}</div>
     </div>`;
-  }).join('');
-  el.querySelectorAll('.client-row').forEach(row => {
-    row.onclick = () => {
-      const c = CLIENTS.find(x => x.id === row.dataset.id);
-      if (!c) return;
-      // soft navigate camera/van toward site
-      state.van.x = c.x;
-      state.van.y = c.y + c.h / 2 + 40;
-      toast(`Warped ops van to ${c.name}`);
-      closeDeploy();
-    };
+  }).join("");
+  el.querySelectorAll(".client-row").forEach(row => {
+    row.onclick = () => warpTo(row.dataset.id);
   });
 }
 
-// ── Spreadsheet ───────────────────────────────────────────
+function warpTo(id) {
+  const c = CLIENTS.find(x => x.id === id);
+  if (!c) return;
+  state.van.x = c.x + c.w / 2;
+  state.van.y = c.y + c.h + 36;
+  state.van.vx = 0; state.van.vy = 0;
+  toast("Warped ops van → " + c.name, 1600);
+  closeDeploy();
+}
+
 function recomputeSite(id) {
   const c = CLIENTS.find(x => x.id === id);
   const s = state.sites[id];
@@ -736,36 +952,38 @@ function recomputeSite(id) {
   let mul = 1;
   let nScripts = 0;
   let passive = 0;
+  let affHits = 0;
   for (const sc of SCRIPTS) {
     const n = s.scripts[sc.id] || 0;
     if (n > 0) {
       nScripts += n;
-      mul *= Math.pow(sc.saveMul, Math.min(n, 3));
-      passive += sc.passive * n;
+      const am = affinityMul(id, sc.id);
+      if (am > 1) affHits += n;
+      mul *= Math.pow(sc.saveMul * (am > 1 ? 1.08 : 1), Math.min(n, 3));
+      passive += sc.passive * n * (am > 1 ? 1.25 : 1);
     }
   }
-  // Orchestrate bonus if neighbor also has orch
+  // orchestrate chain bonus with nearby orch sites
   if ((s.scripts.orch || 0) > 0) {
     for (const o of CLIENTS) {
       if (o.id === id) continue;
-      const os = state.sites[o.id];
-      if ((os.scripts.orch || 0) > 0) {
+      if ((state.sites[o.id].scripts.orch || 0) > 0) {
         const dx = o.x - c.x, dy = o.y - c.y;
-        if (dx * dx + dy * dy < 550 * 550) mul *= 1.08;
+        if (dx * dx + dy * dy < 600 * 600) mul *= 1.1;
       }
     }
   }
 
-  // Efficiency: lower waste → higher realized savings
   const eff = Math.max(0, 1 - s.waste / 100);
-  const noise = s.revealed || (s.scripts.obs || 0) > 0 ? 1 : 0.75;
-  s.monthlySave = s.baseSave * mul * (0.25 + 0.75 * eff) * noise;
+  const noise = s.revealed || (s.scripts.obs || 0) > 0 ? 1 : 0.72;
+  s._affinity = 1 + affHits * 0.06;
+  s.monthlySave = s.baseSave * mul * (0.22 + 0.78 * eff) * noise * s._affinity;
   s.payback = s.monthlySave > 0.01 ? c.fee / s.monthlySave : Infinity;
 
-  if (s.waste < 12 && nScripts >= 2) s.status = 'efficient';
-  else if (nScripts >= 1) s.status = 'tuning';
-  else if (s.waste > 70) s.status = 'on fire';
-  else s.status = 'noisy';
+  if (s.waste < 12 && nScripts >= 2) s.status = "efficient";
+  else if (nScripts >= 1) s.status = "tuning";
+  else if (s.waste > 70) s.status = "on fire";
+  else s.status = "noisy";
 
   s._passive = passive;
   s._nScripts = nScripts;
@@ -775,27 +993,50 @@ function recomputeAll() {
   for (const c of CLIENTS) recomputeSite(c.id);
 }
 
+function statusLabel(st) {
+  return ({ "on fire": "🔥 on fire", noisy: "noisy", tuning: "tuning…", efficient: "✓ efficient" })[st] || st;
+}
+
+function portfolioStats() {
+  const totFee = CLIENTS.reduce((a, c) => a + c.fee, 0);
+  const totMo = CLIENTS.reduce((a, c) => a + state.sites[c.id].monthlySave, 0);
+  const avgPb = totMo > 0.01 ? totFee / totMo : Infinity;
+  const avgWaste = CLIENTS.reduce((a, c) => a + state.sites[c.id].waste, 0) / CLIENTS.length;
+  const nOk = CLIENTS.filter(c => state.sites[c.id].payback <= 24).length;
+  return { totFee, totMo, avgPb, avgWaste, nOk };
+}
+
+function renderGoals() {
+  const { avgPb, avgWaste } = portfolioStats();
+  // payback goal: map 60mo→0%, 24mo→100%
+  const pbProg = clamp((60 - Math.min(avgPb, 60)) / (60 - 24), 0, 1);
+  // waste goal: 60%→0, 15%→100
+  const wProg = clamp((60 - Math.min(avgWaste, 60)) / (60 - 15), 0, 1);
+  $("goal-pb").textContent = fmtMo(avgPb);
+  $("goal-w").textContent = avgWaste.toFixed(1) + "%";
+  $("goal-pb-fill").style.width = (pbProg * 100).toFixed(0) + "%";
+  $("goal-w-fill").style.width = (wProg * 100).toFixed(0) + "%";
+}
+
 function renderSheet() {
-  const body = $('ss-body');
-  let totFee = 0, totMo = 0, totCum = 0, nOk = 0;
-  const rows = CLIENTS.map((c, i) => {
+  const body = $("ss-body");
+  const { totFee, totMo, avgPb, nOk } = portfolioStats();
+  let totCum = 0;
+  const rows = CLIENTS.map(c => {
     const s = state.sites[c.id];
-    totFee += c.fee;
-    totMo += s.monthlySave;
     totCum += s.cumSave;
-    if (s.payback <= 24) nOk++;
-    const pbCls = !isFinite(s.payback) ? 'muted' : s.payback <= 24 ? 'pos' : s.payback <= 36 ? 'hl' : 'neg';
-    const wCls = s.waste > 40 ? 'neg' : s.waste < 18 ? 'pos' : 'hl';
-    const scr = SCRIPTS.map(sc => {
-      const n = s.scripts[sc.id] || 0;
-      return n ? sc.ico + n : '';
-    }).filter(Boolean).join(' ') || '—';
+    const pbCls = !isFinite(s.payback) ? "muted" : s.payback <= 24 ? "pos" : s.payback <= 36 ? "hl" : "neg";
+    const wCls = s.waste > 40 ? "neg" : s.waste < 18 ? "pos" : "hl";
+    const scr = SCRIPTS.filter(sc => (s.scripts[sc.id] || 0) > 0)
+      .map(sc => sc.file.replace(".sh", "") + "×" + s.scripts[sc.id])
+      .join(" ") || "—";
+    const pref = c.pref.map(p => SCRIPTS.find(s => s.id === p).file.replace(".sh", "")).join("/");
     return `<tr>
-      <td class="lbl">${c.name}</td>
+      <td class="lbl" title="Affinity: ${pref}">${c.name}</td>
       <td class="lbl muted">${c.vertical}</td>
       <td>${c.fee.toFixed(0)}</td>
       <td class="${wCls}">${s.waste.toFixed(1)}</td>
-      <td class="lbl" style="text-align:center">${scr}</td>
+      <td class="lbl" style="text-align:center;font-size:10px">${scr}</td>
       <td class="pos">${s.monthlySave.toFixed(2)}</td>
       <td>${s.cumSave.toFixed(1)}</td>
       <td class="${pbCls}">${fmtMo(s.payback)}</td>
@@ -803,9 +1044,7 @@ function renderSheet() {
     </tr>`;
   });
 
-  const avgPb = totMo > 0.01 ? totFee / totMo : Infinity;
-  const avgPbCls = avgPb <= 24 ? 'pos' : avgPb <= 36 ? 'hl' : 'neg';
-
+  const avgPbCls = avgPb <= 24 ? "pos" : avgPb <= 36 ? "hl" : "neg";
   rows.push(`<tr class="sum">
     <td class="lbl">PORTFOLIO</td>
     <td class="lbl muted">9 sites</td>
@@ -815,61 +1054,128 @@ function renderSheet() {
     <td class="pos">${totMo.toFixed(2)}</td>
     <td class="hl">${totCum.toFixed(1)}</td>
     <td class="${avgPbCls}">${fmtMo(avgPb)}</td>
-    <td class="lbl">${state.win ? '✓ PAID BACK' : 'in progress'}</td>
+    <td class="lbl">${state.win ? "✓ PAID BACK" : "in progress"}</td>
   </tr>`);
+  body.innerHTML = rows.join("");
 
-  body.innerHTML = rows.join('');
-
-  // topbar
-  $('ui-month').textContent = String(state.month);
-  const cashEl = $('ui-cash');
+  $("ui-month").textContent = String(state.month);
+  const cashEl = $("ui-cash");
   cashEl.textContent = fmtMoney(state.cash);
-  cashEl.className = state.cash >= 0 ? 'ok' : 'bad';
+  cashEl.className = state.cash >= 0 ? "ok" : "bad";
 
-  const avgWaste = CLIENTS.reduce((a, c) => a + state.sites[c.id].waste, 0) / CLIENTS.length;
-  const wEl = $('ui-waste');
-  wEl.textContent = avgWaste.toFixed(1) + '%';
-  wEl.className = avgWaste > 40 ? 'bad' : avgWaste < 15 ? 'ok' : 'warn';
+  const { avgWaste } = portfolioStats();
+  const wEl = $("ui-waste");
+  wEl.textContent = avgWaste.toFixed(1) + "%";
+  wEl.className = avgWaste > 40 ? "bad" : avgWaste < 15 ? "ok" : "warn";
 
-  const pbEl = $('ui-payback');
+  const pbEl = $("ui-payback");
   pbEl.textContent = fmtMo(avgPb);
-  pbEl.className = avgPb <= 24 ? 'ok' : avgPb <= 36 ? 'warn' : 'bad';
+  pbEl.className = avgPb <= 24 ? "ok" : avgPb <= 36 ? "warn" : "bad";
+
+  const cm = $("ui-combo");
+  cm.textContent = "×" + Math.max(1, state.combo);
+  cm.className = state.combo >= 3 ? "ok" : state.combo >= 2 ? "warn" : "";
+
+  const badge = $("badge-live");
+  if (state.incidents.length) {
+    badge.textContent = "⚠ " + state.incidents.length + " INCIDENT" + (state.incidents.length > 1 ? "S" : "");
+    badge.className = "badge alert";
+  } else {
+    badge.textContent = "● OPS LIVE";
+    badge.className = "badge live";
+  }
 
   renderClients();
+  renderGoals();
 }
 
-function statusLabel(st) {
-  const map = {
-    'on fire': '🔥 on fire',
-    noisy: 'noisy',
-    tuning: 'tuning…',
-    efficient: '✓ efficient'
-  };
-  return map[st] || st;
+function spawnIncident() {
+  if (state.incidents.length >= 4) return;
+  const free = CLIENTS.filter(c => !state.incidents.find(i => i.siteId === c.id));
+  if (!free.length) return;
+  const c = free[(Math.random() * free.length) | 0];
+  const t = INCIDENT_TYPES[(Math.random() * INCIDENT_TYPES.length) | 0];
+  state.incidents.push({
+    id: Math.random().toString(36).slice(2, 8),
+    siteId: c.id,
+    type: t.id,
+    need: t.need,
+    label: t.label,
+    waste: t.waste,
+    color: t.color,
+    life: 28 + Math.random() * 16,
+    pulse: 0
+  });
+  AudioEng.incident();
+  logLine("INCIDENT @ " + c.short + ": " + t.label + " — need " + t.need + ".sh", "bad");
+  toast("⚠ " + c.short + ": " + t.label + " → use " + t.need + ".sh", 2800, "bad");
+  renderSheet();
 }
 
-// ── Month tick ────────────────────────────────────────────
+function tickIncidents(dt) {
+  for (let i = state.incidents.length - 1; i >= 0; i--) {
+    const inc = state.incidents[i];
+    inc.life -= dt;
+    inc.pulse += dt * 4;
+    if (inc.life <= 0) {
+      const s = state.sites[inc.siteId];
+      if (s) {
+        s.waste = clamp(s.waste + inc.waste, 3, 98);
+        recomputeSite(inc.siteId);
+        logLine(CLIENTS.find(c => c.id === inc.siteId).short +
+          ": incident expired — waste +" + inc.waste + "%", "bad");
+      }
+      state.incidents.splice(i, 1);
+      renderSheet();
+    }
+  }
+}
+
+function resolveIncident(siteId, scriptId) {
+  const idx = state.incidents.findIndex(i => i.siteId === siteId);
+  if (idx < 0) return false;
+  const inc = state.incidents[idx];
+  if (inc.need !== scriptId) return false;
+  state.incidents.splice(idx, 1);
+  const c = CLIENTS.find(x => x.id === siteId);
+  const s = state.sites[siteId];
+  s.waste = clamp(s.waste - inc.waste * 0.85, 3, 98);
+  state.cash += 1.2;
+  state.combo = Math.min(8, state.combo + 1);
+  state.comboTimer = 8;
+  spawnBurst(c.x + c.w / 2, c.y + c.h / 2, inc.color);
+  floatText(c.x + c.w / 2, c.y, "INCIDENT CLEAR", "#3dd68c");
+  AudioEng.clear();
+  logLine("Resolved " + inc.label + " @ " + c.short + " with " + scriptId + ".sh", "good");
+  toast("◈ Incident cleared @ " + c.short, 2000, "good");
+  recomputeSite(siteId);
+  return true;
+}
+
 function advanceMonth() {
   state.month++;
+  state.monthFlash = 0.6;
+  AudioEng.month();
   let portfolioSave = 0;
 
   for (const c of CLIENTS) {
     const s = state.sites[c.id];
-    // Waste dynamics
-    const growth = (state.hard ? 4.2 : 2.6) + Math.random() * 1.5;
+    const growth = (state.hard ? 4.5 : 2.7) + Math.random() * 1.6;
     const drain = s._passive || 0;
-    // Idempotent reduces chaos growth
-    const stab = (s.scripts.idem || 0) > 0 ? 0.55 : 1;
-    s.waste = clamp(s.waste + growth * stab - drain * (1.2 + Math.random() * 0.4), 3, 98);
+    const stab = (s.scripts.idem || 0) > 0 ? 0.5 : 1;
+    s.waste = clamp(s.waste + growth * stab - drain * (1.25 + Math.random() * 0.45), 3, 98);
 
-    // random events
-    if (Math.random() < 0.08 && s._nScripts === 0) {
-      s.waste = clamp(s.waste + 8, 0, 98);
-      logLine(`${c.short}: unscheduled outage — waste +8%`, 'bad');
+    if (Math.random() < 0.09 && s._nScripts === 0) {
+      s.waste = clamp(s.waste + 9, 0, 98);
+      logLine(c.short + ": unscheduled outage — waste +9%", "bad");
     }
-    if (Math.random() < 0.05 && (s.scripts.cron || 0) > 0) {
-      s.waste = clamp(s.waste - 5, 0, 98);
-      logLine(`${c.short}: cron batch cleared backlog`, 'good');
+    if (Math.random() < 0.07 && (s.scripts.cron || 0) > 0) {
+      s.waste = clamp(s.waste - 6, 0, 98);
+      logLine(c.short + ": cron batch cleared backlog", "good");
+    }
+    if (Math.random() < 0.05 && (s.scripts.clean || 0) > 0) {
+      s.waste = clamp(s.waste - 4, 0, 98);
+      logLine(c.short + ": cleanup drained temp space", "good");
     }
 
     recomputeSite(c.id);
@@ -877,11 +1183,10 @@ function advanceMonth() {
     portfolioSave += s.monthlySave;
   }
 
-  state.cash += portfolioSave;
-  // small upkeep
-  state.cash -= 0.4;
+  // operating cost + portfolio income
+  state.cash += portfolioSave - (state.hard ? 0.55 : 0.4);
 
-  // restock a few scripts occasionally (Mithril internal tooling)
+  // inventory restock
   if (state.month % 3 === 0) {
     state.inventory.cron += 1;
     state.inventory.clean += 1;
@@ -890,32 +1195,33 @@ function advanceMonth() {
       state.inventory.obs += 1;
       state.inventory.idem += 1;
     }
-    logLine('Mithril tooling drop: +script inventory', 'info');
+    logLine("Mithril tooling drop: +script inventory", "info");
     renderScripts();
+  }
+
+  // spawn incidents
+  if (Math.random() < (state.hard ? 0.65 : 0.45) || state.incidents.length === 0) {
+    spawnIncident();
+    if (state.hard && Math.random() < 0.4) spawnIncident();
   }
 
   recomputeAll();
   renderSheet();
   checkWin();
-  logLine(`Month closed · portfolio +${fmtMoney(portfolioSave)}/mo`, 'info');
+  logLine("Month closed · portfolio +" + fmtMoney(portfolioSave) + "/mo", "info");
 }
 
 function checkWin() {
   if (state.win) return;
-  const totFee = CLIENTS.reduce((a, c) => a + c.fee, 0);
-  const totMo = CLIENTS.reduce((a, c) => a + state.sites[c.id].monthlySave, 0);
-  const avgPb = totMo > 0.01 ? totFee / totMo : Infinity;
-  const avgWaste = CLIENTS.reduce((a, c) => a + state.sites[c.id].waste, 0) / CLIENTS.length;
+  const { avgPb, avgWaste } = portfolioStats();
   if (avgPb <= 24 && avgWaste < 15) {
     state.win = true;
-    logLine('PORTFOLIO PAYBACK ≤ 24 mo — Genies engaged.', 'good');
-    toast('◈ Win: average payback ≤ 24 months. The scripts paid for themselves.', 5000);
+    AudioEng.win();
+    logLine("PORTFOLIO PAYBACK ≤ 24 mo — Genies engaged.", "good");
+    toast("◈ Win: average payback ≤ 24 months. The scripts paid for themselves.", 5500, "gold");
   }
 }
 
-function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-// ── Deploy ────────────────────────────────────────────────
 function nearestSite(maxDist = 95) {
   let best = null, bestD = maxDist;
   const v = state.van;
@@ -927,141 +1233,212 @@ function nearestSite(maxDist = 95) {
   return best;
 }
 
-function deployScript(siteId, scriptId) {
+function deployScript(siteId, scriptId, opts = {}) {
   const sc = SCRIPTS.find(s => s.id === scriptId);
   const c = CLIENTS.find(x => x.id === siteId);
   const s = state.sites[siteId];
   if (!sc || !c || !s) return false;
 
-  if ((state.inventory[scriptId] || 0) <= 0) {
-    toast(`No ${sc.name} left in inventory`);
+  if (state.deployCD > 0 && !opts.force) {
+    toast("Cooling… " + state.deployCD.toFixed(1) + "s", 900);
     return false;
   }
-  // Cap stacks per site
+
+  if ((state.inventory[scriptId] || 0) <= 0) {
+    toast("No " + sc.name + " left — buy more", 1800, "bad");
+    return false;
+  }
   const n = s.scripts[scriptId] || 0;
   if (n >= 3) {
-    toast(`${sc.name} already at max (×3) on ${c.short}`);
-    return false;
+    // still allow if it resolves an incident
+    if (!state.incidents.find(i => i.siteId === siteId && i.need === scriptId)) {
+      toast(sc.name + " already at max (×3) on " + c.short, 1600, "bad");
+      return false;
+    }
   }
 
-  state.inventory[scriptId]--;
-  s.scripts[scriptId] = n + 1;
-  s.waste = clamp(s.waste + sc.waste, 3, 98);
+  const aff = affinityMul(siteId, scriptId);
+  const comboMul = 1 + Math.min(state.combo, 6) * 0.06;
+
+  // consume inventory unless resolving-only at max
+  if (n < 3) {
+    state.inventory[scriptId]--;
+    s.scripts[scriptId] = n + 1;
+  }
+
+  let wasteDelta = sc.waste * aff * comboMul;
+  // observe always reveals
   if (sc.reveal) s.revealed = true;
 
-  // One-time fee already "sold" — demo assumes contracts signed; cash gets small deploy cost
-  state.cash -= 0.15;
+  // resolve incident if matching
+  const resolved = resolveIncident(siteId, scriptId);
+  if (!resolved) {
+    s.waste = clamp(s.waste + wasteDelta, 3, 98);
+  } else {
+    // bonus on top of incident clear
+    s.waste = clamp(s.waste + wasteDelta * 0.4, 3, 98);
+  }
+
+  state.cash -= 0.12;
+  state.deployCD = 0.55;
+
+  if (aff > 1) {
+    state.combo = Math.min(8, state.combo + 1);
+    state.comboTimer = 7;
+  } else {
+    state.comboTimer = Math.max(state.comboTimer, 3);
+  }
+
+  if (!state.floatingGenies.find(g => g.siteId === siteId && g.scriptId === scriptId)) {
+    state.floatingGenies.push({
+      siteId, scriptId,
+      phase: Math.random() * Math.PI * 2,
+      birth: state.time
+    });
+  }
 
   spawnBurst(c.x + c.w / 2, c.y + c.h / 2, sc.color);
-  logLine(`Deployed ${sc.name} → ${c.short} (waste ${s.waste.toFixed(0)}%)`, 'good');
-  toast(`${sc.ico} ${sc.name} → ${c.name}`);
+  const label = (aff > 1 ? "AFFINITY " : "") + wasteDelta.toFixed(0) + "% waste";
+  floatText(c.x + c.w / 2, c.y + 10, label, aff > 1 ? "#f0c14b" : sc.color);
+  AudioEng.deploy(aff > 1 || resolved);
+
+  const note = aff > 1 ? " [affinity]" : "";
+  logLine("Deployed " + sc.name + " → " + c.short + note + " (waste " + s.waste.toFixed(0) + "%)", "good");
+  toast((aff > 1 ? "★ " : "🧞 ") + sc.name + " → " + c.name, 1600, aff > 1 ? "gold" : "good");
 
   recomputeSite(siteId);
   renderScripts();
   renderSheet();
-  renderDeployPanel();
+  if (state.nearSite) renderDeployPanel();
+  checkWin();
   return true;
 }
 
+function floatText(x, y, text, color) {
+  state.floats.push({ x, y, text, color, life: 1.1, vy: -28 });
+}
+
 function renderDeployPanel() {
-  const panel = $('deploy-panel');
+  const panel = $("deploy-panel");
   const c = state.nearSite;
   if (!c || !state.running) {
-    panel.classList.remove('show');
+    panel.classList.remove("show");
     return;
   }
   const s = state.sites[c.id];
   const sc = SCRIPTS.find(x => x.id === state.selectedScript);
+  const inc = state.incidents.find(i => i.siteId === c.id);
+  const thumbs = SCRIPTS.map(x => {
+    const on = (s.scripts[x.id] || 0) > 0 ? " on" : "";
+    const pick = state.selectedScript === x.id ? " pick" : "";
+    return `<img class="${(on + pick).trim()}" data-sid="${x.id}" src="${portraitDataURL(x.id)}" title="${x.name} ×${s.scripts[x.id] || 0}" alt="">`;
+  }).join("");
+
+  const prefs = c.pref.map(p => SCRIPTS.find(s => s.id === p).name).join(", ");
+  let tip = `<b>Affinity:</b> ${prefs} (+55% waste cut, combo++)`;
+  if (inc) tip += `<br><b style="color:#ff5a6a">Incident:</b> ${inc.label} — deploy <b>${inc.need}.sh</b>`;
+
   panel.innerHTML = `
     <h3>${c.name}</h3>
     <div class="sub">${c.vertical} · fee $${c.fee}k · waste ${s.waste.toFixed(1)}% · ${fmtMo(s.payback)}</div>
-    <div class="row"><span>Selected</span><span style="color:${sc.color}">${sc.name}</span></div>
-    <div class="row"><span>On site</span><span>${SCRIPTS.map(x => {
-      const n = s.scripts[x.id] || 0;
-      return n ? `${x.ico}${n}` : '';
-    }).filter(Boolean).join(' ') || 'none'}</span></div>
-    <div class="row" style="margin-top:6px">
-      <button class="btn primary" id="dp-deploy">Install ${sc.ico}</button>
+    <div class="genie-row">${thumbs}</div>
+    <div class="tip">${tip}</div>
+    <div class="row"><span>Selected</span><span style="color:${sc.color}">${sc.name} ×${state.inventory[sc.id] || 0}</span></div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" id="dp-deploy">Install (E)</button>
       <button class="btn" id="dp-close">Close</button>
     </div>
-    <div class="sub" style="margin-top:6px;margin-bottom:0">Click scripts in side panel or keys 1–5 · E re-opens</div>
   `;
-  panel.classList.add('show');
-  // position in screen space
+  panel.classList.add("show");
   positionDeployPanel(c);
-  $('dp-deploy').onclick = () => deployScript(c.id, state.selectedScript);
-  $('dp-close').onclick = () => closeDeploy();
+  $("dp-deploy").onclick = () => deployScript(c.id, state.selectedScript);
+  $("dp-close").onclick = () => closeDeploy();
+  panel.querySelectorAll("img[data-sid]").forEach(img => {
+    img.onclick = () => {
+      state.selectedScript = img.dataset.sid;
+      renderScripts();
+      renderDeployPanel();
+    };
+  });
 }
 
 function positionDeployPanel(c) {
-  const panel = $('deploy-panel');
-  const wrap = $('map-wrap');
+  const panel = $("deploy-panel");
+  const wrap = $("map-wrap");
   const rect = wrap.getBoundingClientRect();
-  const sx = (c.x + c.w / 2 - state.cam.x) * (canvas.clientWidth / canvas.width) ;
-  // use CSS pixels via canvas display size
-  const scaleX = canvas.clientWidth / canvas.width;
-  const scaleY = canvas.clientHeight / canvas.height;
-  const px = (c.x + c.w + 12 - state.cam.x) * scaleX;
-  const py = (c.y - state.cam.y) * scaleY;
-  panel.style.left = clamp(px, 8, rect.width - 240) + 'px';
-  panel.style.top = clamp(py, 8, rect.height - 160) + 'px';
+  const px = (c.x + c.w + 12 - state.cam.x);
+  const py = (c.y - state.cam.y);
+  panel.style.left = clamp(px, 8, rect.width - 300) + "px";
+  panel.style.top = clamp(py, 8, rect.height - 220) + "px";
 }
 
 function closeDeploy() {
   state.nearSite = null;
-  $('deploy-panel').classList.remove('show');
+  $("deploy-panel").classList.remove("show");
+}
+
+function tryQuickDeploy() {
+  const c = nearestSite(115);
+  if (!c) {
+    toast("Drive closer to a client building", 1400);
+    return;
+  }
+  deployScript(c.id, state.selectedScript);
 }
 
 function tryOpenDeploy() {
-  const c = nearestSite(110);
+  const c = nearestSite(115);
   if (!c) {
-    toast('Drive closer to a client building');
+    toast("Drive closer to a client building");
     return;
   }
   state.nearSite = c;
   renderDeployPanel();
 }
 
-// ── Particles / traffic ───────────────────────────────────
 function spawnBurst(x, y, color) {
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 18; i++) {
     const a = Math.random() * Math.PI * 2;
-    const sp = 40 + Math.random() * 80;
+    const sp = 50 + Math.random() * 100;
     state.particles.push({
       x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-      life: 0.5 + Math.random() * 0.4, color, r: 2 + Math.random() * 3
+      life: 0.45 + Math.random() * 0.4, color, r: 2 + Math.random() * 3
     });
   }
 }
 
 function seedTraffic() {
   state.traffic = [];
-  for (let i = 0; i < 28; i++) {
+  for (let i = 0; i < 32; i++) {
     const horiz = Math.random() < 0.5;
+    const lane = (Math.random() * 8) | 0;
     state.traffic.push({
       x: Math.random() * WORLD.w,
       y: Math.random() * WORLD.h,
-      vx: horiz ? (Math.random() < 0.5 ? 40 : -40) : 0,
-      vy: horiz ? 0 : (Math.random() < 0.5 ? 40 : -40),
-      color: `hsl(${Math.floor(Math.random() * 360)},40%,45%)`,
-      w: 14, h: 8
+      vx: horiz ? (Math.random() < 0.5 ? 55 : -55) : 0,
+      vy: horiz ? 0 : (Math.random() < 0.5 ? 55 : -55),
+      color: `hsl(${(lane * 40 + Math.random() * 30) | 0},40%,45%)`,
+      w: 14 + Math.random() * 6, h: 7 + Math.random() * 3
     });
   }
 }
 
-// ── Input ─────────────────────────────────────────────────
-window.addEventListener('keydown', e => {
+// ── Input ──
+window.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   state.keys[k] = true;
-  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()) || k === ' ') {
-    // prevent page scroll
-    if (e.key === ' ' || e.key.startsWith('Arrow')) e.preventDefault();
+  if (e.key === " " || e.key.startsWith("Arrow") || k === "shift") e.preventDefault();
+  if (k === " " && state.running) togglePause();
+  if (!state.running || state.paused) return;
+  if (k === "e") tryQuickDeploy();
+  if (k === "f") tryOpenDeploy();
+  if (k === "q") {
+    const idx = SCRIPTS.findIndex(s => s.id === state.selectedScript);
+    state.selectedScript = SCRIPTS[(idx + 1) % SCRIPTS.length].id;
+    renderScripts();
+    if (state.nearSite) renderDeployPanel();
   }
-  if (k === ' ') {
-    if (state.running) togglePause();
-  }
-  if (k === 'e' && state.running && !state.paused) tryOpenDeploy();
-  if (k >= '1' && k <= '5') {
+  if (k >= "1" && k <= "5") {
     const sc = SCRIPTS[parseInt(k, 10) - 1];
     if (sc) {
       state.selectedScript = sc.id;
@@ -1070,15 +1447,29 @@ window.addEventListener('keydown', e => {
     }
   }
 });
-window.addEventListener('keyup', e => {
+window.addEventListener("keyup", e => {
   state.keys[e.key.toLowerCase()] = false;
 });
 
-canvas.addEventListener('click', e => {
+canvas.addEventListener("click", e => {
   if (!state.running) return;
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) + state.cam.x;
   const my = (e.clientY - rect.top) + state.cam.y;
+
+  // minimap hit?
+  const w = canvas._cssW || canvas.clientWidth;
+  const h = canvas._cssH || canvas.clientHeight;
+  const mw = 140, mh = 94, mmx = w - mw - 12, mmy = h - mh - 12;
+  const lx = e.clientX - rect.left, ly = e.clientY - rect.top;
+  if (lx >= mmx && lx <= mmx + mw && ly >= mmy && ly <= mmy + mh) {
+    state.van.x = ((lx - mmx) / mw) * WORLD.w;
+    state.van.y = ((ly - mmy) / mh) * WORLD.h;
+    state.van.vx = 0; state.van.vy = 0;
+    toast("Warped via minimap", 1200);
+    return;
+  }
+
   for (const c of CLIENTS) {
     if (mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h) {
       state.nearSite = c;
@@ -1088,194 +1479,229 @@ canvas.addEventListener('click', e => {
   }
 });
 
-$('btn-pause').onclick = () => { if (state.running) togglePause(); };
-$('btn-tick').onclick = () => {
+$("btn-pause").onclick = () => { if (state.running) togglePause(); };
+$("btn-tick").onclick = () => {
   if (!state.running) return;
   advanceMonth();
   state.monthT = 0;
 };
-$('btn-about').onclick = () => {
-  $('modal-bg').classList.remove('hidden');
+$("btn-about").onclick = () => $("modal-bg").classList.remove("hidden");
+$("btn-start").onclick = () => startGame(false);
+$("btn-start-hard").onclick = () => startGame(true);
+$("btn-mute").onclick = () => {
+  const m = AudioEng.toggleMute();
+  $("btn-mute").textContent = m ? "♪ Unmute" : "♪ Mute";
 };
-$('btn-start').onclick = () => startGame(false);
-$('btn-start-hard').onclick = () => startGame(true);
 
 function togglePause() {
   state.paused = !state.paused;
-  $('btn-pause').textContent = state.paused ? '▶ Resume' : '⏸ Pause';
-  if (state.paused) toast('Paused');
+  $("btn-pause").textContent = state.paused ? "▶ Resume" : "⏸ Pause";
+  if (state.paused) toast("Paused");
 }
 
 function startGame(hard) {
+  AudioEng.start();
   state.hard = hard;
   state.running = true;
   state.paused = false;
   state.month = 1;
   state.monthT = 0;
-  state.cash = hard ? 140 : 180;
+  state.cash = hard ? 140 : 190;
   state.win = false;
   state.inventory = hard
-    ? { cron: 4, idem: 3, obs: 3, clean: 4, orch: 2 }
-    : { cron: 6, idem: 5, obs: 5, clean: 6, orch: 4 };
-  state.selectedScript = 'cron';
+    ? { cron: 5, idem: 4, obs: 4, clean: 5, orch: 3 }
+    : { cron: 7, idem: 6, obs: 6, clean: 7, orch: 5 };
+  state.selectedScript = "cron";
   state.van = { x: 200, y: 200, vx: 0, vy: 0, angle: 0, speed: 0 };
   state.log = [];
   state.particles = [];
+  state.floats = [];
+  state.floatingGenies = [];
+  state.incidents = [];
+  state.combo = 0;
+  state.comboTimer = 0;
+  state.deployCD = 0;
   initSites();
   recomputeAll();
   seedTraffic();
   renderScripts();
+  renderShop();
   renderSheet();
   renderLog();
   closeDeploy();
-  $('modal-bg').classList.add('hidden');
-  $('btn-pause').textContent = '⏸ Pause';
-  logLine(hard ? 'Hard engagement started' : 'Engagement started — drive to clients', 'info');
-  toast(hard ? 'Hard mode: waste grows faster' : 'Welcome, consultant. Deploy the Genies.');
+  $("modal-bg").classList.add("hidden");
+  $("btn-pause").textContent = "⏸ Pause";
+  // early incident to teach the system
+  setTimeout(() => { if (state.running) spawnIncident(); }, 4000);
+  logLine(hard ? "Hard engagement started" : "Engagement started — E installs Genies", "info");
+  toast(hard ? "Hard mode: waste & incidents harder" : "Welcome. Match affinities. Clear incidents.", 2800, "good");
 }
 
-// ── Physics / update ──────────────────────────────────────
+// ── Update ──
 function update(dt) {
-  if (!state.running || state.paused) return;
-  state.time += dt;
+  if (!state.running || state.paused) {
+    // still allow cam idle
+  } else {
+    state.time += dt;
+    if (state.deployCD > 0) state.deployCD = Math.max(0, state.deployCD - dt);
+    if (state.monthFlash > 0) state.monthFlash = Math.max(0, state.monthFlash - dt);
+    if (state.comboTimer > 0) {
+      state.comboTimer -= dt;
+      if (state.comboTimer <= 0) state.combo = Math.max(0, state.combo - 1);
+      if (state.combo > 0 && state.comboTimer <= 0) state.comboTimer = 2.5;
+    }
 
-  // Van control
-  const v = state.van;
-  const accel = 520;
-  const maxSp = 280;
-  const fric = 3.2;
-  let ax = 0, ay = 0;
-  if (state.keys['w'] || state.keys['arrowup']) ay -= 1;
-  if (state.keys['s'] || state.keys['arrowdown']) ay += 1;
-  if (state.keys['a'] || state.keys['arrowleft']) ax -= 1;
-  if (state.keys['d'] || state.keys['arrowright']) ax += 1;
-  if (ax || ay) {
-    const len = Math.hypot(ax, ay) || 1;
-    ax /= len; ay /= len;
-    v.vx += ax * accel * dt;
-    v.vy += ay * accel * dt;
-    v.angle = Math.atan2(v.vy, v.vx);
-  }
-  // friction
-  v.vx -= v.vx * fric * dt;
-  v.vy -= v.vy * fric * dt;
-  const sp = Math.hypot(v.vx, v.vy);
-  if (sp > maxSp) {
-    v.vx = v.vx / sp * maxSp;
-    v.vy = v.vy / sp * maxSp;
-  }
-  v.x = clamp(v.x + v.vx * dt, 30, WORLD.w - 30);
-  v.y = clamp(v.y + v.vy * dt, 30, WORLD.h - 30);
-  v.speed = Math.hypot(v.vx, v.vy);
+    const v = state.van;
+    const turbo = state.keys["shift"] ? 1.55 : 1;
+    const accel = 560 * turbo, maxSp = 300 * turbo, fric = 3.4;
+    let ax = 0, ay = 0;
+    if (state.keys["w"] || state.keys["arrowup"]) ay -= 1;
+    if (state.keys["s"] || state.keys["arrowdown"]) ay += 1;
+    if (state.keys["a"] || state.keys["arrowleft"]) ax -= 1;
+    if (state.keys["d"] || state.keys["arrowright"]) ax += 1;
+    if (ax || ay) {
+      const len = Math.hypot(ax, ay) || 1;
+      ax /= len; ay /= len;
+      v.vx += ax * accel * dt;
+      v.vy += ay * accel * dt;
+      v.angle = Math.atan2(v.vy, v.vx);
+      AudioEng.engine(Math.hypot(v.vx, v.vy) / maxSp);
+      if (turbo > 1 && Math.random() < 0.3) {
+        state.particles.push({
+          x: v.x - Math.cos(v.angle) * 16,
+          y: v.y - Math.sin(v.angle) * 16,
+          vx: -Math.cos(v.angle) * 30 + (Math.random() - 0.5) * 20,
+          vy: -Math.sin(v.angle) * 30 + (Math.random() - 0.5) * 20,
+          life: 0.25, color: "rgba(78,200,240,0.5)", r: 2
+        });
+      }
+    }
+    v.vx -= v.vx * fric * dt;
+    v.vy -= v.vy * fric * dt;
+    const sp = Math.hypot(v.vx, v.vy);
+    if (sp > maxSp) {
+      v.vx = v.vx / sp * maxSp;
+      v.vy = v.vy / sp * maxSp;
+    }
+    v.x = clamp(v.x + v.vx * dt, 30, WORLD.w - 30);
+    v.y = clamp(v.y + v.vy * dt, 30, WORLD.h - 30);
+    v.speed = Math.hypot(v.vx, v.vy);
 
-  // soft collision with buildings
-  for (const c of CLIENTS) {
-    const pad = 6;
-    if (v.x > c.x - pad && v.x < c.x + c.w + pad &&
-        v.y > c.y - pad && v.y < c.y + c.h + pad) {
-      // push out
-      const cx = c.x + c.w / 2, cy = c.y + c.h / 2;
-      const dx = v.x - cx, dy = v.y - cy;
-      if (Math.abs(dx) / c.w > Math.abs(dy) / c.h) {
-        v.x = dx > 0 ? c.x + c.w + pad : c.x - pad;
-        v.vx *= -0.3;
-      } else {
-        v.y = dy > 0 ? c.y + c.h + pad : c.y - pad;
-        v.vy *= -0.3;
+    for (const c of CLIENTS) {
+      const pad = 6;
+      if (v.x > c.x - pad && v.x < c.x + c.w + pad &&
+          v.y > c.y - pad && v.y < c.y + c.h + pad) {
+        const cx = c.x + c.w / 2, cy = c.y + c.h / 2;
+        const dx = v.x - cx, dy = v.y - cy;
+        if (Math.abs(dx) / c.w > Math.abs(dy) / c.h) {
+          v.x = dx > 0 ? c.x + c.w + pad : c.x - pad;
+          v.vx *= -0.3;
+        } else {
+          v.y = dy > 0 ? c.y + c.h + pad : c.y - pad;
+          v.vy *= -0.3;
+        }
+      }
+    }
+
+    state.monthT += dt * 1000;
+    if (state.monthT >= state.monthMs) {
+      state.monthT = 0;
+      advanceMonth();
+    }
+
+    tickIncidents(dt);
+
+    for (const t of state.traffic) {
+      t.x += t.vx * dt;
+      t.y += t.vy * dt;
+      if (t.x < 0) t.x = WORLD.w;
+      if (t.x > WORLD.w) t.x = 0;
+      if (t.y < 0) t.y = WORLD.h;
+      if (t.y > WORLD.h) t.y = 0;
+    }
+
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const p = state.particles[i];
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 0.96; p.vy *= 0.96;
+      if (p.life <= 0) state.particles.splice(i, 1);
+    }
+    for (let i = state.floats.length - 1; i >= 0; i--) {
+      const f = state.floats[i];
+      f.life -= dt;
+      f.y += f.vy * dt;
+      if (f.life <= 0) state.floats.splice(i, 1);
+    }
+    for (const g of state.floatingGenies) g.phase += dt * 2.2;
+    for (const c of CLIENTS) state.sites[c.id].pulse += dt * 2;
+  }
+
+  // camera always follows
+  if (state.running) {
+    const v = state.van;
+    const cw = canvas._cssW || canvas.clientWidth;
+    const ch = canvas._cssH || canvas.clientHeight;
+    state.cam.x += (v.x - cw / 2 - state.cam.x) * Math.min(1, 6 * dt);
+    state.cam.y += (v.y - ch / 2 - state.cam.y) * Math.min(1, 6 * dt);
+    state.cam.x = clamp(state.cam.x, 0, Math.max(0, WORLD.w - cw));
+    state.cam.y = clamp(state.cam.y, 0, Math.max(0, WORLD.h - ch));
+    if (state.nearSite) {
+      const near = nearestSite(100);
+      if (near && near.id === state.nearSite.id) positionDeployPanel(near);
+      else if (!near || near.id !== state.nearSite.id) {
+        // keep panel if still reasonably close
+        const d = Math.hypot(
+          v.x - (state.nearSite.x + state.nearSite.w / 2),
+          v.y - (state.nearSite.y + state.nearSite.h / 2)
+        );
+        if (d > 160) closeDeploy();
       }
     }
   }
-
-  // Camera (CSS pixel space — matches setTransform(dpr) drawing)
-  const cw = canvas._cssW || canvas.clientWidth;
-  const ch = canvas._cssH || canvas.clientHeight;
-  state.cam.x += (v.x - cw / 2 - state.cam.x) * Math.min(1, 6 * dt);
-  state.cam.y += (v.y - ch / 2 - state.cam.y) * Math.min(1, 6 * dt);
-  state.cam.x = clamp(state.cam.x, 0, Math.max(0, WORLD.w - cw));
-  state.cam.y = clamp(state.cam.y, 0, Math.max(0, WORLD.h - ch));
-
-  // Month timer
-  state.monthT += dt * 1000;
-  if (state.monthT >= state.monthMs) {
-    state.monthT = 0;
-    advanceMonth();
-  }
-
-  // Traffic
-  for (const t of state.traffic) {
-    t.x += t.vx * dt;
-    t.y += t.vy * dt;
-    if (t.x < 0) t.x = WORLD.w;
-    if (t.x > WORLD.w) t.x = 0;
-    if (t.y < 0) t.y = WORLD.h;
-    if (t.y > WORLD.h) t.y = 0;
-  }
-
-  // Particles
-  for (let i = state.particles.length - 1; i >= 0; i--) {
-    const p = state.particles[i];
-    p.life -= dt;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.vx *= 0.96; p.vy *= 0.96;
-    if (p.life <= 0) state.particles.splice(i, 1);
-  }
-
-  // Auto-show deploy when close
-  const near = nearestSite(90);
-  if (near && state.nearSite && state.nearSite.id === near.id) {
-    positionDeployPanel(near);
-  }
-
-  // Site pulse
-  for (const c of CLIENTS) state.sites[c.id].pulse += dt * 2;
 }
 
-// ── Render ────────────────────────────────────────────────
+// ── Draw ──
 function resize() {
-  const wrap = $('map-wrap');
+  const wrap = $("map-wrap");
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = wrap.clientWidth;
   const h = wrap.clientHeight;
   canvas.width = Math.max(320, Math.floor(w * dpr));
   canvas.height = Math.max(240, Math.floor(h * dpr));
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  // draw in CSS pixels
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
   canvas._cssW = w;
   canvas._cssH = h;
 }
-window.addEventListener('resize', resize);
+window.addEventListener("resize", resize);
 
 function draw() {
   const w = canvas._cssW || canvas.clientWidth;
   const h = canvas._cssH || canvas.clientHeight;
   const cam = state.cam;
 
-  // Night asphalt
-  ctx.fillStyle = '#0a0c12';
+  ctx.fillStyle = "#060c16";
   ctx.fillRect(0, 0, w, h);
 
   ctx.save();
   ctx.translate(-cam.x, -cam.y);
 
-  // District blocks (grass / lots)
   drawCityBlocks(w, h, cam);
-
-  // Roads
   drawRoads();
 
-  // Client buildings
   for (const c of CLIENTS) drawBuilding(c);
+  drawIncidents();
+  drawFloatingGenies();
 
-  // Traffic
   for (const t of state.traffic) {
     ctx.fillStyle = t.color;
     ctx.fillRect(t.x - t.w / 2, t.y - t.h / 2, t.w, t.h);
+    ctx.fillStyle = "rgba(255,255,200,0.35)";
+    ctx.fillRect(t.x + t.w / 2 - 3, t.y - 2, 3, 4);
   }
 
-  // Particles
   for (const p of state.particles) {
     ctx.globalAlpha = clamp(p.life * 2, 0, 1);
     ctx.fillStyle = p.color;
@@ -1285,65 +1711,89 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Van
+  for (const f of state.floats) {
+    ctx.globalAlpha = clamp(f.life * 1.4, 0, 1);
+    ctx.fillStyle = f.color;
+    ctx.font = "bold 12px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+
   drawVan(state.van);
 
-  // Proximity ring
-  const near = nearestSite(110);
-  if (near) {
+  const near = nearestSite(115);
+  if (near && state.running && !state.paused) {
     const cx = near.x + near.w / 2, cy = near.y + near.h / 2;
-    ctx.strokeStyle = 'rgba(110,231,255,0.45)';
+    const sc = SCRIPTS.find(s => s.id === state.selectedScript);
+    const aff = affinityMul(near.id, state.selectedScript) > 1;
+    ctx.strokeStyle = aff ? "rgba(240,193,75,0.65)" : "rgba(78,200,240,0.5)";
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 6]);
     ctx.beginPath();
-    ctx.arc(cx, cy, 70, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 72, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(110,231,255,0.85)';
-    ctx.font = '11px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('[E] Deploy Genies', cx, near.y - 10);
+    ctx.fillStyle = aff ? "rgba(240,193,75,0.95)" : "rgba(78,200,240,0.9)";
+    ctx.font = "11px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("[E] " + sc.name + (aff ? " ★" : ""), cx, near.y - 12);
   }
 
   ctx.restore();
 
-  // Minimap
   drawMinimap(w, h);
 
-  // Month progress bar
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.fillRect(12, 12, 140, 6);
-  ctx.fillStyle = '#2a6080';
-  ctx.fillRect(12, 12, 140 * clamp(state.monthT / state.monthMs, 0, 1), 6);
-  ctx.fillStyle = '#6a8aa8';
-  ctx.font = '10px system-ui';
-  ctx.textAlign = 'left';
-  ctx.fillText('month progress', 12, 30);
+  // month progress
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(12, 12, 148, 7);
+  ctx.fillStyle = "#2a7098";
+  ctx.fillRect(12, 12, 148 * clamp(state.monthT / state.monthMs, 0, 1), 7);
+  ctx.fillStyle = "#6a90b0";
+  ctx.font = "10px system-ui";
+  ctx.textAlign = "left";
+  ctx.fillText("month " + state.month + " · auto-advance", 12, 32);
+
+  // selected script chip
+  const sc = SCRIPTS.find(s => s.id === state.selectedScript);
+  if (sc) {
+    ctx.fillStyle = "rgba(8,18,32,0.85)";
+    ctx.strokeStyle = sc.color;
+    ctx.lineWidth = 1.5;
+    roundRect(12, 42, 150, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = sc.color;
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(sc.name + " ×" + (state.inventory[sc.id] || 0), 20, 57);
+  }
+
+  if (state.monthFlash > 0) {
+    ctx.fillStyle = `rgba(78,200,240,${state.monthFlash * 0.15})`;
+    ctx.fillRect(0, 0, w, h);
+  }
 
   if (state.paused) {
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#6ee7ff';
-    ctx.font = 'bold 28px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('PAUSED', w / 2, h / 2);
+    ctx.fillStyle = "#4ec8f0";
+    ctx.font = "bold 28px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("PAUSED", w / 2, h / 2);
   }
 
   if (state.win) {
-    ctx.fillStyle = 'rgba(10,40,30,0.25)';
+    ctx.fillStyle = "rgba(10,40,30,0.22)";
     ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#3dd68c';
-    ctx.font = 'bold 16px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('◈ PORTFOLIO ≤ 24 MO PAYBACK', w / 2, 48);
+    ctx.fillStyle = "#3dd68c";
+    ctx.font = "bold 16px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("◈ PORTFOLIO ≤ 24 MO PAYBACK — GENIES ENGAGED", w / 2, 48);
   }
 }
 
 function drawCityBlocks(viewW, viewH, cam) {
-  // Large district tiles
-  const cols = [
-    '#0c1018', '#0e121c', '#0b1410', '#10101a', '#0c1216'
-  ];
+  const cols = ["#0a1420", "#0c1624", "#081818", "#0e1420", "#0a1820"];
   const tile = 200;
   const x0 = Math.floor(cam.x / tile) * tile;
   const y0 = Math.floor(cam.y / tile) * tile;
@@ -1351,18 +1801,14 @@ function drawCityBlocks(viewW, viewH, cam) {
     for (let y = y0 - tile; y < cam.y + viewH + tile; y += tile) {
       const ix = Math.floor(x / tile);
       const iy = Math.floor(y / tile);
-      const h = ((ix * 17 + iy * 31) >>> 0) % cols.length;
-      ctx.fillStyle = cols[h];
+      const hi = ((ix * 17 + iy * 31) >>> 0) % cols.length;
+      ctx.fillStyle = cols[hi];
       ctx.fillRect(x + 4, y + 4, tile - 8, tile - 8);
-      // parking stripes occasional
-      if ((ix + iy) % 5 === 0) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 6; i++) {
-          ctx.beginPath();
-          ctx.moveTo(x + 20, y + 20 + i * 12);
-          ctx.lineTo(x + 50, y + 20 + i * 12);
-          ctx.stroke();
+      // parking dots
+      if (((ix + iy) % 3) === 0) {
+        ctx.fillStyle = "rgba(40,60,90,0.25)";
+        for (let i = 0; i < 3; i++) {
+          ctx.fillRect(x + 30 + i * 50, y + 40, 28, 12);
         }
       }
     }
@@ -1370,112 +1816,89 @@ function drawCityBlocks(viewW, viewH, cam) {
 }
 
 function drawRoads() {
-  // Grid avenues
-  ctx.strokeStyle = '#1a1e28';
-  ctx.lineWidth = 36;
-  ctx.lineCap = 'butt';
+  ctx.strokeStyle = "#141c28";
+  ctx.lineWidth = 40;
   for (let x = 0; x <= WORLD.w; x += 300) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, WORLD.h);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD.h); ctx.stroke();
   }
   for (let y = 0; y <= WORLD.h; y += 280) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(WORLD.w, y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD.w, y); ctx.stroke();
   }
-  // Lane dashes
-  ctx.strokeStyle = 'rgba(240,193,75,0.25)';
+  ctx.strokeStyle = "rgba(240,193,75,0.22)";
   ctx.lineWidth = 2;
   ctx.setLineDash([12, 16]);
   for (let x = 0; x <= WORLD.w; x += 300) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, WORLD.h);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD.h); ctx.stroke();
   }
   for (let y = 0; y <= WORLD.h; y += 280) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(WORLD.w, y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD.w, y); ctx.stroke();
   }
   ctx.setLineDash([]);
+  // intersections
+  ctx.fillStyle = "rgba(20,30,45,0.5)";
+  for (let x = 0; x <= WORLD.w; x += 300) {
+    for (let y = 0; y <= WORLD.h; y += 280) {
+      ctx.fillRect(x - 22, y - 22, 44, 44);
+    }
+  }
 }
 
 function drawBuilding(c) {
   const s = state.sites[c.id];
   const waste = s.waste;
-  // Glow by waste
-  const glow = waste > 50 ? 0.35 : waste > 25 ? 0.18 : 0.08;
-  ctx.shadowColor = c.accent;
-  ctx.shadowBlur = 12 + Math.sin(s.pulse) * 4 + waste * 0.15;
+  const hasAff = c.pref.some(p => (s.scripts[p] || 0) > 0);
 
-  // Body
+  ctx.shadowColor = hasAff ? "#f0c14b" : c.accent;
+  ctx.shadowBlur = 10 + Math.sin(s.pulse) * 3 + waste * 0.1;
+
   ctx.fillStyle = c.color;
   roundRect(c.x, c.y, c.w, c.h, 6);
   ctx.fill();
-
-  // Roof detail
   ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+
+  // roof stripe for affinity-met sites
+  if (hasAff) {
+    ctx.fillStyle = "rgba(240,193,75,0.35)";
+    ctx.fillRect(c.x, c.y, c.w, 5);
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
   ctx.fillRect(c.x + 8, c.y + 8, c.w - 16, 14);
 
-  // Windows grid
-  ctx.fillStyle = 'rgba(110,231,255,0.12)';
   const wx = 5, wy = 4;
   const cellW = (c.w - 20) / wx, cellH = (c.h - 36) / wy;
   for (let i = 0; i < wx; i++) {
     for (let j = 0; j < wy; j++) {
-      const on = ((i * 3 + j * 7 + Math.floor(state.time)) % 5) !== 0;
-      ctx.fillStyle = on ? 'rgba(255,220,120,0.25)' : 'rgba(40,60,90,0.35)';
+      const on = ((i * 3 + j * 7 + Math.floor(state.time * 1.5)) % 5) !== 0;
+      ctx.fillStyle = on ? "rgba(255,220,120,0.22)" : "rgba(40,60,90,0.35)";
       ctx.fillRect(c.x + 10 + i * cellW + 2, c.y + 28 + j * cellH + 2, cellW - 4, cellH - 4);
     }
   }
 
-  // Accent stripe
   ctx.fillStyle = c.accent;
   ctx.fillRect(c.x, c.y + c.h - 6, c.w, 6);
 
-  // Waste bar
   const barW = c.w - 16;
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
   ctx.fillRect(c.x + 8, c.y + c.h + 6, barW, 5);
-  const wc = waste > 40 ? '#ff5a6a' : waste > 20 ? '#f0c14b' : '#3dd68c';
-  ctx.fillStyle = wc;
+  ctx.fillStyle = waste > 40 ? "#ff5a6a" : waste > 20 ? "#f0c14b" : "#3dd68c";
   ctx.fillRect(c.x + 8, c.y + c.h + 6, barW * (waste / 100), 5);
 
-  // Label
-  ctx.fillStyle = '#e0e8f8';
-  ctx.font = 'bold 12px system-ui';
-  ctx.textAlign = 'center';
+  ctx.fillStyle = "#e0eef8";
+  ctx.font = "bold 12px system-ui";
+  ctx.textAlign = "center";
   ctx.fillText(c.short, c.x + c.w / 2, c.y - 16);
-  ctx.font = '10px ui-monospace, monospace';
-  ctx.fillStyle = '#7a8aa8';
-  ctx.fillText(`$${c.fee}k · ${fmtMo(s.payback)}`, c.x + c.w / 2, c.y - 4);
+  ctx.font = "10px ui-monospace, monospace";
+  ctx.fillStyle = "#6a8aa8";
+  ctx.fillText("$" + c.fee + "k · " + fmtMo(s.payback), c.x + c.w / 2, c.y - 4);
 
-  // Script icons under bar
-  let ix = c.x + 8;
-  for (const sc of SCRIPTS) {
-    const n = s.scripts[sc.id] || 0;
-    if (!n) continue;
-    ctx.fillStyle = sc.color;
-    ctx.font = '11px system-ui';
-    ctx.textAlign = 'left';
-    ctx.fillText(sc.ico + (n > 1 ? n : ''), ix, c.y + c.h + 22);
-    ix += 22;
-  }
-
-  // Inefficiency smoke
   if (waste > 35) {
     const n = Math.floor((waste - 30) / 12);
     for (let i = 0; i < n; i++) {
       const px = c.x + c.w * (0.3 + 0.15 * i) + Math.sin(state.time * 2 + i) * 4;
       const py = c.y - 8 - ((state.time * 30 + i * 20) % 40);
       ctx.globalAlpha = 0.15 + 0.1 * Math.sin(state.time + i);
-      ctx.fillStyle = '#888';
+      ctx.fillStyle = "#888";
       ctx.beginPath();
       ctx.arc(px, py, 6 + i, 0, Math.PI * 2);
       ctx.fill();
@@ -1484,23 +1907,96 @@ function drawBuilding(c) {
   }
 }
 
+function drawIncidents() {
+  for (const inc of state.incidents) {
+    const c = CLIENTS.find(x => x.id === inc.siteId);
+    if (!c) continue;
+    const cx = c.x + c.w / 2;
+    const cy = c.y - 48 + Math.sin(inc.pulse) * 4;
+    const r = 14 + Math.sin(inc.pulse * 1.5) * 2;
+    ctx.fillStyle = "rgba(255,90,106,0.2)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = inc.color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ff5a6a";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#0a1018";
+    ctx.font = "bold 12px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("!", cx, cy + 4);
+    ctx.fillStyle = "#ff8a96";
+    ctx.font = "9px system-ui";
+    ctx.fillText(inc.need + ".sh", cx, cy + r + 12);
+    // timer ring
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(inc.life / 40, 0, 1));
+    ctx.stroke();
+  }
+}
+
+function drawFloatingGenies() {
+  const bySite = {};
+  for (const g of state.floatingGenies) {
+    if (!bySite[g.siteId]) bySite[g.siteId] = [];
+    if (!bySite[g.siteId].find(x => x.scriptId === g.scriptId)) {
+      bySite[g.siteId].push(g);
+    }
+  }
+  for (const siteId of Object.keys(bySite)) {
+    const c = CLIENTS.find(x => x.id === siteId);
+    if (!c) continue;
+    const list = bySite[siteId];
+    list.forEach((g, i) => {
+      const bob = Math.sin(g.phase) * 6;
+      const gx = c.x + c.w / 2 + (i - (list.length - 1) / 2) * 36;
+      const gy = c.y - 28 + bob;
+      const p = getPortrait(g.scriptId, 64);
+      if (p) {
+        ctx.save();
+        ctx.shadowColor = "#4ec8f0";
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(gx, gy, 16, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(p, gx - 16, gy - 16, 32, 32);
+        ctx.restore();
+        ctx.strokeStyle = "rgba(78,200,240,0.7)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(gx, gy, 16, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "#3a9fd8";
+        ctx.beginPath();
+        ctx.arc(gx, gy, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  }
+}
+
 function drawVan(v) {
   ctx.save();
   ctx.translate(v.x, v.y);
   ctx.rotate(v.angle);
-  // shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
   ctx.fillRect(-12, -6, 28, 14);
-  // body
-  ctx.fillStyle = '#1a3048';
-  roundRect(-14, -8, 30, 16, 3);
+  ctx.fillStyle = "#1a3858";
+  roundRect(-14, -8, 32, 16, 3);
   ctx.fill();
-  ctx.fillStyle = '#6ee7ff';
-  ctx.fillRect(8, -6, 6, 12);
-  ctx.fillStyle = '#0a1828';
+  ctx.fillStyle = "#4ec8f0";
+  ctx.fillRect(10, -6, 6, 12);
+  ctx.fillStyle = "#0a1828";
   ctx.fillRect(-8, -5, 12, 10);
-  // mithril mark
-  ctx.fillStyle = '#f0c14b';
+  ctx.fillStyle = "#f0c14b";
   ctx.beginPath();
   ctx.moveTo(-2, -3);
   ctx.lineTo(2, 0);
@@ -1508,28 +2004,26 @@ function drawVan(v) {
   ctx.closePath();
   ctx.fill();
   // headlights
-  if (v.speed > 10) {
-    ctx.fillStyle = 'rgba(255,255,200,0.5)';
+  if (v.speed > 8) {
+    ctx.fillStyle = "rgba(255,255,200,0.5)";
     ctx.beginPath();
-    ctx.moveTo(16, -4);
-    ctx.lineTo(40, -14);
-    ctx.lineTo(40, 14);
-    ctx.lineTo(16, 4);
+    ctx.moveTo(16, -5);
+    ctx.lineTo(48, -16);
+    ctx.lineTo(48, 16);
+    ctx.lineTo(16, 5);
     ctx.fill();
   }
   ctx.restore();
-
-  // label
-  ctx.fillStyle = '#6ee7ff';
-  ctx.font = '10px system-ui';
-  ctx.textAlign = 'center';
-  ctx.fillText('MITHRIL', v.x, v.y - 16);
+  ctx.fillStyle = "#4ec8f0";
+  ctx.font = "10px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText("MITHRIL", v.x, v.y - 16);
 }
 
 function drawMinimap(w, h) {
   const mw = 140, mh = 94, mx = w - mw - 12, my = h - mh - 12;
-  ctx.fillStyle = 'rgba(8,10,18,0.85)';
-  ctx.strokeStyle = '#2a3858';
+  ctx.fillStyle = "rgba(6,12,22,0.88)";
+  ctx.strokeStyle = "#2a5080";
   ctx.lineWidth = 1;
   ctx.fillRect(mx, my, mw, mh);
   ctx.strokeRect(mx, my, mw, mh);
@@ -1537,22 +2031,25 @@ function drawMinimap(w, h) {
   const sx = mw / WORLD.w, sy = mh / WORLD.h;
   for (const c of CLIENTS) {
     const s = state.sites[c.id];
-    ctx.fillStyle = s.waste > 40 ? '#ff5a6a' : s.waste < 18 ? '#3dd68c' : c.accent;
+    const inc = state.incidents.find(i => i.siteId === c.id);
+    ctx.fillStyle = inc ? "#ff5a6a" : s.waste > 40 ? "#ff5a6a" : s.waste < 18 ? "#3dd68c" : c.accent;
     ctx.fillRect(mx + c.x * sx, my + c.y * sy, Math.max(3, c.w * sx), Math.max(3, c.h * sy));
   }
-  ctx.fillStyle = '#6ee7ff';
+  ctx.fillStyle = "#4ec8f0";
   ctx.beginPath();
   ctx.arc(mx + state.van.x * sx, my + state.van.y * sy, 3, 0, Math.PI * 2);
   ctx.fill();
-
-  // camera rect
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
   ctx.strokeRect(
     mx + state.cam.x * sx,
     my + state.cam.y * sy,
     (canvas._cssW || w) * sx,
     (canvas._cssH || h) * sy
   );
+  ctx.fillStyle = "#5a7a9a";
+  ctx.font = "8px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText("click to warp", mx + mw / 2, my + mh - 4);
 }
 
 function roundRect(x, y, w, h, r) {
@@ -1565,7 +2062,7 @@ function roundRect(x, y, w, h, r) {
   ctx.closePath();
 }
 
-// ── Loop ──────────────────────────────────────────────────
+// ── Loop ──
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -1582,9 +2079,18 @@ function frame(now) {
 initSites();
 recomputeAll();
 renderScripts();
+renderShop();
 renderSheet();
 renderLog();
 resize();
+
+heroImg.onload = () => {
+  heroReady = true;
+  Object.keys(portraitCache).forEach(k => delete portraitCache[k]);
+  renderScripts();
+};
+if (heroImg.complete && heroImg.naturalWidth) heroReady = true;
+
 requestAnimationFrame(frame);
 state.running = false;
 </script>
