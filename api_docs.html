@@ -323,6 +323,11 @@
         <a href="#ping">GET /ping</a>
         <a href="#get_data">POST /get_data</a>
         <a href="#redact">POST /redact</a>
+        <div class="section-label">Market</div>
+        <a href="#datasets">GET /datasets</a>
+        <a href="#datasets_create">POST /datasets</a>
+        <a href="#datasets_match">POST /datasets/match</a>
+        <a href="#purchase">POST /purchase</a>
         <div class="section-label">Pricing</div>
         <a href="#pricing">Privacy, Per Query</a>
         <div class="section-label">Compliance</div>
@@ -340,7 +345,7 @@
 
     <div class="page-header">
         <h1>Acme Redactors API</h1>
-        <p>Public Records Management Platform &nbsp;&bull;&nbsp; v1.0</p>
+        <p>Data Market API &nbsp;&bull;&nbsp; FOIA cloaking on delivery &nbsp;&bull;&nbsp; v1.1</p>
         <p style="margin-top:10px"><a href="/">&#8592; Back to Console</a></p>
     </div>
 
@@ -413,7 +418,7 @@
             <span class="method post">POST</span>
             <span class="path">/get_data</span>
         </div>
-        <p>Request public records with AI-powered dataset matching and FOIA-compliant redaction via the Acme Redactors cloaking device. Privacy is configurable per query &mdash; see <a href="#pricing">Pricing</a>.</p>
+        <p>Request a dataset with AI-powered metadata matching. Matching never returns source URLs. If the listing has records, they are delivered through the cloaking device. Use <a href="#purchase">POST /purchase</a> to unlock a seller URL. Privacy is configurable per query &mdash; see <a href="#pricing">Pricing</a>.</p>
         <p><strong style="color:#e8f4ff">Authentication:</strong> Optional (JWT)</p>
         <h3>Request Body</h3>
         <pre>{
@@ -491,6 +496,123 @@
     "smart_redactions": "Acme Redactors cloaking device — Ex.6 names/addresses/DOB/phone, Ex.7(C) third-party names",
     "segregability": "Non-exempt fields preserved per § 552(b): case IDs, event dates, titles, pay grades, dispositions",
     "presumption": "Openness — withheld only where disclosure would harm a protected interest"
+  }
+}</pre>
+    </div>
+
+    <h2 id="market">Data Market</h2>
+    <p>Sellers list a pointer (metadata + private URL). Buyers browse or request in plain English. Smart matching ranks listings against metadata only. After a demo purchase, the API returns the source URL, records through the cloaking device, or both.</p>
+
+    <div class="endpoint" id="datasets">
+        <div class="endpoint-title">
+            <span class="method get">GET</span>
+            <span class="path">/datasets</span>
+        </div>
+        <p>Browse the catalog. Response contains metadata only &mdash; never source URLs. <code>GET /datasets/&lt;id&gt;</code> returns one listing the same way.</p>
+        <h3>Response (200)</h3>
+        <pre>{
+  "status": "ok",
+  "count": 15,
+  "note": "Catalog metadata only. Source URLs are withheld until POST /purchase.",
+  "datasets": [
+    {
+      "id": "co-traffic-counts-2025",
+      "title": "Colorado Statewide Traffic Counts 2025",
+      "description": "Hourly and AADT traffic counts...",
+      "category": "transportation",
+      "keywords": ["traffic", "colorado", "2025"],
+      "geography": "Colorado",
+      "time_range": "2025",
+      "price_usd": 2.5,
+      "delivery": "both",
+      "has_url": true,
+      "has_records": true
+    }
+  ]
+}</pre>
+    </div>
+
+    <div class="endpoint" id="datasets_create">
+        <div class="endpoint-title">
+            <span class="method post">POST</span>
+            <span class="path">/datasets</span>
+        </div>
+        <p>List a dataset pointer. The URL is stored privately and omitted from browse and match until purchase.</p>
+        <h3>Request Body</h3>
+        <pre>{
+  "title": "Colorado Statewide Traffic Counts 2025",
+  "description": "Hourly and AADT counts for Colorado highways in 2025",
+  "url": "https://example.com/co-traffic-2025.json",
+  "keywords": ["traffic", "colorado", "aadt"],
+  "geography": "Colorado",
+  "time_range": "2025",
+  "category": "transportation",
+  "price_usd": 2.50,
+  "delivery": "both"
+}</pre>
+        <p><code>delivery</code> is <code>url</code>, <code>redacted</code>, or <code>both</code> (default <code>both</code> when a URL is supplied).</p>
+        <h3>Response (201)</h3>
+        <pre>{
+  "status": "ok",
+  "message": "Listing created. The source URL is stored privately...",
+  "dataset": { "id": "colorado-statewide-traffic-a1b2c3d4", "has_url": true }
+}</pre>
+    </div>
+
+    <div class="endpoint" id="datasets_match">
+        <div class="endpoint-title">
+            <span class="method post">POST</span>
+            <span class="path">/datasets/match</span>
+        </div>
+        <p>Smart-match a natural-language request to catalog metadata (keyword overlap plus optional LLM re-rank). Source URLs are never returned.</p>
+        <h3>Request Body</h3>
+        <pre>{
+  "query": "traffic data for Colorado in 2025",
+  "top_k": 5
+}</pre>
+        <h3>Response (200)</h3>
+        <pre>{
+  "status": "ok",
+  "query": "traffic data for Colorado in 2025",
+  "matches": [
+    {
+      "id": "co-traffic-counts-2025",
+      "title": "Colorado Statewide Traffic Counts 2025",
+      "match_score": 1.0,
+      "match_reason": "Matched on Colorado; 2025; traffic.",
+      "has_url": true
+    }
+  ]
+}</pre>
+    </div>
+
+    <div class="endpoint" id="purchase">
+        <div class="endpoint-title">
+            <span class="method post">POST</span>
+            <span class="path">/purchase</span>
+        </div>
+        <p>Demo checkout. Omit <code>confirm</code> to receive a quote (still no URL). Send <code>confirm: true</code> to unlock the source URL and/or receive records through the cloaking device. You may pass <code>dataset_id</code> or a <code>query</code> (best metadata match is purchased).</p>
+        <h3>Request Body</h3>
+        <pre>{
+  "dataset_id": "co-traffic-counts-2025",
+  "privacy_level": "standard",
+  "confirm": true
+}</pre>
+        <h3>Response (200) &mdash; quote</h3>
+        <pre>{
+  "status": "quote",
+  "dataset": { "id": "co-traffic-counts-2025", "title": "..." },
+  "pricing": { "dataset_price_usd": 2.5, "total_price_usd": 2.75 },
+  "message": "Demo payment not confirmed. Resend with confirm: true..."
+}</pre>
+        <h3>Response (200) &mdash; paid (demo)</h3>
+        <pre>{
+  "status": "success",
+  "access": {
+    "delivery": "both",
+    "source_url": "https://datasets.acmeredactors.example/co-traffic-counts-2025.json",
+    "data": { "...": "cloaked records" },
+    "original_data": { "...": "synthetic original" }
   }
 }</pre>
     </div>

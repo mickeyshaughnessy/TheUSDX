@@ -8,3 +8,4 @@ config.py
 venv/
 .DS_Store
 *.log
+.catalog_listings.json

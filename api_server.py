@@ -13,6 +13,10 @@ from flask_cors import CORS
 
 import config
 from handlers import collect_data, redact_data, redact_text
+from catalog import (
+    all_listings, get_listing, add_listing, public_view,
+    match_listings, listing_records, safe_fetch_json,
+)
 
 # In-memory TTL cache
 _cache: dict = {}
@@ -162,7 +166,8 @@ def ping():
     return jsonify({
         'status': 'ok',
         'timestamp': datetime.utcnow().isoformat(),
-        'service': 'Acme Redactors'
+        'service': 'Acme Redactors',
+        'product': 'data-market-api',
     }), 200
 
 @app.route('/signup', methods=['POST'])
@@ -247,20 +252,23 @@ def get_data():
         return jsonify(cached_result), 200
 
     try:
-        collected_data = collect_data(description)
+        matches = match_listings(description, top_k=3)
+        collected_data = collect_data(description, matches=matches)
         redacted_data = redact_data(collected_data, privacy_level=privacy_level)
 
         processing_time = time.time() - start_time
 
         result = {
             'status': 'success',
+            'matches': matches,
             'original_data': collected_data,
             'data': redacted_data,
             'metadata': {
                 'processing_time_seconds': round(processing_time, 2),
                 'records_returned': len(redacted_data) if isinstance(redacted_data, list) else 1,
                 'privacy_applied': True,
-                'cached': False
+                'cached': False,
+                'source_urls_withheld': True,
             },
             'pricing': _price_for(privacy_level),
             'foia_compliance': {
@@ -328,6 +336,165 @@ def redact():
         }), 200
     except Exception as e:
         return jsonify({'error': 'Redaction failed', 'details': str(e)}), 500
+
+@app.route('/datasets', methods=['GET'])
+def datasets_list():
+    items = [public_view(x) for x in all_listings()]
+    items.sort(key=lambda x: ((x.get('category') or ''), (x.get('title') or '')))
+    return jsonify({
+        'status': 'ok',
+        'datasets': items,
+        'count': len(items),
+        'note': 'Catalog metadata only. Source URLs are withheld until POST /purchase.',
+    }), 200
+
+
+@app.route('/datasets/<dataset_id>', methods=['GET'])
+def datasets_get(dataset_id):
+    listing = get_listing(dataset_id)
+    if not listing:
+        return jsonify({'error': 'Dataset not found'}), 404
+    return jsonify({
+        'status': 'ok',
+        'dataset': public_view(listing),
+        'note': 'Source URL withheld until POST /purchase.',
+    }), 200
+
+
+@app.route('/datasets', methods=['POST'])
+def datasets_create():
+    payload = request.get_json(silent=True) or {}
+    try:
+        listing = add_listing(payload)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': 'Failed to create listing', 'details': str(e)}), 500
+    return jsonify({
+        'status': 'ok',
+        'message': 'Listing created. The source URL is stored privately and omitted from browse and match until purchase.',
+        'dataset': public_view(listing),
+    }), 201
+
+
+@app.route('/datasets/match', methods=['POST'])
+def datasets_match():
+    payload = request.get_json(silent=True) or {}
+    query = (payload.get('query') or payload.get('description') or '').strip()
+    if not query:
+        return jsonify({'error': 'query required'}), 400
+    try:
+        top_k = int(payload.get('top_k') or 5)
+    except (TypeError, ValueError):
+        top_k = 5
+    top_k = max(1, min(top_k, 20))
+    matches = match_listings(query, top_k=top_k)
+    return jsonify({
+        'status': 'ok',
+        'query': query,
+        'matches': matches,
+        'count': len(matches),
+        'note': 'Ranked by metadata match. Source URLs withheld until POST /purchase.',
+    }), 200
+
+
+def _quote_for(listing: dict, privacy_level: str) -> dict:
+    privacy = _price_for(privacy_level)
+    dataset_price = float(listing.get('price_usd') or 0)
+    return {
+        'dataset_price_usd': dataset_price,
+        'privacy_level': privacy['privacy_level'],
+        'tier_label': privacy['tier_label'],
+        'base_query_usd': privacy['base_price_usd'],
+        'privacy_addon_usd': privacy['privacy_addon_usd'],
+        'total_price_usd': round(dataset_price + privacy['total_price_usd'], 2),
+        'description': privacy['description'],
+        'billing_note': privacy['billing_note'],
+    }
+
+
+@app.route('/purchase', methods=['POST'])
+def purchase():
+    """
+    Demo checkout. Without confirm=true, returns a quote and matched metadata
+    (no URL). With confirm=true, unlocks the source URL and/or returns records
+    through the cloaking device.
+    """
+    start_time = time.time()
+    payload = request.get_json(silent=True) or {}
+    privacy_level = payload.get('privacy_level', 'standard')
+    if privacy_level not in PRIVACY_TIERS:
+        return jsonify({'error': f'Invalid privacy_level. Choose one of: {", ".join(PRIVACY_TIERS)}'}), 400
+
+    dataset_id = (payload.get('dataset_id') or '').strip()
+    query = (payload.get('query') or payload.get('description') or '').strip()
+    confirm = bool(payload.get('confirm') or payload.get('paid'))
+
+    match_meta = None
+    listing = get_listing(dataset_id) if dataset_id else None
+    if listing is None and query:
+        matches = match_listings(query, top_k=1)
+        if matches:
+            match_meta = matches[0]
+            listing = get_listing(match_meta['id'])
+    if listing is None:
+        return jsonify({'error': 'No matching dataset. Browse GET /datasets or pass dataset_id.'}), 404
+
+    quote = _quote_for(listing, privacy_level)
+    public = public_view(listing)
+    if not confirm:
+        return jsonify({
+            'status': 'quote',
+            'dataset': public,
+            'match': match_meta,
+            'pricing': quote,
+            'message': 'Demo payment not confirmed. Resend with confirm: true to unlock the source URL and/or redacted records.',
+        }), 200
+
+    delivery = listing.get('delivery') or 'url'
+    source_url = listing.get('url')
+    access = {
+        'delivery': delivery,
+        'source_url': None,
+        'data': None,
+        'original_data': None,
+        'fetch_note': None,
+    }
+    if delivery in ('url', 'both') and source_url:
+        access['source_url'] = source_url
+
+    records = listing_records(listing)
+    if records is None and delivery in ('redacted', 'both') and source_url:
+        records, fetch_err = safe_fetch_json(source_url)
+        if fetch_err:
+            access['fetch_note'] = f'Could not ingest URL for redaction ({fetch_err}). Source URL is still returned if purchased.'
+
+    if records is not None and delivery in ('redacted', 'both'):
+        try:
+            access['original_data'] = records
+            access['data'] = redact_data(records, privacy_level=privacy_level)
+        except Exception as e:
+            access['fetch_note'] = f'Redaction failed: {e}'
+
+    return jsonify({
+        'status': 'success',
+        'dataset': public,
+        'match': match_meta,
+        'access': access,
+        'pricing': quote,
+        'metadata': {
+            'processing_time_seconds': round(time.time() - start_time, 2),
+            'privacy_applied': access['data'] is not None,
+            'paid_demo': True,
+        },
+        'foia_compliance': {
+            'statute': '5 U.S.C. § 552 (Freedom of Information Act) — applied when records are delivered through the cloaking device',
+            'blind_redactions': '[b(Ex.N)] markers — Ex.1 classified info, Ex.3 statutorily protected (SSNs, program identifiers), Ex.7(F) life/safety',
+            'smart_redactions': 'Realistic substitutes — Ex.6 personal privacy (names, addresses, DOB, phone), Ex.7(C) third-party names in law enforcement records',
+            'note': 'Same cloaking device is used for FOIA releases and for any other dataset delivered as records.',
+        },
+    }), 200
+
 
 @app.route('/')
 def index():

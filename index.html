@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acme Redactors — Public Records Management Platform</title>
+    <title>Acme Redactors — Data Market API</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -149,6 +149,8 @@
 
         input[type="email"],
         input[type="password"],
+        input[type="text"],
+        input[type="url"],
         textarea {
             width: 100%;
             padding: 10px 12px;
@@ -371,16 +373,17 @@
             overflow: hidden;
             border: 1px solid rgba(0, 180, 220, 0.3);
             box-shadow: 0 0 40px rgba(0, 100, 180, 0.2);
-            background: #040c1c;
-            aspect-ratio: 832 / 464;
+            background: #040c1c url('/assets/welcome-poster.jpg') center/cover no-repeat;
+            aspect-ratio: 16 / 9;
             cursor: pointer;
         }
         .hero-video video {
+            position: absolute;
+            inset: 0;
             display: block;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            vertical-align: middle;
         }
         .hero-video-caption {
             position: absolute;
@@ -400,6 +403,56 @@
             text-transform: uppercase;
             margin-bottom: 4px;
         }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 18px 0;
+        }
+        .split .feature { margin: 0; }
+        @media (max-width: 768px) {
+            .split { grid-template-columns: 1fr; }
+        }
+
+        .dataset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            margin: 14px 0;
+        }
+        .dataset-card {
+            padding: 14px 16px;
+            background: rgba(0, 30, 60, 0.5);
+            border: 1px solid rgba(0, 180, 220, 0.12);
+            border-radius: 2px;
+            font-size: 0.85em;
+            color: #7a9ab8;
+        }
+        .dataset-card h3 { color: #e8f4ff; font-size: 0.95em; margin-bottom: 4px; }
+        .dataset-card .meta {
+            font-size: 0.78em;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #4a7fa5;
+            margin-bottom: 8px;
+        }
+        .dataset-card .locked {
+            font-size: 0.78em;
+            color: #c8a840;
+            margin: 8px 0 10px;
+        }
+        .dataset-card .score { color: #56d9a0; font-size: 0.78em; }
+        .url-reveal {
+            font-family: 'SF Mono', 'Fira Mono', monospace;
+            font-size: 0.78em;
+            color: #56d9a0;
+            word-break: break-all;
+            background: rgba(22, 163, 74, 0.08);
+            border: 1px solid rgba(22, 163, 74, 0.25);
+            padding: 8px 10px;
+            margin: 8px 0;
+        }
     </style>
 </head>
 <body style="padding-top: 64px;">
@@ -412,31 +465,50 @@
 
     <div class="hero-video" title="Click to replay" role="button" tabindex="0"
          aria-label="Replay welcome video">
-        <video autoplay muted playsinline preload="auto"
-               aria-label="Welcome to Acme Redactors — FOIA-compliant public records with AI cloaking">
+        <video id="welcome-video" autoplay muted loop playsinline preload="auto"
+               poster="/assets/welcome-poster.jpg"
+               aria-label="Acme Redactors — a data market with privacy-preserving delivery">
             <source src="/assets/welcome.mp4" type="video/mp4">
         </video>
         <div class="hero-video-caption">
-            <strong>Welcome to Acme Redactors</strong>
-            Query public records in plain English. AI matches the dataset and cloaks
-            identities before results reach you — privacy dialed per query.
+            <strong>A market for any dataset</strong>
+            Sellers list a pointer. Buyers describe what they need. Source links stay
+            hidden until payment &mdash; then URL, cloaked records, or both.
         </div>
     </div>
 
     <div class="wordmark">
         <h1>Acme Redactors</h1>
-        <span class="badge">FOIA Compliant</span>
+        <span class="badge">Data Market API</span>
     </div>
-    <div class="tagline">Public Records Management Platform</div>
+    <div class="tagline">Buy and sell datasets &bull; Deliver through the cloaking device</div>
 
-    <p>Acme Redactors is a FOIA-compliant public records management platform for
-    individual-level government records. Submit natural-language queries — our AI matches
-    the right dataset and applies redaction before returning results. Privacy is
-    configurable per query: choose the standard tier included with every request, or pay to
-    dial redaction up or down &mdash; see <a href="#pricing" style="color:#00b4d8">Pricing</a> below.</p>
+    <p>Acme Redactors is a <strong style="color:#c0d8ec">data market API</strong> for any
+    dataset &mdash; government, commercial, research, or municipal. Sellers publish a
+    pointer: metadata plus a private URL. Buyers browse the catalog (no source links) or
+    request data in plain English (&ldquo;traffic data for Colorado in 2025&rdquo;). Smart
+    matching ranks listings against metadata. After payment, the API returns the dataset
+    URL, the records themselves run through the cloaking device, or both.</p>
+    <p>FOIA-compliant public records are a first-class path on the same interface, not a
+    separate product. The cloaking device that makes a FOIA release segregable also
+    protects commercial and research data. Privacy is priced per query &mdash;
+    see <a href="#pricing" style="color:#00b4d8">Pricing</a> at the bottom of this page.</p>
+
+    <div class="split">
+        <div class="feature">
+            <h3>Buyers</h3>
+            Browse listings without source URLs, or describe what you need. Matching is
+            against metadata only. Pay to unlock the pointer and/or receive cloaked records.
+        </div>
+        <div class="feature">
+            <h3>Sellers</h3>
+            POST a title, description, keywords, geography, time range, price, and a URL.
+            The URL is stored privately and never appears in browse or match responses.
+        </div>
+    </div>
 
     <div class="mission">
-        <strong>Two-tier FOIA redaction (5 U.S.C. &sect; 552):</strong>
+        <strong>Two-tier FOIA redaction (5 U.S.C. &sect; 552) &mdash; also the default cloak for any records delivery:</strong>
         Classified, statutory, and operationally sensitive fields are
         <strong>blind-redacted</strong> with <code>[b(Ex.N)]</code> markers citing the
         applicable exemption &mdash; e.g. SSNs become <code>[b(Ex.3)]</code>,
@@ -450,64 +522,32 @@
     </div>
 
     <h2>The Cloaking Device</h2>
-    <p>At the core of Acme Redactors is the <strong>cloaking device</strong>: a layered
-    identity-masking engine that camouflages and protects the identities of both public
-    servants and US citizens appearing in public records. Rather than simply blacking out
-    sensitive fields, the cloaking device substitutes realistic cover identities &mdash;
-    different names, dates of birth, and contact details &mdash; ensuring that no individual
-    can be traced through released documents while preserving the structural integrity of
-    every record for legitimate oversight and research.</p>
-    <p>Acme Redactors ingests raw public records, classifies each field against
-    the applicable exemption schedule, and applies the two-tier scheme automatically:
-    blind <code>[b(Ex.N)]</code> markers for classified or statutorily protected values,
-    and realistic cover identities for personal privacy fields. Statutory exemptions are
-    always enforced; everything else is yours to dial up or down, per query.</p>
+    <p>At the core of delivery is the <strong>cloaking device</strong>: a layered
+    identity-masking engine. Rather than blacking out sensitive fields, it substitutes
+    realistic cover identities &mdash; different names, dates of birth, and contact details &mdash;
+    so no individual can be traced through released documents while the record stays
+    structurally useful. Built for FOIA; applied to any dataset you choose to deliver as
+    records instead of (or in addition to) a raw URL.</p>
+    <p>Statutory exemptions are always enforced on government records; everything else is
+    yours to dial up or down, per query. Commercial listings can use the same tiers.</p>
 
-    <h2 id="pricing">Pricing &mdash; Privacy, Per Query</h2>
-    <p style="font-size:.9em">Every query includes standard FOIA-compliant redaction at no
-    charge. You can pay to move the dial in either direction, per query: add privacy with
-    aggressive cloaking of indirect identifiers, or subtract discretionary privacy to see
-    personal identifiers in full (statutory exemptions like SSNs and classified markings are
-    never for sale &mdash; they're withheld at every tier).</p>
-    <div class="pricing-grid">
-        <div class="price-card reduced">
-            <div class="price-label">Reduced Privacy</div>
-            <div class="price-amount">$4.00 <small>/ query</small></div>
-            <p>Subtract privacy. Only statutory exemptions withheld &mdash; names, addresses,
-            phone numbers, and DOB released in full. For verified requesters.</p>
-        </div>
-        <div class="price-card standard">
-            <div class="price-label">Standard Privacy</div>
-            <div class="price-amount">Included</div>
-            <p>Two-tier FOIA redaction: statutory exemptions plus smart cloaking of personal
-            privacy fields. The default on every query.</p>
-        </div>
-        <div class="price-card aggressive">
-            <div class="price-label">Enhanced Privacy</div>
-            <div class="price-amount">$1.50 <small>/ query</small></div>
-            <p>Add privacy. Extends cloaking to indirect identifiers &mdash; locations, dates,
-            employers, relationships, and physical descriptions.</p>
-        </div>
-    </div>
-    <p style="font-size:.78em;color:#3a5a78">Pricing shown for demonstration purposes only; no payment is collected by this demo.</p>
-
-    <h2>Features</h2>
+    <h2>How the market works</h2>
     <div class="features">
         <div class="feature">
-            <h3>AI Dataset Matching</h3>
-            Describe records in plain English &mdash; AI selects the right dataset.
+            <h3>List a pointer</h3>
+            Metadata + URL. The link never appears in the public catalog.
         </div>
         <div class="feature">
-            <h3>Cloaking Device</h3>
-            PII replaced with realistic substitutes, not blacked out.
+            <h3>Browse or request</h3>
+            Catalog cards, or a sentence like &ldquo;traffic data for Colorado in 2025.&rdquo;
         </div>
         <div class="feature">
-            <h3>Privacy, Priced Per Query</h3>
-            Pay to add or subtract redaction on any individual query.
+            <h3>Smart matching</h3>
+            Keyword overlap plus LLM re-rank against metadata only.
         </div>
         <div class="feature">
-            <h3>Open Access</h3>
-            Try the demo freely; register for API key access.
+            <h3>Pay, then receive</h3>
+            Unlock the URL, cloaked records, or both.
         </div>
     </div>
 
@@ -515,12 +555,59 @@
 
     <div id="demo-section">
 
-        <div style="display:flex;gap:0;margin-bottom:-1px;position:relative;z-index:1">
-            <button id="tab-query" onclick="switchTab('query')" class="tab-btn tab-active">Query Datasets</button>
+        <div style="display:flex;gap:0;margin-bottom:-1px;position:relative;z-index:1;flex-wrap:wrap">
+            <button id="tab-market" onclick="switchTab('market')" class="tab-btn tab-active">Browse &amp; Request</button>
+            <button id="tab-sell" onclick="switchTab('sell')" class="tab-btn">List a Dataset</button>
+            <button id="tab-query" onclick="switchTab('query')" class="tab-btn">FOIA Query</button>
             <button id="tab-paste" onclick="switchTab('paste')" class="tab-btn">Paste &amp; Redact</button>
         </div>
 
-        <div id="mode-query" class="panel" style="border-radius:0 2px 2px 2px">
+        <div id="mode-market" class="panel" style="border-radius:0 2px 2px 2px">
+            <h3>Catalog</h3>
+            <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
+                Browse listings or describe what you need. Source URLs are withheld until you
+                confirm a demo purchase. Demo datasets are synthetic.
+            </p>
+            <div style="background:rgba(200,160,20,0.1);border:1px solid rgba(200,160,20,0.35);border-radius:2px;padding:8px 12px;margin-bottom:12px;font-size:.8em;color:#c8a840;letter-spacing:0.04em">
+                &#9888; <strong>All demo datasets are AI-generated synthetic records.</strong>
+                They are not real government or commercial data and are not derived from any actual release.
+            </div>
+            <textarea id="market-query" rows="2"
+                placeholder="e.g. traffic data for Colorado in 2025"></textarea>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
+                <button onclick="doMatch()" class="btn">Match request</button>
+                <button onclick="loadCatalog()" class="btn btn-secondary">Browse catalog</button>
+            </div>
+            <p id="market-status" class="status-msg info"></p>
+            <div id="catalog-grid" class="dataset-grid"></div>
+        </div>
+
+        <div id="mode-sell" class="panel" style="display:none;border-radius:0 2px 2px 2px">
+            <h3>List a pointer</h3>
+            <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
+                Publish metadata and a source URL. The URL is stored privately and omitted from
+                browse and match until a buyer purchases.
+            </p>
+            <div class="form-grid">
+                <input id="sell-title" type="text" placeholder="Title (required)">
+                <textarea id="sell-description" rows="3" placeholder="Description (required)"></textarea>
+                <input id="sell-url" type="url" placeholder="Source URL (private until purchase)">
+                <input id="sell-keywords" type="text" placeholder="Keywords, comma-separated">
+                <input id="sell-geography" type="text" placeholder="Geography (e.g. Colorado)">
+                <input id="sell-time" type="text" placeholder="Time range (e.g. 2025)">
+                <input id="sell-category" type="text" placeholder="Category (e.g. transportation)">
+                <input id="sell-price" type="text" placeholder="Price USD (e.g. 2.50)">
+                <select id="sell-delivery">
+                    <option value="both">Delivery: URL and cloaked records</option>
+                    <option value="url">Delivery: URL only</option>
+                    <option value="redacted">Delivery: cloaked records only</option>
+                </select>
+                <button onclick="doListDataset()" class="btn">Publish listing</button>
+            </div>
+            <p id="sell-status" class="status-msg info"></p>
+        </div>
+
+        <div id="mode-query" class="panel" style="display:none;border-radius:0 2px 2px 2px">
             <h3>Demo Queries</h3>
             <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
                 Choose a dataset to load a sample query and run it.
@@ -640,11 +727,11 @@
         <div id="result-area" style="display:none;margin-top:12px">
             <div class="results-grid">
                 <div>
-                    <h3>Raw Record (unredacted)</h3>
+                    <h3>Original / source</h3>
                     <pre id="result-original" class="code-block"></pre>
                 </div>
                 <div>
-                    <h3 class="redacted">FOIA-Processed Release</h3>
+                    <h3 class="redacted">Cloaked release / unlocked URL</h3>
                     <pre id="result-json" class="code-block"></pre>
                 </div>
             </div>
@@ -687,6 +774,41 @@
         <a href="/api_docs.html" class="btn">API Documentation</a>
     </div>
 
+    <h2 id="pricing">Pricing</h2>
+    <p style="font-size:.9em">Listing a pointer is free in this demo. Buyers pay the listing
+    price plus a per-query privacy add-on. Every records delivery includes standard
+    FOIA-style cloaking at no extra charge. You can pay to move the dial: add privacy with
+    aggressive cloaking of indirect identifiers, or subtract discretionary privacy to see
+    personal identifiers in full (statutory exemptions like SSNs and classified markings are
+    never for sale &mdash; they're withheld at every tier).</p>
+    <div class="pricing-grid">
+        <div class="price-card standard">
+            <div class="price-label">Base query + listing</div>
+            <div class="price-amount">$0.25 <small>+ seller price</small></div>
+            <p>Catalog match and delivery. Seller price is listed on each dataset
+            (demo FOIA sets are $0.25).</p>
+        </div>
+        <div class="price-card reduced">
+            <div class="price-label">Reduced Privacy</div>
+            <div class="price-amount">+$4.00 <small>/ query</small></div>
+            <p>Subtract privacy. Only statutory exemptions withheld &mdash; names, addresses,
+            phone numbers, and DOB released in full. For verified requesters.</p>
+        </div>
+        <div class="price-card standard">
+            <div class="price-label">Standard Privacy</div>
+            <div class="price-amount">Included</div>
+            <p>Two-tier cloaking: statutory exemptions plus smart substitutes for personal
+            privacy fields. The default on every records delivery.</p>
+        </div>
+        <div class="price-card aggressive">
+            <div class="price-label">Enhanced Privacy</div>
+            <div class="price-amount">+$1.50 <small>/ query</small></div>
+            <p>Add privacy. Extends cloaking to indirect identifiers &mdash; locations, dates,
+            employers, relationships, and physical descriptions.</p>
+        </div>
+    </div>
+    <p style="font-size:.78em;color:#3a5a78">Pricing shown for demonstration purposes only; no payment is collected by this demo. Confirming a purchase in the UI sets <code>confirm: true</code> and unlocks the source URL.</p>
+
     <div class="contact-block">
         <h3>Contact</h3>
         <p><strong>Project Lead:</strong> Michael Shaughnessy</p>
@@ -701,9 +823,13 @@
         const wrap = document.querySelector('.hero-video');
         const video = wrap && wrap.querySelector('video');
         if (!wrap || !video) return;
+        function tryPlay() {
+            const p = video.play();
+            if (p && p.catch) p.catch(function () {});
+        }
         function replay() {
             video.currentTime = 0;
-            video.play();
+            tryPlay();
         }
         wrap.addEventListener('click', replay);
         wrap.addEventListener('keydown', function (e) {
@@ -712,6 +838,11 @@
                 replay();
             }
         });
+        video.addEventListener('loadeddata', tryPlay);
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) tryPlay();
+        });
+        tryPlay();
     })();
 
     const API = window.location.origin;
@@ -725,7 +856,8 @@
     function formatPricing(pricing) {
         if (!pricing) return '';
         const addon = pricing.privacy_addon_usd > 0 ? ` (+$${pricing.privacy_addon_usd.toFixed(2)} ${pricing.tier_label})` : ` (${pricing.tier_label}, included)`;
-        return `Price: $${pricing.total_price_usd.toFixed(2)}${addon}`;
+        const listing = pricing.dataset_price_usd ? ` listing $${Number(pricing.dataset_price_usd).toFixed(2)}` : '';
+        return `Price: $${Number(pricing.total_price_usd).toFixed(2)}${addon}${listing}`;
     }
 
     const DEMO_QUERIES = {
@@ -744,12 +876,142 @@
     };
 
     function switchTab(tab) {
-        const isQuery = tab === 'query';
-        document.getElementById('mode-query').style.display = isQuery ? 'block' : 'none';
-        document.getElementById('mode-paste').style.display = isQuery ? 'none' : 'block';
-        document.getElementById('tab-query').className = 'tab-btn' + (isQuery ? ' tab-active' : '');
-        document.getElementById('tab-paste').className = 'tab-btn' + (!isQuery ? ' tab-active' : '');
+        const tabs = ['market', 'sell', 'query', 'paste'];
+        tabs.forEach(function (name) {
+            const panel = document.getElementById('mode-' + name);
+            const btn = document.getElementById('tab-' + name);
+            if (panel) panel.style.display = name === tab ? 'block' : 'none';
+            if (btn) btn.className = 'tab-btn' + (name === tab ? ' tab-active' : '');
+        });
+        if (tab === 'market' && !document.getElementById('catalog-grid').dataset.loaded) {
+            loadCatalog();
+        }
     }
+
+    function datasetCard(ds, opts) {
+        opts = opts || {};
+        const score = ds.match_score != null ? `<div class="score">Match ${Math.round(ds.match_score * 100)}%${ds.match_reason ? ' — ' + esc(ds.match_reason) : ''}</div>` : '';
+        const price = `$${(ds.price_usd || 0).toFixed(2)}`;
+        const geo = [ds.geography, ds.time_range].filter(Boolean).join(' · ');
+        const delivery = ds.delivery || 'url';
+        const locked = ds.source_url
+            ? `<div class="url-reveal">Unlocked URL: ${esc(ds.source_url)}</div>`
+            : `<div class="locked">Source URL withheld until purchase</div>`;
+        return `<div class="dataset-card">
+            <h3>${esc(ds.title || ds.id)}</h3>
+            <div class="meta">${esc(ds.category || 'general')} · ${esc(delivery)} · ${esc(price)}${geo ? ' · ' + esc(geo) : ''}</div>
+            ${score}
+            <p>${esc(ds.description || '')}</p>
+            ${locked}
+            <button class="btn" onclick='doPurchase(${JSON.stringify(ds.id)})'>Purchase (demo)</button>
+        </div>`;
+    }
+
+    async function loadCatalog() {
+        const grid = document.getElementById('catalog-grid');
+        const status = document.getElementById('market-status');
+        status.textContent = 'Loading catalog…';
+        try {
+            const res = await fetch(`${API}/datasets`);
+            const d = await res.json();
+            if (!res.ok) { status.textContent = d.error || 'Failed to load catalog.'; return; }
+            const items = d.datasets || [];
+            grid.innerHTML = items.map(ds => datasetCard(ds)).join('') || '<p class="status-msg">No listings yet.</p>';
+            grid.dataset.loaded = '1';
+            status.textContent = `${items.length} listings. Source URLs withheld.`;
+        } catch (e) { status.textContent = 'Error: ' + e.message; }
+    }
+
+    async function doMatch() {
+        const query = document.getElementById('market-query').value.trim();
+        const grid = document.getElementById('catalog-grid');
+        const status = document.getElementById('market-status');
+        if (!query) { status.textContent = 'Describe the dataset you want.'; return; }
+        status.textContent = 'Matching against catalog metadata…';
+        try {
+            const res = await fetch(`${API}/datasets/match`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, top_k: 5 })
+            });
+            const d = await res.json();
+            if (!res.ok) { status.textContent = d.error || 'Match failed.'; return; }
+            const items = d.matches || [];
+            grid.innerHTML = items.map(ds => datasetCard(ds)).join('') || '<p class="status-msg">No metadata match.</p>';
+            status.textContent = items.length ? `${items.length} match(es). URLs still withheld.` : 'No metadata match.';
+        } catch (e) { status.textContent = 'Error: ' + e.message; }
+    }
+
+    async function doPurchase(datasetId) {
+        const status = document.getElementById('market-status');
+        const privacy_level = getPrivacyLevel('query-privacy-level');
+        status.textContent = 'Confirming demo purchase…';
+        document.getElementById('result-area').style.display = 'none';
+        try {
+            const res = await fetch(`${API}/purchase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dataset_id: datasetId, confirm: true, privacy_level })
+            });
+            const d = await res.json();
+            if (!res.ok) { status.textContent = d.error || 'Purchase failed.'; return; }
+            const access = d.access || {};
+            const urlBit = access.source_url ? `URL: ${access.source_url}` : 'No source URL on this listing';
+            status.textContent = `Purchased ${d.dataset && d.dataset.title ? d.dataset.title : datasetId}. ${urlBit}. ${formatPricing(d.pricing)}`;
+            if (access.data != null) {
+                document.getElementById('result-area').style.display = 'block';
+                const original = access.original_data;
+                document.getElementById('result-original').textContent = original == null ? '(records delivered redacted only)' : JSON.stringify(original, null, 2);
+                document.getElementById('result-json').innerHTML = colorizeRedacted(access.data, original || access.data);
+                const m = d.metadata || {};
+                document.getElementById('result-meta').textContent =
+                    `Paid demo · Processing: ${m.processing_time_seconds ?? '?'}s | ${formatPricing(d.pricing)}`;
+                document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+            } else if (access.source_url) {
+                document.getElementById('result-area').style.display = 'block';
+                document.getElementById('result-original').textContent = 'Source URL withheld until this purchase.';
+                document.getElementById('result-json').textContent = access.source_url;
+                document.getElementById('result-meta').textContent = formatPricing(d.pricing);
+                document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+            }
+        } catch (e) { status.textContent = 'Error: ' + e.message; }
+    }
+
+    async function doListDataset() {
+        const status = document.getElementById('sell-status');
+        const payload = {
+            title: document.getElementById('sell-title').value.trim(),
+            description: document.getElementById('sell-description').value.trim(),
+            url: document.getElementById('sell-url').value.trim(),
+            keywords: document.getElementById('sell-keywords').value.trim(),
+            geography: document.getElementById('sell-geography').value.trim(),
+            time_range: document.getElementById('sell-time').value.trim(),
+            category: document.getElementById('sell-category').value.trim(),
+            price_usd: document.getElementById('sell-price').value.trim() || 0,
+            delivery: document.getElementById('sell-delivery').value
+        };
+        if (!payload.title || !payload.description) {
+            status.textContent = 'Title and description are required.';
+            return;
+        }
+        status.textContent = 'Publishing listing…';
+        try {
+            const res = await fetch(`${API}/datasets`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const d = await res.json();
+            if (!res.ok) { status.textContent = d.error || 'Listing failed.'; return; }
+            status.className = 'status-msg info';
+            status.textContent = `Listed “${d.dataset.title}” (${d.dataset.id}). URL is stored privately.`;
+            document.getElementById('catalog-grid').dataset.loaded = '';
+        } catch (e) { status.textContent = 'Error: ' + e.message; }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadCatalog();
+    });
 
     function handleDemoClick(demoType) {
         if (!demoType) return;

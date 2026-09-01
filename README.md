@@ -1,6 +1,6 @@
 # Acme Redactors
 
-A public records management platform for accessing US government records, with AI-powered differential privacy and automatic redaction of sensitive personal information. Privacy is configurable per query — pay to add extra cloaking, or pay to reduce redaction for verified access to identified records.
+A data market API for buying and selling any dataset (government, commercial, research, municipal), with AI metadata matching and optional delivery through the Acme Redactors cloaking device. FOIA-compliant public records are a first-class path on the same interface. Privacy is configurable per query — pay to add extra cloaking, or pay to reduce redaction for verified access to identified records.
 
 **Live at: https://themithrilcompany.com**
 
@@ -76,8 +76,16 @@ The server will start on `http://localhost:6732`
 ### Core Endpoints
 
 - **GET /ping**: Health check (no auth required)
-- **POST /get_data**: Request public records with privacy protection (optional auth); accepts `privacy_level`
+- **POST /get_data**: Match a request and return cloaked records (optional auth); accepts `privacy_level`. Does not return seller URLs.
 - **POST /redact**: Redact a pasted record (JSON or text) at a chosen privacy tier
+
+### Data Market
+
+- **GET /datasets**: Browse catalog metadata (source URLs withheld)
+- **GET /datasets/&lt;id&gt;**: One listing, metadata only
+- **POST /datasets**: List a pointer (metadata + private URL)
+- **POST /datasets/match**: Smart-match a query such as `traffic data for Colorado in 2025` against metadata
+- **POST /purchase**: Demo checkout. Without `confirm`, returns a quote. With `confirm: true`, unlocks the source URL and/or returns records through the cloaking device.
 
 ### Web Interface
 

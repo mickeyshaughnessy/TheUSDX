@@ -263,6 +263,75 @@ def test_foia_compliance_block(token):
         return False
 
 
+def test_datasets_browse_hides_urls():
+    print_test('GET /datasets — catalog metadata, no source URLs')
+    try:
+        response = requests.get(f'{BASE_URL}/datasets')
+        assert response.status_code == 200, f'Expected 200, got {response.status_code}'
+        data = response.json()
+        assert data.get('datasets'), 'Empty catalog'
+        for ds in data['datasets']:
+            assert 'url' not in ds, f"url leaked for {ds.get('id')}"
+            assert 'seller_email' not in ds
+        print_success(f"{data.get('count')} listings, no URLs in browse")
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+
+def test_match_colorado_traffic():
+    print_test('POST /datasets/match — traffic data for Colorado in 2025')
+    try:
+        response = requests.post(f'{BASE_URL}/datasets/match', json={
+            'query': 'traffic data for Colorado in 2025',
+            'top_k': 3,
+        })
+        assert response.status_code == 200, f'Expected 200, got {response.status_code}'
+        data = response.json()
+        matches = data.get('matches') or []
+        assert matches, 'No matches'
+        assert matches[0]['id'] == 'co-traffic-counts-2025', f"Got {matches[0].get('id')}"
+        for m in matches:
+            assert 'url' not in m, 'url leaked in match results'
+        print_success(f"Top match {matches[0]['id']} score={matches[0].get('match_score')}")
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+
+def test_purchase_quote_then_unlock():
+    print_test('POST /purchase — quote withholds URL; confirm unlocks it')
+    try:
+        quote = requests.post(f'{BASE_URL}/purchase', json={
+            'dataset_id': 'co-traffic-counts-2025',
+            'privacy_level': 'standard',
+        })
+        assert quote.status_code == 200, f'Quote expected 200, got {quote.status_code}'
+        q = quote.json()
+        assert q.get('status') == 'quote', f"Expected quote, got {q.get('status')}"
+        assert 'url' not in (q.get('dataset') or {})
+        assert not (q.get('access') or {}).get('source_url')
+
+        paid = requests.post(f'{BASE_URL}/purchase', json={
+            'dataset_id': 'co-traffic-counts-2025',
+            'privacy_level': 'standard',
+            'confirm': True,
+        })
+        assert paid.status_code == 200, f'Purchase expected 200, got {paid.status_code}'
+        p = paid.json()
+        assert p.get('status') == 'success'
+        access = p.get('access') or {}
+        assert access.get('source_url'), 'Expected source_url after confirm'
+        assert access.get('data') is not None, 'Expected cloaked records for delivery=both'
+        print_success(f"Unlocked {access['source_url']}")
+        return True
+    except Exception as e:
+        print_error(f'Failed: {e}')
+        return False
+
+
 def test_redaction_module_import():
     print_test('Redaction module: import and configuration')
     try:
@@ -377,6 +446,9 @@ def main():
     
     results.append(test_get_data_unauthenticated())
     results.append(test_invalid_login())
+    results.append(test_datasets_browse_hides_urls())
+    results.append(test_match_colorado_traffic())
+    results.append(test_purchase_quote_then_unlock())
     
     # Redaction tests
     print('\n' + '-' * 60)
