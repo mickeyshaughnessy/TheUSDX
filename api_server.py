@@ -509,7 +509,10 @@ def deck():
     return send_from_directory('.', 'deck.html')
 
 @app.route('/assets/<path:filename>')
+@app.route('/media/<path:filename>')
 def assets(filename):
+    # /media/* is the production path: nginx on themithrilcompany.com maps
+    # /assets/ to HoneyDew, so homepage/deck video would 404 at /assets/.
     return send_from_directory('assets', filename)
 
 @app.route('/eagle.html')
