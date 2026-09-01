@@ -18,45 +18,81 @@ def get_s3_client():
         aws_secret_access_key=config.DO_SPACES_SECRET
     )
 
+# Live free OpenRouter IDs as of 2026-09. Retired IDs (google/gemini-flash-1.5,
+# google/gemini-2.0-flash-001:free) 404 with "No endpoints found".
+_FREE_OPENROUTER_MODELS = (
+    'minimax/minimax-m2.7:free',
+    'openrouter/free',
+    'nvidia/nemotron-3.5-lightning:free',
+    'google/gemma-4-31b-it:free',
+)
+
+
+def _openrouter_model_chain(prefer_fallback=False):
+    primary = getattr(config, 'OPENROUTER_MODEL', None)
+    fallback = getattr(config, 'OPENROUTER_FALLBACK_MODEL', None)
+    ordered = [fallback, primary] if prefer_fallback else [primary, fallback]
+    ordered.extend(_FREE_OPENROUTER_MODELS)
+    seen = set()
+    chain = []
+    for model in ordered:
+        if model and model not in seen:
+            seen.add(model)
+            chain.append(model)
+    return chain
+
+
 def call_openrouter(prompt, system_message="You are a helpful assistant.", use_fallback=False):
-    """Make a completion call to OpenRouter API with free-model primary and paid fallback."""
+    """Make a completion call to OpenRouter, walking a free-model chain on 402/404/429."""
     if not config.OPENROUTER_API_KEY:
         raise ValueError("OPENROUTER_API_KEY not configured")
 
-    model = config.OPENROUTER_FALLBACK_MODEL if use_fallback else config.OPENROUTER_MODEL
+    last_error = None
+    for model in _openrouter_model_chain(prefer_fallback=use_fallback):
+        try:
+            response = requests.post(
+                url=config.OPENROUTER_API_URL,
+                headers={
+                    "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://themithrilcompany.com",
+                    "X-Title": "Acme Redactors"
+                },
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": config.LLM_TEMPERATURE,
+                    "max_tokens": config.LLM_MAX_TOKENS
+                },
+                timeout=45
+            )
+        except Exception as e:
+            last_error = f'{model}: {e}'
+            print(f"[LLM] {last_error}")
+            continue
 
-    response = requests.post(
-        url=config.OPENROUTER_API_URL,
-        headers={
-            "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://143.110.131.237:6732",
-            "X-Title": "Acme Redactors"
-        },
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": config.LLM_TEMPERATURE,
-            "max_tokens": config.LLM_MAX_TOKENS
-        },
-        timeout=30
-    )
+        if response.status_code == 200:
+            result = response.json()
+            choices = result.get('choices') or []
+            if choices and choices[0].get('message', {}).get('content'):
+                used = result.get('model') or model
+                if used != model:
+                    print(f"[LLM] {model} routed to {used}")
+                return choices[0]['message']['content']
+            last_error = f'{model}: empty completion'
+            print(f"[LLM] {last_error}")
+            continue
 
-    if response.status_code == 429 and not use_fallback:
-        print(f"[LLM] Rate limited on {model}, falling back to {config.OPENROUTER_FALLBACK_MODEL}")
-        return call_openrouter(prompt, system_message, use_fallback=True)
+        last_error = f'{model}: {response.status_code} {response.text[:240]}'
+        print(f"[LLM] {last_error}")
+        if response.status_code not in (402, 404, 408, 429, 502, 503):
+            # Non-retryable for this prompt (e.g. 400) — still try the next free model.
+            continue
 
-    if response.status_code != 200:
-        if not use_fallback:
-            print(f"[LLM] Error {response.status_code} on {model}, retrying with fallback")
-            return call_openrouter(prompt, system_message, use_fallback=True)
-        raise Exception(f"OpenRouter API error: {response.status_code} - {response.text}")
-
-    result = response.json()
-    return result['choices'][0]['message']['content']
+    raise Exception(f"OpenRouter API error: {last_error}")
 
 def collect_data(description, matches=None):
     """

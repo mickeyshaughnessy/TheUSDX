@@ -622,13 +622,11 @@ def rifts_narrate():
                 candidates = []
                 for m in (
                     getattr(config, 'RIFTS_MODEL', None),
-                    'x-ai/grok-3-mini',
-                    'x-ai/grok-3',
                     getattr(config, 'OPENROUTER_MODEL', None),
                     getattr(config, 'OPENROUTER_FALLBACK_MODEL', None),
-                    'google/gemma-2-9b-it:free',
-                    'meta-llama/llama-3.1-8b-instruct:free',
-                    'openrouter/auto',
+                    'minimax/minimax-m2.7:free',
+                    'openrouter/free',
+                    'nvidia/nemotron-3.5-lightning:free',
                 ):
                     if m and m not in candidates:
                         candidates.append(m)

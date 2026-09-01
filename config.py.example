@@ -4,7 +4,8 @@
 
 # OpenRouter API Configuration
 OPENROUTER_API_KEY = 'your_openrouter_api_key_here'
-OPENROUTER_MODEL = 'google/gemini-2.0-flash-001:free'
+OPENROUTER_MODEL = 'minimax/minimax-m2.7:free'
+OPENROUTER_FALLBACK_MODEL = 'openrouter/free'
 
 # Digital Ocean Spaces Configuration
 DO_SPACES_KEY = 'your_digital_ocean_spaces_key'
