@@ -537,20 +537,19 @@
             <span class="method post">POST</span>
             <span class="path">/datasets</span>
         </div>
-        <p>List a dataset pointer. The URL is stored privately and omitted from browse and match until purchase.</p>
+        <p>List a dataset pointer: a JSON <code>metadata</code> object plus a <code>url</code>. The URL is stored privately and omitted from browse and match until purchase. Matching uses the metadata object. Include a <code>title</code> or <code>name</code>.</p>
         <h3>Request Body</h3>
         <pre>{
-  "title": "Colorado Statewide Traffic Counts 2025",
-  "description": "Hourly and AADT counts for Colorado highways in 2025",
   "url": "https://example.com/co-traffic-2025.json",
-  "keywords": ["traffic", "colorado", "aadt"],
-  "geography": "Colorado",
-  "time_range": "2025",
-  "category": "transportation",
-  "price_usd": 2.50,
-  "delivery": "both"
+  "metadata": {
+    "title": "Colorado Statewide Traffic Counts 2025",
+    "description": "Hourly and AADT counts for Colorado highways in 2025",
+    "keywords": ["traffic", "colorado", "aadt"],
+    "geography": "Colorado",
+    "time_range": "2025"
+  }
 }</pre>
-        <p><code>delivery</code> is <code>url</code>, <code>redacted</code>, or <code>both</code> (default <code>both</code> when a URL is supplied).</p>
+        <p>Any JSON object is accepted as <code>metadata</code>. Known keys (<code>title</code>/<code>name</code>, <code>description</code>, <code>keywords</code>, <code>geography</code>, <code>time_range</code>, <code>category</code>, <code>price_usd</code>, <code>delivery</code>) are used for catalog cards when present; all keys are used for matching.</p>
         <h3>Response (201)</h3>
         <pre>{
   "status": "ok",

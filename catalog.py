@@ -218,6 +218,9 @@ def public_view(listing: dict) -> dict:
     out['has_url'] = bool(listing.get('url'))
     out['builtin'] = bool(listing.get('builtin'))
     out['synthetic'] = bool(listing.get('synthetic', listing.get('builtin')))
+    meta = listing.get('metadata')
+    if isinstance(meta, dict):
+        out['metadata'] = {k: v for k, v in meta.items() if str(k).lower() not in ('url', 'source_url')}
     return out
 
 
@@ -331,44 +334,75 @@ def get_listing(dataset_id: str):
     return None
 
 
-def add_listing(payload: dict) -> dict:
-    title = (payload.get('title') or '').strip()
-    description = (payload.get('description') or '').strip()
-    url = (payload.get('url') or '').strip()
-    if not title or not description:
-        raise ValueError('title and description are required')
-    if url:
-        parsed = urlparse(url)
-        if parsed.scheme not in ('http', 'https') or not parsed.netloc:
-            raise ValueError('url must be an http(s) URL')
+def _as_metadata(payload: dict) -> dict:
+    """Accept {url, metadata} or a flat object with url plus metadata fields."""
+    meta = payload.get('metadata')
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except json.JSONDecodeError as e:
+            raise ValueError(f'metadata must be valid JSON: {e}') from e
+    if meta is None:
+        meta = {k: v for k, v in payload.items() if k not in ('url', 'metadata')}
+    if not isinstance(meta, dict):
+        raise ValueError('metadata must be a JSON object')
+    return meta
 
-    keywords = payload.get('keywords') or []
+
+def _meta_str(value) -> str:
+    if value is None:
+        return ''
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    return json.dumps(value, ensure_ascii=False)
+
+
+def add_listing(payload: dict) -> dict:
+    url = (payload.get('url') or '').strip()
+    if not url:
+        raise ValueError('url is required')
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+        raise ValueError('url must be an http(s) URL')
+
+    meta = _as_metadata(payload)
+    title = _meta_str(meta.get('title') or meta.get('name') or meta.get('dataset') or meta.get('id'))
+    if not title:
+        raise ValueError('metadata must include a title (or name)')
+    description = _meta_str(meta.get('description') or meta.get('summary') or '')
+
+    keywords = meta.get('keywords') or []
     if isinstance(keywords, str):
         keywords = [k.strip() for k in re.split(r'[,;]', keywords) if k.strip()]
+    elif not isinstance(keywords, list):
+        keywords = [str(keywords)]
 
-    delivery = payload.get('delivery') or ('both' if url else 'redacted')
+    delivery = meta.get('delivery') or payload.get('delivery') or 'url'
     if delivery not in ('url', 'redacted', 'both'):
         raise ValueError('delivery must be url, redacted, or both')
 
     listing = {
-        'id': payload.get('id') or _slug(title),
+        'id': str(payload.get('id') or meta.get('id') or _slug(title)),
         'title': title,
         'description': description,
-        'category': (payload.get('category') or 'general').strip(),
+        'category': _meta_str(meta.get('category') or 'general') or 'general',
         'keywords': keywords,
-        'geography': (payload.get('geography') or '').strip(),
-        'time_range': (payload.get('time_range') or '').strip(),
-        'license': (payload.get('license') or '').strip(),
-        'price_usd': float(payload.get('price_usd') or 0),
+        'geography': _meta_str(meta.get('geography') or meta.get('location') or ''),
+        'time_range': _meta_str(meta.get('time_range') or meta.get('year') or ''),
+        'license': _meta_str(meta.get('license') or ''),
+        'price_usd': float(meta.get('price_usd') or payload.get('price_usd') or 0),
         'delivery': delivery,
-        'source_name': (payload.get('source_name') or payload.get('source') or '').strip(),
-        'url': url or None,
-        'seller_email': (payload.get('seller_email') or '').strip() or None,
-        'synthetic': bool(payload.get('synthetic', False)),
+        'source_name': _meta_str(meta.get('source_name') or meta.get('source') or ''),
+        'url': url,
+        'seller_email': _meta_str(meta.get('seller_email') or payload.get('seller_email') or '') or None,
+        'synthetic': bool(meta.get('synthetic', False)),
         'builtin': False,
         'created_at': datetime.utcnow().isoformat(),
-        'records': payload.get('records'),
-        'record_count_est': payload.get('record_count_est'),
+        'records': meta.get('records') or payload.get('records'),
+        'record_count_est': meta.get('record_count_est') or payload.get('record_count_est'),
+        'metadata': meta,
     }
     if get_listing(listing['id']) and get_listing(listing['id']).get('builtin'):
         listing['id'] = _slug(title)
@@ -384,6 +418,9 @@ def keyword_score(query: str, listing: dict) -> float:
     q_tokens = _tokens(query)
     if not q_tokens:
         return 0.0
+    extra = ''
+    if isinstance(listing.get('metadata'), dict):
+        extra = json.dumps(listing['metadata'], ensure_ascii=False)
     blob = ' '.join([
         listing.get('title') or '',
         listing.get('description') or '',
@@ -392,6 +429,7 @@ def keyword_score(query: str, listing: dict) -> float:
         listing.get('time_range') or '',
         listing.get('source_name') or '',
         ' '.join(listing.get('keywords') or []),
+        extra,
     ])
     h_tokens = _tokens(blob)
     overlap = q_tokens & h_tokens

@@ -585,23 +585,19 @@
         <div id="mode-sell" class="panel" style="display:none;border-radius:0 2px 2px 2px">
             <h3>List a pointer</h3>
             <p style="font-size:.85em;color:#3a5a78;margin-bottom:12px">
-                Publish metadata and a source URL. The URL is stored privately and omitted from
-                browse and match until a buyer purchases.
+                Paste a JSON metadata object and a source URL. Matching uses the metadata only;
+                the URL is stored privately until purchase. Include a <code>title</code> (or
+                <code>name</code>) in the metadata.
             </p>
             <div class="form-grid">
-                <input id="sell-title" type="text" placeholder="Title (required)">
-                <textarea id="sell-description" rows="3" placeholder="Description (required)"></textarea>
+                <textarea id="sell-metadata" rows="12" placeholder='{
+  "title": "Colorado Statewide Traffic Counts 2025",
+  "description": "Hourly and AADT counts for Colorado highways",
+  "keywords": ["traffic", "colorado", "aadt"],
+  "geography": "Colorado",
+  "time_range": "2025"
+}'></textarea>
                 <input id="sell-url" type="url" placeholder="Source URL (private until purchase)">
-                <input id="sell-keywords" type="text" placeholder="Keywords, comma-separated">
-                <input id="sell-geography" type="text" placeholder="Geography (e.g. Colorado)">
-                <input id="sell-time" type="text" placeholder="Time range (e.g. 2025)">
-                <input id="sell-category" type="text" placeholder="Category (e.g. transportation)">
-                <input id="sell-price" type="text" placeholder="Price USD (e.g. 2.50)">
-                <select id="sell-delivery">
-                    <option value="both">Delivery: URL and cloaked records</option>
-                    <option value="url">Delivery: URL only</option>
-                    <option value="redacted">Delivery: cloaked records only</option>
-                </select>
                 <button onclick="doListDataset()" class="btn">Publish listing</button>
             </div>
             <p id="sell-status" class="status-msg info"></p>
@@ -979,19 +975,21 @@
 
     async function doListDataset() {
         const status = document.getElementById('sell-status');
-        const payload = {
-            title: document.getElementById('sell-title').value.trim(),
-            description: document.getElementById('sell-description').value.trim(),
-            url: document.getElementById('sell-url').value.trim(),
-            keywords: document.getElementById('sell-keywords').value.trim(),
-            geography: document.getElementById('sell-geography').value.trim(),
-            time_range: document.getElementById('sell-time').value.trim(),
-            category: document.getElementById('sell-category').value.trim(),
-            price_usd: document.getElementById('sell-price').value.trim() || 0,
-            delivery: document.getElementById('sell-delivery').value
-        };
-        if (!payload.title || !payload.description) {
-            status.textContent = 'Title and description are required.';
+        const raw = document.getElementById('sell-metadata').value.trim();
+        const url = document.getElementById('sell-url').value.trim();
+        if (!raw || !url) {
+            status.textContent = 'Metadata JSON and a source URL are required.';
+            return;
+        }
+        let metadata;
+        try {
+            metadata = JSON.parse(raw);
+        } catch (e) {
+            status.textContent = 'Metadata must be a JSON object: ' + e.message;
+            return;
+        }
+        if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+            status.textContent = 'Metadata must be a JSON object.';
             return;
         }
         status.textContent = 'Publishing listing…';
@@ -999,7 +997,7 @@
             const res = await fetch(`${API}/datasets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ metadata, url })
             });
             const d = await res.json();
             if (!res.ok) { status.textContent = d.error || 'Listing failed.'; return; }

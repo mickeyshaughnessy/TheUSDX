@@ -32,23 +32,24 @@ def test_match_does_not_leak_other_urls():
 
 def test_add_listing_keeps_url_private():
     listing = catalog.add_listing({
-        'title': 'Unit Test Weather Grid',
-        'description': 'Hourly weather observations for unit tests',
         'url': 'https://example.com/weather-grid.json',
-        'keywords': 'weather, hourly, observations',
-        'geography': 'Utah',
-        'time_range': '2024',
-        'category': 'weather',
-        'price_usd': 1.25,
-        'delivery': 'url',
+        'metadata': {
+            'title': 'Unit Test Weather Grid',
+            'description': 'Hourly weather observations for unit tests',
+            'keywords': ['weather', 'hourly', 'observations'],
+            'geography': 'Utah',
+            'time_range': '2024',
+            'category': 'weather',
+            'price_usd': 1.25,
+        },
     })
     assert listing['url'] == 'https://example.com/weather-grid.json'
     pub = catalog.public_view(listing)
     assert 'url' not in pub
-    assert pub['has_url'] is True
+    assert pub.get('has_url') is True
+    assert pub.get('metadata', {}).get('title') == 'Unit Test Weather Grid'
     fetched = catalog.get_listing(listing['id'])
     assert fetched['url'] == 'https://example.com/weather-grid.json'
-    # cleanup
     remaining = [x for x in catalog._load_local() if x.get('id') != listing['id']]
     catalog._save_local(remaining)
 
