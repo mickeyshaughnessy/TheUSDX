@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import requests
 import boto3
@@ -19,9 +20,8 @@ def get_s3_client():
     )
 
 # Live free OpenRouter IDs as of 2026-09. Retired IDs (google/gemini-flash-1.5,
-# google/gemini-2.0-flash-001:free) 404 with "No endpoints found".
+# google/gemini-2.0-flash-001:free, minimax/minimax-m2.7:free) 404.
 _FREE_OPENROUTER_MODELS = (
-    'minimax/minimax-m2.7:free',
     'openrouter/free',
     'nvidia/nemotron-3.5-lightning:free',
     'google/gemma-4-31b-it:free',
@@ -42,13 +42,107 @@ def _openrouter_model_chain(prefer_fallback=False):
     return chain
 
 
-def call_openrouter(prompt, system_message="You are a helpful assistant.", use_fallback=False):
+def _llm_temperature(override=None):
+    if override is not None:
+        return override
+    return getattr(config, 'LLM_TEMPERATURE', 0.1)
+
+
+def _llm_max_tokens(override=None):
+    if override is not None:
+        return override
+    return getattr(config, 'LLM_MAX_TOKENS', 4096)
+
+
+def _xai_key():
+    return getattr(config, 'XAI_API_KEY', None) or os.environ.get('XAI_API_KEY')
+
+
+def _xai_model():
+    return getattr(config, 'XAI_MODEL', None) or os.environ.get('XAI_MODEL') or 'grok-4.5'
+
+
+def _chat_content(response):
+    if response.status_code != 200:
+        return None, f'{response.status_code} {response.text[:240]}'
+    result = response.json()
+    choices = result.get('choices') or []
+    if not choices:
+        return None, 'empty choices'
+    content = choices[0].get('message', {}).get('content')
+    if not content:
+        return None, 'empty completion'
+    used = result.get('model')
+    return content, used
+
+
+def _call_xai(prompt, system_message, temperature, max_tokens, json_mode=False):
+    key = _xai_key()
+    if not key:
+        raise ValueError('XAI_API_KEY not configured')
+    model = _xai_model()
+    payload = {
+        'model': model,
+        'messages': [
+            {'role': 'system', 'content': system_message},
+            {'role': 'user', 'content': prompt},
+        ],
+        'temperature': temperature,
+        'max_tokens': max_tokens,
+    }
+    if json_mode:
+        payload['response_format'] = {'type': 'json_object'}
+    response = requests.post(
+        'https://api.x.ai/v1/chat/completions',
+        headers={
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+        },
+        json=payload,
+        timeout=90,
+    )
+    if json_mode and response.status_code == 400:
+        payload.pop('response_format', None)
+        response = requests.post(
+            'https://api.x.ai/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {key}',
+                'Content-Type': 'application/json',
+            },
+            json=payload,
+            timeout=90,
+        )
+    content, extra = _chat_content(response)
+    if content is None:
+        raise Exception(f'xAI {model}: {extra}')
+    if extra and extra != model:
+        print(f'[LLM] xAI {model} routed to {extra}')
+    else:
+        print(f'[LLM] xAI {model}')
+    return content
+
+
+def call_openrouter(prompt, system_message="You are a helpful assistant.", use_fallback=False,
+                    temperature=None, max_tokens=None, json_mode=False):
     """Make a completion call to OpenRouter, walking a free-model chain on 402/404/429."""
     if not config.OPENROUTER_API_KEY:
         raise ValueError("OPENROUTER_API_KEY not configured")
 
+    temp = _llm_temperature(temperature)
+    tokens = _llm_max_tokens(max_tokens)
     last_error = None
     for model in _openrouter_model_chain(prefer_fallback=use_fallback):
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": temp,
+            "max_tokens": tokens,
+        }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
         try:
             response = requests.post(
                 url=config.OPENROUTER_API_URL,
@@ -58,41 +152,64 @@ def call_openrouter(prompt, system_message="You are a helpful assistant.", use_f
                     "HTTP-Referer": "https://themithrilcompany.com",
                     "X-Title": "Acme Redactors"
                 },
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system_message},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "temperature": config.LLM_TEMPERATURE,
-                    "max_tokens": config.LLM_MAX_TOKENS
-                },
-                timeout=45
+                json=payload,
+                timeout=90
             )
         except Exception as e:
             last_error = f'{model}: {e}'
             print(f"[LLM] {last_error}")
             continue
 
-        if response.status_code == 200:
-            result = response.json()
-            choices = result.get('choices') or []
-            if choices and choices[0].get('message', {}).get('content'):
-                used = result.get('model') or model
-                if used != model:
-                    print(f"[LLM] {model} routed to {used}")
-                return choices[0]['message']['content']
-            last_error = f'{model}: empty completion'
-            print(f"[LLM] {last_error}")
-            continue
+        if json_mode and response.status_code == 400:
+            payload.pop("response_format", None)
+            try:
+                response = requests.post(
+                    url=config.OPENROUTER_API_URL,
+                    headers={
+                        "Authorization": f"Bearer {config.OPENROUTER_API_KEY}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://themithrilcompany.com",
+                        "X-Title": "Acme Redactors"
+                    },
+                    json=payload,
+                    timeout=90
+                )
+            except Exception as e:
+                last_error = f'{model}: {e}'
+                print(f"[LLM] {last_error}")
+                continue
 
-        last_error = f'{model}: {response.status_code} {response.text[:240]}'
+        content, extra = _chat_content(response)
+        if content is not None:
+            if extra and extra != model:
+                print(f"[LLM] {model} routed to {extra}")
+            return content
+
+        last_error = f'{model}: {extra}'
         print(f"[LLM] {last_error}")
-        if response.status_code not in (402, 404, 408, 429, 502, 503):
-            # Non-retryable for this prompt (e.g. 400) — still try the next free model.
+        if response.status_code not in (400, 402, 404, 408, 429, 502, 503):
             continue
 
     raise Exception(f"OpenRouter API error: {last_error}")
+
+
+def call_llm(prompt, system_message="You are a helpful assistant.", use_fallback=False,
+             temperature=None, max_tokens=None, json_mode=False):
+    """Prefer xAI/Grok when configured; otherwise OpenRouter."""
+    temp = _llm_temperature(temperature)
+    tokens = _llm_max_tokens(max_tokens)
+    if _xai_key() and not use_fallback:
+        try:
+            return _call_xai(prompt, system_message, temp, tokens, json_mode=json_mode)
+        except Exception as e:
+            print(f"[LLM] xAI failed, falling back to OpenRouter: {e}")
+    return call_openrouter(
+        prompt, system_message,
+        use_fallback=use_fallback,
+        temperature=temp,
+        max_tokens=tokens,
+        json_mode=json_mode,
+    )
 
 def collect_data(description, matches=None):
     """
@@ -447,13 +564,157 @@ _RULES_BY_LEVEL = {
 }
 
 
+_SSN_RE = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
+_EMAIL_RE = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b')
+_PHONE_RE = re.compile(
+    r'(?<!\d)(?:\+1[\s.\-]?)?(?:\(?\d{3}\)?[\s.\-]?)\d{3}[\s.\-]?\d{4}(?!\d)'
+)
+_CLASSIFIED_RE = re.compile(
+    r'\b(?:TOP\s+SECRET(?:\s*//\s*[A-Z0-9/ ,\-]+)?|TS/SCI|SECRET//[A-Z0-9/ ,\-]+)\b',
+    re.I,
+)
+_STATUTORY_KEY_MARKERS = (
+    ('ssn', '[b(Ex.3)]'),
+    ('social_security', '[b(Ex.3)]'),
+    ('alien_registration', '[b(Ex.3)]'),
+    ('a_number', '[b(Ex.3)]'),
+    ('vin', '[b(Ex.3)]'),
+    ('license_plate', '[b(Ex.3)]'),
+    ('drivers_license', '[b(Ex.3)]'),
+    ('driver_license', '[b(Ex.3)]'),
+    ('dl_number', '[b(Ex.3)]'),
+    ('biometric', '[b(Ex.3)]'),
+    ('fingerprint', '[b(Ex.3)]'),
+    ('security_classification', '[b(Ex.7(F))]'),
+    ('clearance', '[b(Ex.1)]'),
+    ('classification', '[b(Ex.1)]'),
+    ('selector', '[b(Ex.1)]'),
+    ('housing_unit', '[b(Ex.7(F))]'),
+    ('gang_affiliation', '[b(Ex.7(F))]'),
+)
+_NAME_KEYS = {
+    'name', 'full_name', 'first_name', 'last_name', 'middle_name',
+    'supervising_officer', 'officer', 'complainant', 'witness',
+    'attorney', 'spouse', 'alias', 'nickname', 'patient_name',
+    'producer_name', 'resident_name', 'reporter',
+}
+
+
+def _sweep_statutory_string(s):
+    if not isinstance(s, str) or s.startswith('[b(Ex.'):
+        return s
+    s = _SSN_RE.sub('[b(Ex.3)]', s)
+    s = _CLASSIFIED_RE.sub('[b(Ex.1)]', s)
+    return s
+
+
+def _sweep_statutory(obj, key=None):
+    """Force-apply mandatory Tier 1 markers the LLM may have missed."""
+    if isinstance(obj, dict):
+        return {k: _sweep_statutory(v, k) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sweep_statutory(v, key) for v in obj]
+    if isinstance(obj, str):
+        k = (key or '').lower()
+        for hint, marker in _STATUTORY_KEY_MARKERS:
+            if hint in k and not obj.startswith('[b(Ex.'):
+                return marker
+        return _sweep_statutory_string(obj)
+    return obj
+
+
+def _walk_strings(obj, key=None):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from _walk_strings(v, k)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _walk_strings(v, key)
+    elif isinstance(obj, str):
+        yield key, obj
+
+
+def _identity_leaks(original, redacted, privacy_level):
+    """Original statutory values (and, except at reduced, personal IDs) still present."""
+    leaks = []
+    red_text = json.dumps(redacted)
+    orig_text = json.dumps(original)
+    for ssn in set(_SSN_RE.findall(orig_text)):
+        if ssn in red_text:
+            leaks.append(f'SSN {ssn} still present')
+    for email in set(_EMAIL_RE.findall(orig_text)):
+        if privacy_level != 'reduced' and email in red_text:
+            leaks.append(f'email {email} still present')
+    if privacy_level == 'reduced':
+        return leaks
+    orig_by_key = {}
+    for k, val in _walk_strings(original):
+        if k:
+            orig_by_key.setdefault(k.lower(), set()).add(val)
+    for k, val in _walk_strings(redacted):
+        lk = (k or '').lower()
+        if lk in _NAME_KEYS and val in orig_by_key.get(lk, set()) and ' ' in val:
+            leaks.append(f'{k} still "{val}"')
+        if any(h in lk for h, _ in _STATUTORY_KEY_MARKERS) and not val.startswith('[b(Ex.'):
+            leaks.append(f'{k} not blind-redacted: "{val}"')
+    return leaks
+
+
+def _llm_json(prompt, system, json_mode=False, use_fallback=False):
+    raw = call_llm(
+        prompt, system,
+        use_fallback=use_fallback,
+        temperature=0.1,
+        max_tokens=_llm_max_tokens(4096),
+        json_mode=json_mode,
+    )
+    return _parse_llm_json(raw)
+
+
 def _redact_chunk(chunk, privacy_level='standard'):
     """Redact a single JSON-serializable chunk using the FOIA two-tier scheme."""
     chunk_str = json.dumps(chunk, indent=2)
     prompt = _RULES_BY_LEVEL[privacy_level] + chunk_str
-    system = _SYSTEM_BY_LEVEL[privacy_level]
-    redacted_str = call_openrouter(prompt, system)
-    return _parse_llm_json(redacted_str)
+    system = (
+        _SYSTEM_BY_LEVEL[privacy_level]
+        + " Respond with valid JSON only — no markdown fences, no commentary."
+    )
+    redacted = None
+    last_err = None
+    for attempt in range(3):
+        try:
+            extra = ''
+            if attempt:
+                extra = (
+                    "\n\nCRITICAL: Return a single valid JSON value only. "
+                    "No markdown. Apply every Tier 1 [b(Ex.N)] marker."
+                )
+            redacted = _llm_json(
+                prompt + extra, system,
+                use_fallback=attempt > 0,
+            )
+            break
+        except Exception as e:
+            last_err = e
+            print(f"[redact] parse attempt {attempt + 1} failed: {e}")
+    if redacted is None:
+        raise last_err or Exception('Redaction produced no JSON')
+
+    redacted = _sweep_statutory(redacted)
+    leaks = _identity_leaks(chunk, redacted, privacy_level)
+    if leaks:
+        retry_prompt = (
+            prompt
+            + "\n\nThe previous pass leaked values that MUST be changed:\n- "
+            + "\n- ".join(leaks[:24])
+            + "\nReturn the fully redacted JSON only."
+        )
+        try:
+            retried = _llm_json(retry_prompt, system, use_fallback=True)
+            redacted = _sweep_statutory(retried)
+        except Exception as e:
+            print(f"[redact] leak-retry failed: {e}")
+    return redacted
 
 
 def _redact_large_dict(data, privacy_level='standard'):
@@ -542,7 +803,56 @@ def redact_text(text, privacy_level='standard'):
     """Redact plain text (non-JSON) using the FOIA two-tier scheme."""
     prompt = "TEXT TO REDACT:\n\n" + text
     system = _TEXT_SYSTEM_BY_LEVEL[privacy_level]
-    return call_openrouter(prompt, system)
+    last_err = None
+    redacted = None
+    for attempt in range(3):
+        try:
+            redacted = call_llm(
+                prompt if attempt == 0 else (
+                    prompt + "\n\nReturn ONLY the redacted document. Apply every required redaction."
+                ),
+                system,
+                use_fallback=attempt > 0,
+                temperature=0.1,
+                max_tokens=_llm_max_tokens(4096),
+            )
+            if redacted and redacted.strip():
+                break
+            last_err = Exception('empty text redaction')
+        except Exception as e:
+            last_err = e
+            print(f"[redact_text] attempt {attempt + 1} failed: {e}")
+    if not redacted:
+        raise last_err or Exception('Text redaction failed')
+    redacted = _sweep_statutory_string(redacted)
+    leaks = []
+    for ssn in set(_SSN_RE.findall(text)):
+        if ssn in redacted:
+            redacted = redacted.replace(ssn, '[b(Ex.3)]')
+            leaks.append(ssn)
+    if privacy_level != 'reduced':
+        for email in set(_EMAIL_RE.findall(text)):
+            if email in redacted:
+                leaks.append(email)
+    if leaks and privacy_level != 'reduced':
+        try:
+            retry = call_llm(
+                prompt
+                + "\n\nThese original values are still in the output and MUST be replaced:\n"
+                + "\n".join(leaks[:20]),
+                system,
+                use_fallback=True,
+                temperature=0.1,
+                max_tokens=_llm_max_tokens(4096),
+            )
+            if retry and retry.strip():
+                redacted = _sweep_statutory_string(retry)
+                for ssn in set(_SSN_RE.findall(text)):
+                    if ssn in redacted:
+                        redacted = redacted.replace(ssn, '[b(Ex.3)]')
+        except Exception as e:
+            print(f"[redact_text] leak-retry failed: {e}")
+    return redacted
 
 
 def redact_data(data, privacy_level='standard'):
