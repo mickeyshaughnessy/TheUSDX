@@ -280,27 +280,6 @@
         .tab-btn:hover { color: #9ab4cc; }
         .tab-active { background: rgba(6, 18, 38, 0.8); color: #00b4d8; border-color: rgba(0, 180, 220, 0.25); }
 
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 14px;
-            margin: 18px 0;
-        }
-        .price-card {
-            padding: 18px 20px;
-            background: rgba(0, 30, 60, 0.5);
-            border: 1px solid rgba(0, 180, 220, 0.12);
-            border-left-width: 3px;
-            border-radius: 2px;
-        }
-        .price-card.reduced    { border-left-color: #ff6b6b; }
-        .price-card.standard   { border-left-color: #56d9a0; }
-        .price-card.aggressive { border-left-color: #f0c040; }
-        .price-card .price-label { font-size: 0.78em; letter-spacing: 0.1em; text-transform: uppercase; color: #9ab4cc; font-weight: 700; margin-bottom: 4px; }
-        .price-card .price-amount { font-size: 1.5em; font-weight: 700; color: #e8f4ff; margin-bottom: 8px; }
-        .price-card .price-amount small { font-size: 0.5em; font-weight: 600; color: #4a7fa5; }
-        .price-card p { font-size: 0.85em; color: #7a9ab8; margin-bottom: 0; }
-
         .privacy-select {
             display: flex;
             gap: 8px;
@@ -323,7 +302,6 @@
         .privacy-option:has(input:checked) { background: rgba(0, 180, 220, 0.08); border-color: rgba(0, 180, 220, 0.5); }
         .privacy-option input { position: absolute; opacity: 0; width: 0; height: 0; }
         .privacy-option .privacy-option-label { font-size: 0.82em; font-weight: 700; letter-spacing: 0.04em; }
-        .privacy-option .privacy-price { font-size: 0.78em; color: #7a9ab8; }
         .privacy-option.reduced .privacy-option-label    { color: #ff8080; }
         .privacy-option.standard .privacy-option-label   { color: #56d9a0; }
         .privacy-option.aggressive .privacy-option-label { color: #f0c040; }
@@ -434,8 +412,8 @@
     <p>Acme Redactors is a FOIA-compliant public records management platform for
     individual-level government records. Submit natural-language queries — our AI matches
     the right dataset and applies redaction before returning results. Privacy is
-    configurable per query: choose the standard tier included with every request, or pay to
-    dial redaction up or down &mdash; see <a href="#pricing" style="color:#00b4d8">Pricing</a> below.</p>
+    configurable per query: standard cloaking, reduced (statutory exemptions only), or
+    enhanced cloaking of indirect identifiers.</p>
 
     <div class="mission">
         <strong>Two-tier FOIA redaction (5 U.S.C. &sect; 552):</strong>
@@ -463,35 +441,7 @@
     the applicable exemption schedule, and applies the two-tier scheme automatically:
     blind <code>[b(Ex.N)]</code> markers for classified or statutorily protected values,
     and realistic cover identities for personal privacy fields. Statutory exemptions are
-    always enforced; everything else is yours to dial up or down, per query.</p>
-
-    <h2 id="pricing">Pricing &mdash; Privacy, Per Query</h2>
-    <p style="font-size:.9em">Every query includes standard FOIA-compliant redaction at no
-    charge. You can pay to move the dial in either direction, per query: add privacy with
-    aggressive cloaking of indirect identifiers, or subtract discretionary privacy to see
-    personal identifiers in full (statutory exemptions like SSNs and classified markings are
-    never for sale &mdash; they're withheld at every tier).</p>
-    <div class="pricing-grid">
-        <div class="price-card reduced">
-            <div class="price-label">Reduced Privacy</div>
-            <div class="price-amount">$4.00 <small>/ query</small></div>
-            <p>Subtract privacy. Only statutory exemptions withheld &mdash; names, addresses,
-            phone numbers, and DOB released in full. For verified requesters.</p>
-        </div>
-        <div class="price-card standard">
-            <div class="price-label">Standard Privacy</div>
-            <div class="price-amount">Included</div>
-            <p>Two-tier FOIA redaction: statutory exemptions plus smart cloaking of personal
-            privacy fields. The default on every query.</p>
-        </div>
-        <div class="price-card aggressive">
-            <div class="price-label">Enhanced Privacy</div>
-            <div class="price-amount">$1.50 <small>/ query</small></div>
-            <p>Add privacy. Extends cloaking to indirect identifiers &mdash; locations, dates,
-            employers, relationships, and physical descriptions.</p>
-        </div>
-    </div>
-    <p style="font-size:.78em;color:#3a5a78">Pricing shown for demonstration purposes only; no payment is collected by this demo.</p>
+    always enforced; you can dial the rest up or down per query.</p>
 
     <h2>Features</h2>
     <div class="features">
@@ -504,8 +454,8 @@
             PII replaced with realistic substitutes, not blacked out.
         </div>
         <div class="feature">
-            <h3>Privacy, Priced Per Query</h3>
-            Pay to add or subtract redaction on any individual query.
+            <h3>Privacy Per Query</h3>
+            Dial redaction up or down on any individual query.
         </div>
         <div class="feature">
             <h3>Open Access</h3>
@@ -565,17 +515,14 @@
                     <label class="privacy-option reduced">
                         <input type="radio" name="query-privacy-level" value="reduced">
                         <span class="privacy-option-label">Reduced</span>
-                        <span class="privacy-price">+$4.00</span>
                     </label>
                     <label class="privacy-option standard">
                         <input type="radio" name="query-privacy-level" value="standard" checked>
                         <span class="privacy-option-label">Standard</span>
-                        <span class="privacy-price">Included</span>
                     </label>
                     <label class="privacy-option aggressive">
                         <input type="radio" name="query-privacy-level" value="aggressive">
                         <span class="privacy-option-label">Enhanced</span>
-                        <span class="privacy-price">+$1.50</span>
                     </label>
                 </div>
 
@@ -605,17 +552,14 @@
                 <label class="privacy-option reduced">
                     <input type="radio" name="paste-privacy-level" value="reduced">
                     <span class="privacy-option-label">Reduced</span>
-                    <span class="privacy-price">+$4.00</span>
                 </label>
                 <label class="privacy-option standard">
                     <input type="radio" name="paste-privacy-level" value="standard">
                     <span class="privacy-option-label">Standard</span>
-                    <span class="privacy-price">Included</span>
                 </label>
                 <label class="privacy-option aggressive">
                     <input type="radio" name="paste-privacy-level" value="aggressive" checked>
                     <span class="privacy-option-label">Enhanced</span>
-                    <span class="privacy-price">+$1.50</span>
                 </label>
             </div>
 
@@ -692,6 +636,8 @@
     <div class="contact-block">
         <h3>Contact</h3>
         <p><strong>Project Lead:</strong> Michael Shaughnessy</p>
+        <p><strong>SMS:</strong> <a href="sms:+15302190940">530-219-0940</a></p>
+        <p><strong>Email:</strong> <a href="mailto:mickeyshaughnessy@gmail.com">mickeyshaughnessy@gmail.com</a></p>
         <p><strong>X:</strong> <a href="https://x.com/MichaelSha10041" target="_blank" rel="noopener">@MichaelSha10041</a></p>
         <p><strong>Organization:</strong> The Mithril Company &mdash; Colorado LLC</p>
     </div>
@@ -735,8 +681,7 @@
 
     function formatPricing(pricing) {
         if (!pricing) return '';
-        const addon = pricing.privacy_addon_usd > 0 ? ` (+$${pricing.privacy_addon_usd.toFixed(2)} ${pricing.tier_label})` : ` (${pricing.tier_label}, included)`;
-        return `Price: $${pricing.total_price_usd.toFixed(2)}${addon}`;
+        return pricing.tier_label || pricing.privacy_level || '';
     }
 
     const DEMO_QUERIES = {
