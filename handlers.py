@@ -19,12 +19,13 @@ def get_s3_client():
         aws_secret_access_key=config.DO_SPACES_SECRET
     )
 
-# Prefer specific instruction-following free models. openrouter/free auto-routes
-# to whatever is idle, including content-safety / VL models that return non-JSON.
+# Prefer models that actually return completions quickly. nvidia lightning
+# can sit ~60s; openrouter/free sometimes routes to content-safety/VL models.
 _FREE_OPENROUTER_MODELS = (
-    'nvidia/nemotron-3.5-lightning:free',
-    'google/gemma-4-31b-it:free',
+    'liquid/lfm-2.5-2.6b:free',
+    'openrouter/free',
 )
+_SKIP_ROUTED_MODELS = ('content-safety', ':vl', '-vl:')
 
 
 def _openrouter_model_chain(prefer_fallback=False):
@@ -98,7 +99,7 @@ def _call_xai(prompt, system_message, temperature, max_tokens, json_mode=False):
             'Content-Type': 'application/json',
         },
         json=payload,
-        timeout=60,
+        timeout=25,
     )
     if json_mode and response.status_code == 400:
         payload.pop('response_format', None)
@@ -109,7 +110,7 @@ def _call_xai(prompt, system_message, temperature, max_tokens, json_mode=False):
                 'Content-Type': 'application/json',
             },
             json=payload,
-            timeout=60,
+            timeout=25,
         )
     content, extra = _chat_content(response)
     if content is None:
@@ -152,7 +153,7 @@ def call_openrouter(prompt, system_message="You are a helpful assistant.", use_f
                     "X-Title": "Acme Redactors"
                 },
                 json=payload,
-                timeout=60
+                timeout=25
             )
         except Exception as e:
             last_error = f'{model}: {e}'
@@ -171,7 +172,7 @@ def call_openrouter(prompt, system_message="You are a helpful assistant.", use_f
                         "X-Title": "Acme Redactors"
                     },
                     json=payload,
-                    timeout=60
+                    timeout=25
                 )
             except Exception as e:
                 last_error = f'{model}: {e}'
@@ -180,6 +181,11 @@ def call_openrouter(prompt, system_message="You are a helpful assistant.", use_f
 
         content, extra = _chat_content(response)
         if content is not None:
+            routed = (extra or model or '').lower()
+            if any(tag in routed for tag in _SKIP_ROUTED_MODELS):
+                last_error = f'{model}: routed to unusable {extra or model}'
+                print(f"[LLM] {last_error}")
+                continue
             if extra and extra != model:
                 print(f"[LLM] {model} routed to {extra}")
             return content
