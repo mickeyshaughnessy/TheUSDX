@@ -684,6 +684,37 @@
         return pricing.tier_label || pricing.privacy_level || '';
     }
 
+    async function readApiJson(res) {
+        const text = await res.text();
+        const trimmed = (text || '').trim();
+        if (!trimmed) {
+            throw new Error(res.status ? ('Empty response (HTTP ' + res.status + ')') : 'Empty response');
+        }
+        try {
+            return JSON.parse(trimmed);
+        } catch (e) {
+            if (res.status === 502 || res.status === 504 || /^</.test(trimmed)) {
+                throw new Error('The redactor timed out. Try the query again.');
+            }
+            throw new Error('Unexpected server response (HTTP ' + res.status + ')');
+        }
+    }
+
+    function showRedacted(original, redacted, isText) {
+        const origEl = document.getElementById('result-original');
+        const redEl = document.getElementById('result-json');
+        const textMode = isText || typeof redacted === 'string' || typeof original === 'string';
+        if (textMode) {
+            const origText = typeof original === 'string' ? original : JSON.stringify(original, null, 2);
+            const redText = typeof redacted === 'string' ? redacted : JSON.stringify(redacted, null, 2);
+            origEl.textContent = origText;
+            redEl.innerHTML = colorizePlainText(origText, redText);
+        } else {
+            origEl.textContent = JSON.stringify(original, null, 2);
+            redEl.innerHTML = colorizeRedacted(redacted, original);
+        }
+    }
+
     const DEMO_QUERIES = {
         cia:    'Show employment records for CIA human intelligence contractors including clearance levels and assignment locations',
         nsa:    'NSA SIGINT foreign surveillance targets including collection programs and intercept content summaries',
@@ -863,17 +894,11 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ record: raw, privacy_level })
             });
-            const d = await res.json();
-            if (!res.ok) { status.textContent = d.error || 'Redaction failed.'; return; }
+            const d = await readApiJson(res);
+            if (!res.ok) { status.textContent = d.error || d.details || 'Redaction failed.'; return; }
             status.textContent = '';
             document.getElementById('result-area').style.display = 'block';
-            if (d.is_text) {
-                document.getElementById('result-original').textContent = d.original_data;
-                document.getElementById('result-json').innerHTML = colorizePlainText(d.original_data, d.data);
-            } else {
-                document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
-                document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
-            }
+            showRedacted(d.original_data, d.data, d.is_text);
             const m = d.metadata || {};
             document.getElementById('result-meta').textContent =
                 `Processing: ${m.processing_time_seconds ?? '?'}s | Cached: ${m.cached ? 'Yes' : 'No'} | ${formatPricing(d.pricing)}`;
@@ -896,11 +921,14 @@
                 headers,
                 body: JSON.stringify({ description, privacy_level })
             });
-            const d = await res.json();
+            const d = await readApiJson(res);
+            if (!res.ok || d.error) {
+                status.textContent = d.error || d.details || 'Query failed.';
+                return;
+            }
             status.textContent = '';
             document.getElementById('result-area').style.display = 'block';
-            document.getElementById('result-original').textContent = JSON.stringify(d.original_data, null, 2);
-            document.getElementById('result-json').innerHTML = colorizeRedacted(d.data, d.original_data);
+            showRedacted(d.original_data, d.data, d.is_text);
             document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
             const m = d.metadata || {};
             const f = d.foia_compliance || {};

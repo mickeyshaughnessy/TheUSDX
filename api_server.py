@@ -252,7 +252,7 @@ def get_data():
         return jsonify(cached_result), 200
 
     try:
-        matches = match_listings(description, top_k=3)
+        matches = match_listings(description, top_k=3, use_llm=False)
         collected_data = collect_data(description, matches=matches)
         redacted_data = redact_data(collected_data, privacy_level=privacy_level)
 
@@ -263,6 +263,7 @@ def get_data():
             'matches': matches,
             'original_data': collected_data,
             'data': redacted_data,
+            'is_text': isinstance(redacted_data, str),
             'metadata': {
                 'processing_time_seconds': round(processing_time, 2),
                 'records_returned': len(redacted_data) if isinstance(redacted_data, list) else 1,

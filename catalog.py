@@ -499,7 +499,7 @@ def _llm_rerank(query: str, candidates: list) -> list:
         return []
 
 
-def match_listings(query: str, top_k: int = 5) -> list:
+def match_listings(query: str, top_k: int = 5, use_llm: bool = True) -> list:
     query = (query or '').strip()
     if not query:
         return []
@@ -515,7 +515,7 @@ def match_listings(query: str, top_k: int = 5) -> list:
     if not shortlist:
         return []
 
-    llm = _llm_rerank(query, shortlist)
+    llm = _llm_rerank(query, shortlist) if use_llm else []
     llm_by_id = {m['id']: m for m in llm}
     results = []
     seen = set()
