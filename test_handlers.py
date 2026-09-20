@@ -56,6 +56,30 @@ class TestStatutorySweep(unittest.TestCase):
         self.assertEqual(out['ssn'], '[b(Ex.3)]')
 
 
+class TestDateCloak(unittest.TestCase):
+    def test_shift_oct_6_1994(self):
+        from handlers import _shift_date_string
+        out = _shift_date_string('Oct 6 1994')
+        self.assertIsNotNone(out)
+        self.assertNotEqual(out.lower(), 'oct 6 1994')
+        self.assertRegex(out, r'1995|1996')
+
+    def test_noop_marker_replaced(self):
+        from handlers import _fix_noop_aggr_markers
+        original = 'on Oct 6 1994, the day after'
+        redacted = 'on [~Oct 6 1994~], the day after'
+        out = _fix_noop_aggr_markers(original, redacted)
+        self.assertNotIn('[~Oct 6 1994~]', out)
+        self.assertIn('[~', out)
+
+    def test_leftover_bare_date(self):
+        from handlers import _cloak_leftover_dates
+        original = 'on Oct 6 1994 I left Helena, MT'
+        redacted = 'on Oct 6 1994 I left Helena, MT'
+        out = _cloak_leftover_dates(original, redacted, wrap=True)
+        self.assertNotIn('Oct 6 1994', out)
+
+
 class TestCommentaryStrip(unittest.TestCase):
     def test_drops_exemption_walkthrough(self):
         from handlers import _strip_leading_commentary

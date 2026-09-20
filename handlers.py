@@ -1,6 +1,8 @@
 import json
 import os
 import re
+from datetime import datetime, timedelta
+
 import requests
 import boto3
 
@@ -823,11 +825,16 @@ _REDACTION_TEXT_SYSTEM_AGGRESSIVE = (
     "(Ex.1 classified info, Ex.3 SSNs/program IDs/biometrics/DL numbers/VINs/plates, "
     "Ex.7(F) life/safety, Ex.7(C) third-party names in law enforcement records).\n\n"
     "TIER 2 — STANDARD SMART REDACTION (substitute directly, no markers): "
-    "individual names, officer names, dates of birth, home addresses, phone numbers, email addresses.\n\n"
-    "TIER 2 — AGGRESSIVE CLOAKING (substitute AND wrap in [~value~]) — apply to ANYTHING that "
-    "could logically be used alone or in combination to re-identify the individual:\n"
+    "individual names, officer names, dates of birth, home addresses, phone numbers, email addresses. "
+    "Never write [REDACTED], ***, or XXX — always a different realistic value.\n\n"
+    "TIER 2 — AGGRESSIVE CLOAKING: first replace the original with a DIFFERENT plausible value, "
+    "THEN wrap that new value in [~new value~]. Never wrap the original unchanged text. "
+    "Example: \"Oct 6 1994\" → \"[~Nov 10 1995~]\", \"Helena, MT\" → \"[~Billings, WY~]\". "
+    "Apply to ANYTHING that could logically be used alone or in combination to re-identify "
+    "the individual:\n"
     "  • Cities, states, countries, counties, zip codes, neighborhoods, landmarks, street intersections\n"
-    "  • Event/incident/arrest/enrollment/treatment/hearing dates and times\n"
+    "  • Event/incident/arrest/enrollment/treatment/hearing dates and times "
+    "(must change month/day/year, not just mark them)\n"
     "  • Nicknames, aliases, callsigns, screen names, maiden names\n"
     "  • Employers, organizations, schools, military units, agencies, companies\n"
     "  • Names of family members, spouses, children, associates, witnesses, attorneys\n"
@@ -842,7 +849,10 @@ _REDACTION_TEXT_SYSTEM_AGGRESSIVE = (
     "  • Educational details: degree, major, graduation year\n"
     "  • Any other detail cross-referenceable with public records\n\n"
     "PRESERVE non-exempt content: IDs, general position titles, pay grades, outcome text.\n"
-    "CONSISTENCY: use the same substitute for any value that appears more than once.\n\n"
+    "CONSISTENCY: use the same substitute for any value that appears more than once.\n"
+    "Do not use [REDACTED]. Names get a different name; dates get a different date; places get a different place.\n\n"
+    "Example input: When I (Ada Lovelace) was 14, on Oct 6 1994, I was in Helena, MT.\n"
+    "Example output: When I (Nora Ellison) was 14, on [~Nov 10 1995~], I was in [~Billings, WY~].\n\n"
     "Return ONLY the redacted text. Preserve all original formatting and line breaks exactly."
 )
 
@@ -878,6 +888,135 @@ def _strip_leading_commentary(text, original):
     return '\n'.join(kept) if kept else text
 
 
+_MONTH_NUM = {
+    'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+    'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+    'august': 8, 'aug': 8, 'september': 9, 'sept': 9, 'sep': 9,
+    'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12,
+}
+_MONTH_ABBR = {
+    1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun',
+    7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec',
+}
+_MONTH_FULL = {
+    1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+    7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December',
+}
+_MONTH_ALT = r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
+_DATE_RE = re.compile(
+    r'\b('
+    rf'{_MONTH_ALT}\s+\d{{1,2}},?\s+\d{{4}}'
+    rf'|\d{{1,2}}\s+{_MONTH_ALT}\s+\d{{4}}'
+    r'|\d{1,2}/\d{1,2}/\d{2,4}'
+    r'|\d{4}-\d{2}-\d{2}'
+    r')\b',
+    re.I,
+)
+
+
+def _month_num(token):
+    t = token.lower()
+    return _MONTH_NUM.get(t) or _MONTH_NUM.get(t[:3])
+
+
+def _parse_loose_date(raw):
+    s = raw.strip()
+    m = re.match(rf'^({_MONTH_ALT})\s+(\d{{1,2}}),?\s+(\d{{4}})$', s, re.I)
+    if m:
+        month = _month_num(m.group(1))
+        try:
+            return datetime(int(m.group(3)), month, int(m.group(2)))
+        except (ValueError, TypeError):
+            return None
+    m = re.match(rf'^(\d{{1,2}})\s+({_MONTH_ALT})\s+(\d{{4}})$', s, re.I)
+    if m:
+        month = _month_num(m.group(2))
+        try:
+            return datetime(int(m.group(3)), month, int(m.group(1)))
+        except (ValueError, TypeError):
+            return None
+    for fmt in ('%m/%d/%Y', '%m/%d/%y', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _format_date_like(original, dt):
+    if re.search(r'\d{4}-\d{2}-\d{2}', original):
+        return dt.strftime('%Y-%m-%d')
+    if '/' in original:
+        parts = original.split('/')
+        if len(parts[-1]) == 2:
+            return dt.strftime('%m/%d/%y').lstrip('0').replace('/0', '/')
+        return f'{dt.month}/{dt.day}/{dt.year}'
+    month_token = re.search(_MONTH_ALT, original, re.I)
+    if month_token and len(month_token.group(0)) <= 4:
+        name = _MONTH_ABBR[dt.month]
+        if month_token.group(0).islower():
+            name = name.lower()
+        elif month_token.group(0).isupper():
+            name = name.upper()
+        if re.match(rf'^\d{{1,2}}\s+{_MONTH_ALT}', original, re.I):
+            return f'{dt.day} {name} {dt.year}'
+        comma = ',' if ',' in original else ''
+        return f'{name} {dt.day}{comma} {dt.year}'
+    if month_token:
+        name = _MONTH_FULL[dt.month]
+        if month_token.group(0)[1:].islower():
+            pass
+        elif month_token.group(0).isupper():
+            name = name.upper()
+        comma = ',' if ',' in original else ''
+        if re.match(rf'^\d{{1,2}}\s+{_MONTH_ALT}', original, re.I):
+            return f'{dt.day} {name} {dt.year}'
+        return f'{name} {dt.day}{comma} {dt.year}'
+    return f'{_MONTH_ABBR[dt.month]} {dt.day} {dt.year}'
+
+
+def _shift_date_string(raw):
+    dt = _parse_loose_date(raw)
+    if not dt:
+        return None
+    shifted = dt + timedelta(days=400)
+    return _format_date_like(raw, shifted)
+
+
+def _cloak_leftover_dates(original, redacted, wrap=True):
+    """If a date from the original is still present (bare or inside [~ ~]), replace it."""
+    if not original or not redacted:
+        return redacted
+    for match in _DATE_RE.finditer(original):
+        raw = match.group(0)
+        shifted = _shift_date_string(raw)
+        if not shifted or shifted.lower() == raw.lower():
+            continue
+        replacement = f'[~{shifted}~]' if wrap else shifted
+        marked = f'[~{raw}~]'
+        if marked in redacted:
+            redacted = redacted.replace(marked, replacement)
+        elif raw in redacted:
+            redacted = redacted.replace(raw, replacement)
+    return redacted
+
+
+def _fix_noop_aggr_markers(original, redacted):
+    """[~Oct 6 1994~] with the original still inside is a failed cloak — substitute."""
+    if not original or not redacted:
+        return redacted
+
+    def repl(m):
+        inner = m.group(1)
+        if inner and inner in original:
+            shifted = _shift_date_string(inner)
+            if shifted:
+                return f'[~{shifted}~]'
+        return m.group(0)
+
+    return re.sub(r'\[~([\s\S]*?)~\]', repl, redacted)
+
+
 def redact_text(text, privacy_level='standard'):
     """Redact plain text (non-JSON) using the FOIA two-tier scheme."""
     prompt = "Rewrite this document. Output the redacted document only.\n\n" + text
@@ -901,6 +1040,13 @@ def redact_text(text, privacy_level='standard'):
     for ssn in set(_SSN_RE.findall(text)):
         if ssn in redacted:
             redacted = redacted.replace(ssn, '[b(Ex.3)]')
+    redacted = redacted.replace('[REDACTED]', 'David Ellison').replace('[redacted]', 'David Ellison')
+    if privacy_level == 'aggressive':
+        redacted = _fix_noop_aggr_markers(text, redacted)
+        redacted = _cloak_leftover_dates(text, redacted, wrap=True)
+    elif privacy_level == 'standard':
+        # DOB-style dates still in the clear should move; event dates stay unless already marked.
+        redacted = _fix_noop_aggr_markers(text, redacted)
     return redacted
 
 
