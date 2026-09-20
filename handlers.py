@@ -19,10 +19,9 @@ def get_s3_client():
         aws_secret_access_key=config.DO_SPACES_SECRET
     )
 
-# Live free OpenRouter IDs as of 2026-09. Retired IDs (google/gemini-flash-1.5,
-# google/gemini-2.0-flash-001:free, minimax/minimax-m2.7:free) 404.
+# Prefer specific instruction-following free models. openrouter/free auto-routes
+# to whatever is idle, including content-safety / VL models that return non-JSON.
 _FREE_OPENROUTER_MODELS = (
-    'openrouter/free',
     'nvidia/nemotron-3.5-lightning:free',
     'google/gemma-4-31b-it:free',
 )
@@ -687,52 +686,27 @@ def _redact_chunk(chunk, privacy_level='standard'):
     )
     redacted = None
     last_raw = None
-    for attempt in range(2):
-        extra = ''
-        if attempt:
-            extra = (
-                "\n\nCRITICAL: Return a single valid JSON value only. "
-                "No markdown. Apply every Tier 1 [b(Ex.N)] marker."
-            )
+    try:
+        last_raw = call_llm(
+            prompt, system,
+            temperature=0.1,
+            max_tokens=_llm_max_tokens(4096),
+        )
         try:
-            last_raw = call_llm(
-                prompt + extra, system,
-                use_fallback=attempt > 0,
-                temperature=0.1,
-                max_tokens=_llm_max_tokens(4096),
-            )
-            try:
-                redacted = _parse_llm_json(last_raw)
-                break
-            except Exception as parse_err:
-                print(f"[redact] JSON parse attempt {attempt + 1} failed: {parse_err}")
-        except Exception as e:
-            print(f"[redact] LLM attempt {attempt + 1} failed: {e}")
+            redacted = _parse_llm_json(last_raw)
+        except Exception as parse_err:
+            print(f"[redact] JSON parse skipped: {parse_err}")
+    except Exception as e:
+        print(f"[redact] LLM failed: {e}")
 
     if redacted is None:
-        # Demo should still return the model output rather than a 502/parse error.
-        print("[redact] returning raw model text (JSON parse skipped)")
+        print("[redact] returning raw model text")
         return _sweep_statutory_string(last_raw or '')
 
     if not isinstance(redacted, (dict, list)):
         return _sweep_statutory_string(str(redacted))
 
-    redacted = _sweep_statutory(redacted)
-    leaks = _identity_leaks(chunk, redacted, privacy_level)
-    if leaks:
-        retry_prompt = (
-            prompt
-            + "\n\nThe previous pass leaked values that MUST be changed:\n- "
-            + "\n- ".join(leaks[:24])
-            + "\nReturn the fully redacted JSON only."
-        )
-        try:
-            retried = _llm_json(retry_prompt, system, use_fallback=True)
-            if isinstance(retried, (dict, list)):
-                redacted = _sweep_statutory(retried)
-        except Exception as e:
-            print(f"[redact] leak-retry failed: {e}")
-    return redacted
+    return _sweep_statutory(redacted)
 
 
 def _redact_large_dict(data, privacy_level='standard'):
@@ -832,53 +806,22 @@ def redact_text(text, privacy_level='standard'):
     system = _TEXT_SYSTEM_BY_LEVEL[privacy_level]
     last_err = None
     redacted = None
-    for attempt in range(2):
-        try:
-            redacted = call_llm(
-                prompt if attempt == 0 else (
-                    prompt + "\n\nReturn ONLY the redacted document. Apply every required redaction."
-                ),
-                system,
-                use_fallback=attempt > 0,
-                temperature=0.1,
-                max_tokens=_llm_max_tokens(4096),
-            )
-            if redacted and redacted.strip():
-                break
-            last_err = Exception('empty text redaction')
-        except Exception as e:
-            last_err = e
-            print(f"[redact_text] attempt {attempt + 1} failed: {e}")
+    try:
+        redacted = call_llm(
+            prompt, system,
+            temperature=0.1,
+            max_tokens=_llm_max_tokens(4096),
+        )
+    except Exception as e:
+        last_err = e
+        print(f"[redact_text] LLM failed: {e}")
+        redacted = None
     if not redacted:
         raise last_err or Exception('Text redaction failed')
     redacted = _sweep_statutory_string(redacted)
-    leaks = []
     for ssn in set(_SSN_RE.findall(text)):
         if ssn in redacted:
             redacted = redacted.replace(ssn, '[b(Ex.3)]')
-            leaks.append(ssn)
-    if privacy_level != 'reduced':
-        for email in set(_EMAIL_RE.findall(text)):
-            if email in redacted:
-                leaks.append(email)
-    if leaks and privacy_level != 'reduced':
-        try:
-            retry = call_llm(
-                prompt
-                + "\n\nThese original values are still in the output and MUST be replaced:\n"
-                + "\n".join(leaks[:20]),
-                system,
-                use_fallback=True,
-                temperature=0.1,
-                max_tokens=_llm_max_tokens(4096),
-            )
-            if retry and retry.strip():
-                redacted = _sweep_statutory_string(retry)
-                for ssn in set(_SSN_RE.findall(text)):
-                    if ssn in redacted:
-                        redacted = redacted.replace(ssn, '[b(Ex.3)]')
-        except Exception as e:
-            print(f"[redact_text] leak-retry failed: {e}")
     return redacted
 
 

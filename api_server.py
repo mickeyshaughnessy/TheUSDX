@@ -75,6 +75,22 @@ def _price_for(privacy_level: str) -> dict:
     }
 
 
+def _limit_demo_records(data, n=2):
+    """Keep demo queries to one dataset and a couple of records so the LLM finishes."""
+    if isinstance(data, list):
+        return [_limit_demo_records(item, n) for item in data[:1]]
+    if isinstance(data, dict):
+        out = dict(data)
+        recs = out.get('records')
+        if isinstance(recs, list):
+            out['records'] = recs[:n]
+        inner = out.get('data')
+        if isinstance(inner, dict):
+            out['data'] = _limit_demo_records(inner, n)
+        return out
+    return data
+
+
 def _cache_get(key: str):
     if key in _cache and time.time() - _cache_ts.get(key, 0) < (
             _TTL_USER if key.startswith('user:') else _TTL_RESULT):
@@ -252,8 +268,9 @@ def get_data():
         return jsonify(cached_result), 200
 
     try:
-        matches = match_listings(description, top_k=3, use_llm=False)
+        matches = match_listings(description, top_k=1, use_llm=False)
         collected_data = collect_data(description, matches=matches)
+        collected_data = _limit_demo_records(collected_data, n=2)
         redacted_data = redact_data(collected_data, privacy_level=privacy_level)
 
         processing_time = time.time() - start_time
