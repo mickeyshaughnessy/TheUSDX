@@ -306,8 +306,21 @@ Return a JSON list of dataset IDs that best match the request. Format: {{"datase
 #                of indirect identifiers.
 # ---------------------------------------------------------------------------
 
+_JSON_ONLY = (
+    "HARD OUTPUT RULES:\n"
+    "- Your entire reply is the rewritten document. Nothing else.\n"
+    "- If the input is JSON, the reply must be JSON: first character { or [, last character } or ].\n"
+    "- Do not think out loud. Do not inventory fields. Do not discuss which exemptions apply.\n"
+    "- Forbidden: sentences like \"We need to apply\", \"Thus only\", \"Not present\", "
+    "\"Tier 1\", \"I will redact\", or any plan of work.\n"
+    "- Transform values in place. Same keys, same nesting. No extra fields.\n\n"
+    "Example input: {\"ssn\":\"412-67-8234\",\"name\":\"Ada Lovelace\",\"id\":\"X-1\"}\n"
+    "Example output: {\"ssn\":\"[b(Ex.3)]\",\"name\":\"Nora Ellison\",\"id\":\"X-1\"}\n\n"
+)
+
 _REDACTION_SYSTEM_REDUCED = (
-    "You are a FOIA compliance officer processing federal agency records for public release "
+    _JSON_ONLY
+    + "You are a FOIA compliance officer processing federal agency records for public release "
     "under 5 U.S.C. § 552 (Freedom of Information Act), using the REDUCED PRIVACY tier "
     "(a paid tier for verified requesters). Apply ONLY the Tier 1 blind redactions listed "
     "below — these are statutorily mandated exemptions that cannot be waived at any tier. "
@@ -349,12 +362,13 @@ _REDACTION_RULES_REDUCED = (
     "  Names of third parties in law enforcement or incident records\n"
     "  Case numbers, employee IDs, contract numbers, dates of events, position titles,\n"
     "  pay grades, salary amounts, and all other non-exempt content\n\n"
-
-    "DATA TO REDACT:\n"
+    "OUTPUT: rewritten JSON only. Do not describe the rules you applied.\n\n"
+    "JSON TO REWRITE:\n"
 )
 
 _REDACTION_SYSTEM = (
-    "You are a FOIA compliance officer processing federal agency records for public release "
+    _JSON_ONLY
+    + "You are a FOIA compliance officer processing federal agency records for public release "
     "under 5 U.S.C. § 552 (Freedom of Information Act). Apply the two-tier redaction scheme "
     "specified below, then return ONLY the redacted JSON — no commentary, no explanations.\n\n"
 
@@ -374,7 +388,8 @@ _REDACTION_SYSTEM = (
 )
 
 _REDACTION_SYSTEM_AGGRESSIVE = (
-    "You are a FOIA compliance officer processing federal agency records for public release "
+    _JSON_ONLY
+    + "You are a FOIA compliance officer processing federal agency records for public release "
     "under 5 U.S.C. § 552 (Freedom of Information Act). Apply the two-tier redaction scheme "
     "specified below, then return ONLY the redacted JSON — no commentary, no explanations.\n\n"
 
@@ -418,10 +433,12 @@ _REDACTION_RULES = (
     "  [b(Ex.7(F))]  Medical conditions of incarcerated persons\n\n"
 
     "TIER 2 — SMART REDACT (replace value with realistic substitute):\n"
-    "  Ex.6  Individual names (contractors, employees, civilians)\n"
+    "  Ex.6  Individual names (contractors, employees, civilians, participants)\n"
     "        → substitute a different realistic full name\n"
     "  Ex.6  Supervising officer names\n"
     "        → substitute a different realistic name and title\n"
+    "  Ex.6  Treating physicians, clinicians, and named medical staff\n"
+    "        → substitute a different realistic name\n"
     "  Ex.6  Dates of birth\n"
     "        → shift by a random amount (±1–5 years, different month and day)\n"
     "  Ex.6  Personal and residential street addresses\n"
@@ -443,8 +460,8 @@ _REDACTION_RULES = (
     "  Non-covert facility names used as general location context (Langley, VA; Fort Meade, MD)\n\n"
 
     "CONSISTENCY: if a name or value appears more than once, use the same substitute throughout.\n\n"
-
-    "DATA TO REDACT:\n"
+    "OUTPUT: rewritten JSON only. Do not describe the rules you applied.\n\n"
+    "JSON TO REWRITE:\n"
 )
 
 _REDACTION_RULES_AGGRESSIVE = (
@@ -499,9 +516,9 @@ _REDACTION_RULES_AGGRESSIVE = (
 
     "PRESERVE: case/employee IDs, position titles, pay grades, salary amounts, "
     "complaint categories, general outcome/disposition text.\n"
-    "CONSISTENCY: use the same substitute for repeated values.\n\n"
-
-    "DATA TO REDACT:\n"
+    "CONSISTENCY: use the same substitute for repeated values.\n"
+    "OUTPUT: rewritten JSON only. Do not describe the rules you applied.\n\n"
+    "JSON TO REWRITE:\n"
 )
 
 
@@ -602,6 +619,7 @@ _NAME_KEYS = {
     'supervising_officer', 'officer', 'complainant', 'witness',
     'attorney', 'spouse', 'alias', 'nickname', 'patient_name',
     'producer_name', 'resident_name', 'reporter',
+    'primary_care_physician', 'physician', 'doctor',
 }
 
 
@@ -682,36 +700,57 @@ def _llm_json(prompt, system, json_mode=False, use_fallback=False):
     return _parse_llm_json(raw)
 
 
+def _try_parse_redaction(raw):
+    if not raw or not str(raw).strip():
+        return None
+    try:
+        parsed = _parse_llm_json(raw)
+    except Exception as parse_err:
+        print(f"[redact] JSON parse skipped: {parse_err}")
+        return None
+    return parsed if isinstance(parsed, (dict, list)) else None
+
+
 def _redact_chunk(chunk, privacy_level='standard'):
     """Redact a single JSON-serializable chunk using the FOIA two-tier scheme."""
     chunk_str = json.dumps(chunk, indent=2)
     prompt = _RULES_BY_LEVEL[privacy_level] + chunk_str
     system = (
         _SYSTEM_BY_LEVEL[privacy_level]
-        + " Respond with valid JSON only — no markdown fences, no commentary."
+        + " First character of your reply must be { or [. No other text."
     )
     redacted = None
-    last_raw = None
     try:
-        last_raw = call_llm(
+        raw = call_llm(
             prompt, system,
             temperature=0.1,
             max_tokens=_llm_max_tokens(4096),
         )
-        try:
-            redacted = _parse_llm_json(last_raw)
-        except Exception as parse_err:
-            print(f"[redact] JSON parse skipped: {parse_err}")
+        redacted = _try_parse_redaction(raw)
     except Exception as e:
         print(f"[redact] LLM failed: {e}")
+        raw = None
 
     if redacted is None:
-        print("[redact] returning raw model text")
-        return _sweep_statutory_string(last_raw or '')
+        retry = (
+            "STOP. Your last reply was analysis, not the record. "
+            "Output the rewritten JSON now. First character `{`. No sentences.\n\n"
+            + chunk_str
+        )
+        try:
+            raw = call_llm(
+                retry, system,
+                use_fallback=True,
+                temperature=0.1,
+                max_tokens=_llm_max_tokens(4096),
+            )
+            redacted = _try_parse_redaction(raw)
+        except Exception as e:
+            print(f"[redact] retry failed: {e}")
 
-    if not isinstance(redacted, (dict, list)):
-        return _sweep_statutory_string(str(redacted))
-
+    if redacted is None:
+        print("[redact] discarding model commentary; statutory-sweeping original")
+        return _sweep_statutory(chunk)
     return _sweep_statutory(redacted)
 
 
@@ -745,8 +784,15 @@ def _redact_large_dict(data, privacy_level='standard'):
     return result if result else leftover
 
 
+_TEXT_ONLY = (
+    "HARD OUTPUT RULES: Return the redacted document only. Do not explain, inventory fields, "
+    "or discuss which exemptions apply. Do not write \"We need to apply\" or similar. "
+    "Start with the first line of the document.\n\n"
+)
+
 _REDACTION_TEXT_SYSTEM_REDUCED = (
-    "You are a FOIA compliance officer processing a document for public release "
+    _TEXT_ONLY
+    + "You are a FOIA compliance officer processing a document for public release "
     "under 5 U.S.C. § 552, using the REDUCED PRIVACY tier (paid tier for verified requesters). "
     "Apply ONLY Tier 1 blind redaction — statutorily mandated exemptions that can never be "
     "waived (classified info, SSNs/program IDs, Ex.7(F) life/safety). Do NOT mask or substitute "
@@ -757,7 +803,8 @@ _REDACTION_TEXT_SYSTEM_REDUCED = (
 )
 
 _REDACTION_TEXT_SYSTEM = (
-    "You are a FOIA compliance officer processing a document for public release "
+    _TEXT_ONLY
+    + "You are a FOIA compliance officer processing a document for public release "
     "under 5 U.S.C. § 552. Apply the same two-tier redaction scheme to the plain text below.\n\n"
     "TIER 1 — BLIND REDACTION: Replace sensitive values with [b(Ex.N)] markers "
     "(Ex.1 classified info, Ex.3 SSNs/program IDs, Ex.7(F) life/safety).\n\n"
@@ -769,7 +816,8 @@ _REDACTION_TEXT_SYSTEM = (
 )
 
 _REDACTION_TEXT_SYSTEM_AGGRESSIVE = (
-    "You are a FOIA compliance officer processing a document for public release "
+    _TEXT_ONLY
+    + "You are a FOIA compliance officer processing a document for public release "
     "under 5 U.S.C. § 552. Apply aggressive two-tier redaction to the plain text below.\n\n"
     "TIER 1 — BLIND REDACTION: Replace with [b(Ex.N)] markers "
     "(Ex.1 classified info, Ex.3 SSNs/program IDs/biometrics/DL numbers/VINs/plates, "
@@ -806,9 +854,33 @@ _TEXT_SYSTEM_BY_LEVEL = {
 }
 
 
+def _strip_leading_commentary(text, original):
+    if not text:
+        return text
+    orig_line = next((ln for ln in (original or '').splitlines() if ln.strip()), '')
+    if orig_line and orig_line in text:
+        return text[text.index(orig_line):]
+    lines = text.splitlines()
+    kept = []
+    skipping = True
+    for line in lines:
+        low = line.strip().lower()
+        if skipping and (
+            not low
+            or low.startswith((
+                'we need', 'thus ', 'i will', 'let me', 'the json',
+                'applying', 'tier 1', 'tier 2', 'so only', 'not present',
+            ))
+        ):
+            continue
+        skipping = False
+        kept.append(line)
+    return '\n'.join(kept) if kept else text
+
+
 def redact_text(text, privacy_level='standard'):
     """Redact plain text (non-JSON) using the FOIA two-tier scheme."""
-    prompt = "TEXT TO REDACT:\n\n" + text
+    prompt = "Rewrite this document. Output the redacted document only.\n\n" + text
     system = _TEXT_SYSTEM_BY_LEVEL[privacy_level]
     last_err = None
     redacted = None
@@ -824,6 +896,7 @@ def redact_text(text, privacy_level='standard'):
         redacted = None
     if not redacted:
         raise last_err or Exception('Text redaction failed')
+    redacted = _strip_leading_commentary(redacted, text)
     redacted = _sweep_statutory_string(redacted)
     for ssn in set(_SSN_RE.findall(text)):
         if ssn in redacted:

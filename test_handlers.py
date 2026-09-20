@@ -56,6 +56,18 @@ class TestStatutorySweep(unittest.TestCase):
         self.assertEqual(out['ssn'], '[b(Ex.3)]')
 
 
+class TestCommentaryStrip(unittest.TestCase):
+    def test_drops_exemption_walkthrough(self):
+        from handlers import _strip_leading_commentary
+        original = 'Participant Sandra R. Okonkwo, SSN 412-77-3920'
+        leaked = (
+            "We need to apply redactions.\n"
+            "Tier 1: SSNs are Ex.3. Not present: clearance.\n\n"
+            + original
+        )
+        self.assertEqual(_strip_leading_commentary(leaked, original), original)
+
+
 class TestIdentityLeaks(unittest.TestCase):
     def test_detects_leftover_ssn(self):
         orig = {'ssn': '412-67-8234', 'name': 'Marcus J. Thompson'}
